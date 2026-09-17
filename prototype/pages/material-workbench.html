@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物料管理 · 工单与库存台账</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="../assets/store.js"></script>
+<script src="../assets/flow.js"></script>
+<script src="../assets/nav.js" defer></script>
+<style>
+:root{--ink:#13293f;--muted:#6b7d8f;--line:#dbe5ef;--blue:#1677c8;--navy:#0b4770}
+*{box-sizing:border-box}
+body{margin:0;background:#f2f6fa;color:var(--ink);font:13px/1.55 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+.workbench-shell{display:flex;min-height:100vh}
+.standalone-nav{width:272px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.workbench-content{flex:1;min-width:0}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+.wrap{padding:24px 24px 32px;max-width:1680px;margin:0 auto}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:10px}
+.h1{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.h1 h2{margin:0;font-size:19px;font-weight:800}
+.h1 p{margin:2px 0 0;font-size:12px;color:var(--muted);max-width:1080px}
+.tabs{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--line);background:#e9eff5}
+.tab{border:1px solid transparent;border-bottom:0;background:transparent;color:var(--muted);padding:9px 14px;font-weight:700;white-space:nowrap;border-radius:6px 6px 0 0;margin-bottom:-1px}
+.tab.on{background:#fff;border-color:var(--line);color:var(--blue)}
+.bar{display:none;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 2px 8px rgba(30,70,100,.04)}
+.bar.has-content{display:flex}
+.b{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:9px;font-weight:700;font-size:12px;color:#31506b;min-height:36px}
+.b:hover:not(:disabled){background:#eef6fd}
+.b.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.b.danger{color:#b42318;border-color:#f0c8c4}
+.b:disabled{opacity:.45;cursor:not-allowed}
+.b.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(30,70,100,.035);overflow:hidden}
+.pad{padding:12px 14px}
+.mut{color:var(--muted)}.sm{font-size:11px}
+.tblwrap{overflow:auto}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+.t th{background:#f8fafc;color:#5f7488;font-weight:700;text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.t td{padding:10px;border-bottom:1px solid #eef3f8;white-space:nowrap;vertical-align:middle}
+.t tr:hover td{background:#f7fbff}
+.t .num{text-align:right}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid transparent}
+.g1{background:#eef2f6;color:#5b6f82;border-color:#dde5ec}
+.g2{background:#e8f2fc;color:#125d97;border-color:#cbe2f6}
+.g3{background:#fff4e0;color:#96590a;border-color:#f6dfb8}
+.g4{background:#e7f6ee;color:#116d4b;border-color:#c6e9d7}
+.g5{background:#fdeceb;color:#a9271f;border-color:#f5cfcb}
+.g6{background:#f1eafe;color:#6b3fa0;border-color:#e0d2f6}
+.f{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:12px;min-height:40px}
+.f:focus{outline:2px solid #8ec4ea;outline-offset:1px}
+.f[readonly]{background:#f4f7fa;color:#5f7488}
+.hd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#42586c}.fl-label{display:block;line-height:1.35}.fl-label i{display:inline;margin-left:3px}
+.fl.wide{grid-column:1/-1}
+.fl i{color:#c0392b;font-style:normal;margin-left:2px}
+.split{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:16px;align-items:start}
+.split>.work-order-info{background:#fff!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+.split>.work-order-info .fl{color:#42586c!important}
+.sum{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#42586c;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.note{background:#f4f9fd;border:1px solid #d7e9f7;border-radius:10px;padding:11px 12px;font-size:12px;color:#3c5a72}
+.link{color:var(--blue);font-weight:700;cursor:pointer}
+.link:hover{text-decoration:underline}
+.mask{position:fixed;inset:0;background:rgba(11,45,72,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.dlg{background:#fff;border-radius:8px;width:min(860px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(11,45,72,.3)}
+.dlg h3{margin:0;font-size:15px}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+.df{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.x{border:0;background:transparent;font-size:20px;color:var(--muted);line-height:1}
+.errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{position:relative;min-height:82px;background:#fff;border:1px solid var(--line);border-left:4px solid #3b82f6;border-radius:14px;padding:12px 14px;box-shadow:0 2px 8px rgba(30,70,100,.035);display:flex;flex-direction:column;justify-content:center}
+.kpi:nth-child(2){border-left-color:#f59e0b}.kpi:nth-child(3){border-left-color:#ef4444}.kpi:nth-child(4){border-left-color:#10b981}
+.kpi small{display:block;color:var(--muted);font-size:11px}
+.kpi b{display:block;font-size:20px;margin-top:3px;color:#0f4f82}
+.kpi:nth-child(2) b{color:#c06b00}.kpi:nth-child(3) b{color:#dc2626}.kpi:nth-child(4) b{color:#12805a}
+.kpi .sm{margin-top:2px;color:#94a3b8}
+.main-toolbar{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(30,70,100,.035)}
+#bar:empty{display:none}
+.main-toolbar:has(+ .card){}
+.card>.tblwrap{min-height:64px}
+.tblwrap{scrollbar-width:thin}
+.tblwrap::-webkit-scrollbar{height:8px}.tblwrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+.multi{line-height:1.8;white-space:nowrap}
+.multi-select{position:relative}.multi-select-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer}.multi-select-toggle .multi-value{display:flex;gap:5px;flex-wrap:wrap;min-width:0}.multi-select-toggle .multi-placeholder{color:#8aa0b2}.multi-select-toggle i{color:#6d879b;font-size:11px}.multi-select-menu{position:absolute;z-index:30;top:calc(100% + 5px);left:0;right:0;padding:6px;background:#fff;border:1px solid #b9d2e6;border-radius:10px;box-shadow:0 12px 28px rgba(24,74,111,.16)}.multi-select-menu label{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;color:#31506b;cursor:pointer;font-weight:600}.multi-select-menu label:hover{background:#f1f8fd}.multi-select-menu input{accent-color:var(--blue)}.multi-chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#eaf4fc;color:#125d97;font-size:11px;font-weight:700}
+.source-record{display:inline-flex;align-items:center;max-width:180px;min-height:36px;padding:7px 10px;border:1px solid #d7e6f1;border-radius:10px;background:#f7fbfe;color:#31506b;font-weight:600;white-space:normal;line-height:1.35}
+.qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px}.qty-unit{color:#5f7488;font-weight:600}
+.qr-preview{width:42px;height:42px;border:1px solid var(--line);border-radius:5px;background:#fff;vertical-align:middle;margin-right:6px}
+.empty-add{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px dashed #8fbfe0;border-radius:8px;background:#f5faff;color:var(--blue);font-size:25px;line-height:1}
+.empty-add:hover{background:#eaf5fd;border-style:solid}
+.picker-kind{display:flex;gap:6px;margin-bottom:12px}
+.picker-kind button{flex:1}
+.picker-kind button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.picker-target{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:center;margin-bottom:12px}
+.card>.pad[style*="border-bottom"]{padding:14px 16px!important}
+.subtabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.subtab{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;color:#4d6479}
+.subtab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.batch-row td{background:#eef6fd!important;border-top:1px solid #cfe4f5;border-bottom:1px solid #cfe4f5;color:#125d97;font-weight:800;padding:9px 10px}
+.region-row td{background:#fafcff!important;color:#5f7488;font-weight:700;padding:7px 10px;border-bottom:1px solid #e8f0f6}
+.batch-mark{display:inline-flex;align-items:center;gap:6px}.batch-mark i{color:#1677c8}.region-mark{display:inline-flex;align-items:center;gap:6px;color:#42586c}
+.hide{display:none!important}
+.red{color:#b42318}.org{color:#96590a}.grn{color:#116d4b}
+@media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.hd{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body data-standalone-shell>
+<div class="workbench-shell flex">
+  <aside class="standalone-nav w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+  <div class="workbench-content flex-1 min-w-0">
+<div class="wrap">
+  <div class="crumb">物料管理 / <b id="crumb">物料登记</b></div>
+  <div class="h1">
+    <div><h2 id="ttl">物料登记</h2><p id="dsc"></p></div>
+    <div class="sm mut" style="text-align:right">核心表<br><b>stock_doc / stock_doc_line / inventory_stock / stock_ledger / material_item</b></div>
+  </div>
+  <div id="crumbBack" class="sm mut" style="margin-bottom:8px"></div>
+  <div class="bar" id="bar"></div>
+  <main id="main" class="mt-3" aria-live="polite"></main>
+</div>
+  </div>
+</div>
+<div id="dlgRoot" class="mask hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg"><div class="dh"><h3 id="dlgTitle">提示</h3><button class="x" id="dlgX" aria-label="关闭">×</button></div><div class="pad" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div>
+</div>
+<div id="toast" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full z-[80]" role="status" aria-live="polite"></div>
+<script>
+(function(){
+/* ===== 1. 字典（基础数据 · 编码与字典） ===== */
+var OPT={
+  ISSUE_TYPE:['常规领用','直接领用'],
+  REQ:['SQ20260916004','SQ20260916003','SQ20260916002','SQ20260915005','SQ20260915004'],
+  REG:['DJ2026091401'],
+  REQUEST_TYPE:['生产领料','补料领料','样品/打样领料','维修/设备领料','办公/劳保领料','其他'],
+  CUSTOMER:['恒达服饰','宏远纺织','单位本部'],
+  WH:['成品仓A','成品仓B','原料仓C','待检区','隔离区','缝制一车间','裁剪车间','缝制二车间','直送车间（不入仓）'],
+  UNIT:['米','件','个','卷','箱'],
+  MODE:['按量（批次数量）','一物一码'],
+  IN_TYPE:['采购入库','委托加工回厂','退库回仓','盘盈入库','期初入库'],
+  RET_TYPE:['入库冲红','损坏退还供应商','待检转合格','隔离报废待核'],
+  RET_STATE:['可用','待检','隔离'],
+  QC:['合格','待检','不合格（转来料拒收）'],
+  RJ_TYPE:['整批拒收','部分拒收','挑选让步接收','退货出库'],
+  RJ_ACT:['退回供应商','现场销毁待复核'],
+  RJ_REASON:['质量问题','规格不符','数量短缺','包装破损','超过有效期','其他']
+};
+/* 单头字段：key / 标签 / 控件 / 必填 —— 对齐客户“工单信息”右栏 */
+var HEAD={
+  register:[['unit','登记单位','text',1],['dept','登记部门','text',1],['wh','存放位置','sel:WH',1],['source','来源/送货单据号','text',0],['src_request','关联申请领料单','sel:REQ',0],['date','工单日期','date',1],['handler','经办人','text',1],['remark','便签备注','area',0]],
+  reject:[['party','供货单位','text',1],['source','关联来料/入库单号','text',1],['date','到货日期','date',1],['dept','验收部门','text',1],['inspector','检验人','text',1],['rj_type','拒收类型','sel:RJ_TYPE',1],['rj_action','处置方式','sel:RJ_ACT',1],['handler','经办人','text',1],['remark','便签备注','area',0]],
+  inbound:[['unit','入库单位','text',1],['dept','验收部门','text',1],['wh','存放位置','sel:WH',1],['loc','存放库区','text',1],['in_type','入库类型','sel:IN_TYPE',1],['party','供应商','text',1],['source','来源/送货单据号','text',0],['src_dj','关联物料登记单','sel:REG',0],['date','工单日期','date',1],['handler','经办人','text',1],['acceptor','验收人','text',1],['remark','便签备注','area',0]],
+  issue:[['unit','领用单位','text',1],['dept','领用车间/部门','text',1],['issue_type','领用类型','sel:ISSUE_TYPE',1],['issue_flow','出库去向','sel:ISSUE_FLOW',1],['receiver','领用人','text',1],['wh','发料位置','sel:WH',1],['date','工单日期','date',1],['handler','发料人','text',1],['remark','便签备注','area',0]],
+  return:[['dept','退库单位/车间','text',1],['receiver','退库人','text',1],['ret_type','退库类型','sel:RET_TYPE',1],['src_rk','原入库/来源单号','text',0],['wh','发出位置','sel:WH',1],['date','工单日期','date',1],['handler','经办人','text',1],['reason','原因说明','text',1],['remark','便签备注','area',0]],
+  request:[['unit','申请客户','sel:CUSTOMER',1],['dept','申请车间/班组/工位','text',1],['receiver','申请人','text',1],['material_type','领料类型（可多选）','multi:REQUEST_TYPE',1],['date','工单日期','date',1],['due_date','期望到货日期','date',1],['handler','经办人','text',1],['remark','便签备注','area',0]],
+  wreturn:[['dept','退料车间/班组','text',1],['receiver','退料人','text',1],['src_ly','原领用单号','text',1],['wh','回库位置','sel:WH',1],['loc','回库库区','text',1],['judge_state','车间自报状态','sel:RET_STATE',1],['judge_by','外仓判定人','text',0],['judge_note','判定说明','text',0],['date','工单日期','date',1],['handler','经办人','text',1],['reason','退料原因','text',1],['remark','便签备注','area',0]]
+};
+/* 清单列：key / 标签 / 控件 */
+var COLS={
+  register:[['code','物料编码/名称*','mat'],['unit','单位','ro:unit'],['pack','包装数量*','num'],['sub','细分数量*','num'],['price','单价','num'],['barcode','二维码（登记时生成）','auto:barcode']],
+  reject:[['code','物料编码/名称*','mat'],['batch','批次号','text'],['qty_src','来料数量','num'],['qty_bad','不合格数量','num'],['qty','拒收数量*','num'],['unit','单位','ro:unit'],['reason','拒收原因*','sel:RJ_REASON']],
+  inbound:[['code','物料编码/名称*','mat'],['batch','批次号','text'],['qty_src','来料数量','num'],['qty','验收数量*','num'],['diff','差异','auto:diff'],['unit','单位','ro:unit'],['loc','存放库区','text'],['qc','质检结论*','sel:QC'],['price','单价','num'],['labels','标签张数','auto:labels'],['barcode','条码（审批后生成）','auto:barcode']],
+  issue:[['code','物料编码/名称*','mat'],['batch','批次（仅有可用量的库存）','selbatch'],['loc','库区','auto:loc'],['avail','可用量','auto:avail'],['qty','实发数量*','num'],['unit','单位','ro:unit'],['price','单价','num'],['amount','金额（参考）','auto:amount']],
+  return:[['code','物料编码/名称*','mat'],['batch','批次号','text'],['book','当前账面','auto:book'],['qty','本次退库数量*','num'],['unit','单位','ro:unit'],['reason','原因','text']],
+  request:[['code','物料编码/名称*','mat'],['qty','申请数量*','num'],['unit','单位','ro:unit'],['ref','来源记录','source']],
+  wreturn:[['code','物料编码/名称*','mat'],['batch','批次号','text'],['qty','退料数量*','num'],['unit','单位','ro:unit'],['loc','回库库区','text'],['ret_state','回增状态','sel:RET_STATE']]
+};
+var VIEWS={
+  request:{name:'申请领料',prefix:'SQ',kind:'doc',desc:'进仓前：车间按送货单/订单提需求，只登记申请意向。审批只做需求确认，不写库存记录、不增减仓库库存，后续由仓库发料（物料领用）执行。'},
+  register:{name:'物料登记',prefix:'DJ',kind:'doc',desc:'进仓加库存第1步：建码建账，按一物一码逐件生成二维码；审批后自动入账并写流水。物料档案初始库存固定为 0，只能通过已审批单据产生库存。'},
+  reject:{name:'来料拒收',prefix:'JS',kind:'doc',desc:'物料登记的分支：只留不合格凭证，审批后不写库存记录、不增减仓库库存，但会锁定来源单据的可入库数量。'},
+  inbound:{name:'物料入库',prefix:'RK',kind:'doc',desc:'进仓加库存第2步：增加仓库库存。可关联已审批物料登记单（单头“关联登记单号”），核对来料数与验收数；待检行只进“待检”分量，不计可用。'},
+  issue:{name:'物料领用',prefix:'LY',kind:'doc',desc:'进仓后：仓库执行发料（含车间接收签收），只能选择有可用量的批次；审批后自动扣减账面与可用量并写流水。'},
+  wreturn:{name:'车间退料',prefix:'TL',kind:'doc',desc:'方向=回仓进项：车间把余料/待检/隔离品退回仓库。审批后增加目标仓库存量（可用/待检/隔离），必须关联原领用单并校验超退，外仓判定后回增。'},
+  return:{name:'物料退库',prefix:'TK',kind:'doc',desc:'方向=出库/冲红：入库冲红写反向流水并锁定原单可冲余量；损坏退还供应商为出库；待检/隔离为分量互转。车间余料回仓请走《车间退料》，不在此处理。'},
+  onhand:{name:'仓库库存',prefix:'',kind:'book',desc:'只读台账：由 stock_ledger 派生，不可直接改数；改变数量请从对应工单菜单发起，审批后才动账。'},
+  ledger:{name:'库存记录',prefix:'',kind:'book',desc:'只读流水：只增不改不删，冲红为反向流水并指向原单；账实核对以本表为准。'},
+  materialCode:{name:'物料明细',prefix:'',kind:'book',desc:'聚合只读：每种物料一行，批次显示记录数并可点击查看明细，数量为包装件数（箱/袋）；行操作只跳转不改数。'}
+};
+var ORDER=['request','register','reject','inbound','issue','wreturn','return','stock','materialCode'];
+
+/* ===== 2. 核心数据表（localStorage 模拟全站唯一数据源） ===== */
+var KEY='jm_wms_core_v1';
+function seed(){
+  var d0='2026-09-14',t0='2026-09-14 08:28';
+  return {
+    seq:{BT:1,IB:3,DJ:2,JS:2,RK:2,LY:2,TK:2,SQ:2,TL:2},
+    material:[
+      {code:'10A0501020100011',name:'办公桌',spec:'160*120',unit:'件',mode:'一物一码',pack:1,sub:1,min:5,max:50,price:1200,customer:'单位本部',status:'启用',created:d0+' 08:20'},
+      {code:'10A0501020100012',name:'办公椅',spec:'—',unit:'件',mode:'一物一码',pack:1,sub:1,min:5,max:50,price:320,customer:'单位本部',status:'启用',created:d0+' 08:20'},
+      {code:'10A0501020100013',name:'牛津布',spec:'藏青150D',unit:'米',mode:'按量（批次数量）',pack:50,sub:1,min:1000,max:8000,price:12.5,customer:'恒达服饰',status:'启用',created:'2026-09-10 09:00'},
+      {code:'10A0501020100014',name:'里布',spec:'灰色',unit:'米',mode:'按量（批次数量）',pack:50,sub:1,min:800,max:6000,price:8,customer:'宏远纺织',status:'启用',created:'2026-09-10 09:05'},
+      {code:'10A0501020100015',name:'拉链',spec:'5#黑',unit:'件',mode:'按量（批次数量）',pack:1000,sub:10,min:2000,max:12000,price:.8,customer:'恒达服饰',status:'启用',created:'2026-09-09 16:00'},
+      {code:'10A0501020100016',name:'纽扣',spec:'四孔古铜',unit:'个',mode:'按量（批次数量）',pack:500,sub:50,min:1500,max:9000,price:.15,customer:'恒达服饰',status:'启用',created:'2026-09-09 16:10'}
+    ],
+    stock:[
+      {wh:'成品仓A',loc:'第1栏第1格',code:'10A0501020100013',batch:'MB2026091003',unit:'米',on:4200,avail:3980,pending:220,qua:0,frozen:0,at:t0},
+      {wh:'成品仓A',loc:'第1栏第2格',code:'10A0501020100015',batch:'MB2026090901',unit:'件',on:9200,avail:9200,pending:0,qua:0,frozen:0,at:t0},
+      {wh:'成品仓B',loc:'第2栏第1格',code:'10A0501020100014',batch:'MB2026091001',unit:'米',on:2150,avail:1930,pending:220,qua:0,frozen:0,at:t0},
+      {wh:'原料仓C',loc:'第1栏第1格',code:'10A0501020100016',batch:'MB2026090905',unit:'个',on:5800,avail:5650,pending:150,qua:0,frozen:0,at:t0}
+    ],
+    doc:[
+      {no:'DJ2026091401',type:'register',status:'已审批',date:d0,unit:'单位本部',dept:'办公室',wh:'成品仓A',loc:'第1栏第1格',source:'—',handler:'张建国',remark:'期初建账（演示数据）',approved_at:t0,
+        lines:[{code:'10A0501020100011',name:'办公桌',batch:'MB2026091401',qty:1,unit:'件',loc:'第1栏第1格',pack:1,sub:1,price:1200,barcode:'WL00000001'},
+               {code:'10A0501020100012',name:'办公椅',batch:'MB2026091401',qty:1,unit:'件',loc:'第1栏第2格',pack:1,sub:1,price:320,barcode:'WL00000002'}]},
+      {no:'RK2026091401',type:'inbound',status:'已审批',date:d0,unit:'单位本部',dept:'办公室',wh:'成品仓A',loc:'第1栏第1格',in_type:'采购入库',party:'宏远纺织',source:'DN-20260912-03',handler:'张建国',acceptor:'王芳',remark:'首批到货',approved_at:t0,
+        lines:[{code:'10A0501020100013',batch:'MB2026091003',qty_src:4200,qty:4200,unit:'米',loc:'第1栏第1格',qc:'合格',price:12.5,barcode:'批次码 MB2026091003',labels:84}]},
+      {no:'LY2026091401',type:'issue',status:'已保存',date:d0,unit:'一监区',dept:'缝制一车间',receiver:'李小明',vehicle:'—',purpose:'HD20260908-03',wh:'成品仓A',handler:'张建国',remark:'',
+        lines:[{code:'10A0501020100013',batch:'MB2026091003',qty:200,unit:'米',loc:'第1栏第1格',price:12.5}]},
+      {no:'JS2026091401',type:'reject',status:'已保存',date:d0,party:'恒达辅料',source:'RK2026091401',dept:'办公室',inspector:'王芳',rj_type:'部分拒收',rj_action:'退回供应商',handler:'张建国',remark:'附现场照片',
+        lines:[{code:'10A0501020100016',batch:'MB2026090905',qty_src:5800,qty_bad:150,qty:150,unit:'个',reason:'包装破损'}]}
+    ],
+    ledger:[
+      {t:t0,doc:'DJ2026091401',biz:'物料登记',code:'10A0501020100011',batch:'MB2026091401',wh:'成品仓A',loc:'第1栏第1格',dir:'入',qty:1,field:'avail',before:0,after:1,unit:'件',by:'张建国',note:'一物一码 1 件'},
+      {t:t0,doc:'DJ2026091401',biz:'物料登记',code:'10A0501020100012',batch:'MB2026091401',wh:'成品仓A',loc:'第1栏第2格',dir:'入',qty:1,field:'avail',before:0,after:1,unit:'件',by:'张建国',note:'一物一码 1 件'},
+      {t:t0,doc:'RK2026091401',biz:'物料入库·采购入库',code:'10A0501020100013',batch:'MB2026091003',wh:'成品仓A',loc:'第1栏第1格',dir:'入',qty:4200,field:'avail',before:0,after:4200,unit:'米',by:'张建国',note:'演示期初账'},
+      {t:t0,doc:'RK2026091401',biz:'物料入库·采购入库',code:'10A0501020100015',batch:'MB2026090901',wh:'成品仓A',loc:'第1栏第2格',dir:'入',qty:9200,field:'avail',before:0,after:9200,unit:'件',by:'张建国',note:'演示期初账'}
+    ],
+    item:[
+      {barcode:'WL00000001',code:'10A0501020100011',name:'办公桌',spec:'160*120',batch:'MB2026091401',status:'在库',wh:'成品仓A',loc:'第1栏第1格',holder:'—',doc:'DJ2026091401',at:t0},
+      {barcode:'WL00000002',code:'10A0501020100012',name:'办公椅',spec:'—',batch:'MB2026091401',status:'在库',wh:'成品仓A',loc:'第1栏第2格',holder:'—',doc:'DJ2026091401',at:t0}
+    ],
+    audit:[{t:t0,doc:'RK2026091401',act:'审批过账',by:'张建国',note:'入库 4,200米 → 可用'}]
+  };
+}
+var DB;try{DB=JSON.parse(localStorage.getItem(KEY)||'null')||seed()}catch(e){DB=seed()}
+if(!DB.material||!DB.doc||!DB.seq||!DB.stock)DB=seed();
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('本地存储写入失败',1);return}
+  notifyShell();
+}
+function notifyShell(){
+  try{if(typeof bcSync!=='undefined'&&bcSync)bcSync.postMessage({type:'core-sync',key:KEY});}catch(e){}
+  try{if(typeof BroadcastChannel!=='undefined')new BroadcastChannel('jm_wms_core').postMessage({type:'core-sync',key:KEY});}catch(e){}
+  try{parent.postMessage({from:'wms-core',type:'core-updated',pending:pendingCountSafe(),docs:DB.doc.length},'*');}catch(e){}
+}
+function pendingCountSafe(){try{return DB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length}catch(e){return 0}}
+function nextNo(prefix){var d=today().replace(/-/g,''),k=prefix+d;DB.seq[k]=(DB.seq[k]||0)+1;return prefix+d+String(DB.seq[k]).padStart(3,'0')}
+function nextOcrNo(){var d=today().replace(/-/g,''),k='OCR'+d;DB.seq[k]=(DB.seq[k]||0)+1;return k+String(DB.seq[k]).padStart(3,'0')}
+function nextBatch(){return 'MB'+today().replace(/-/g,'')+String(DB.seq.BT++).padStart(2,'0')}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function now(){var d=new Date();return today()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function ensureRegisterQrs(d){
+  if(!d||d.type!=='register')return;
+  (d.lines||[]).forEach(function(line,index){
+    if(line.code&&!line.barcode)line.barcode='QR-'+d.no+'-'+String(index+1).padStart(2,'0');
+  });
+}
+
+/* ===== 3. 工具 ===== */
+/* 页面联动同步：把账套变更广播给 app.html 顶栏（待办数/通知） */
+/* eslint-disable-next-line no-var */
+var bcSync=null;try{bcSync=new BroadcastChannel('jm_wms_core');bcSync.onmessage=function(){try{var fresh=JSON.parse(localStorage.getItem(KEY)||'null');if(fresh&&fresh.seq)DB=fresh}catch(e){}try{render()}catch(e){}}}catch(e){}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
+function fmt(n){var x=Number(n)||0;return x.toLocaleString('zh-CN',{maximumFractionDigits:3})}
+function num(v){var x=Number(v);return isFinite(x)?x:0}
+function mat(code){return DB.material.find(function(m){return m.code===code})||{}}
+function st(wh,code,batch){return DB.stock.find(function(s){return s.wh===wh&&s.code===code&&s.batch===batch})}
+function stOrNew(wh,loc,code,batch,unit){var s=st(wh,code,batch);if(!s){s={wh:wh,loc:loc||'待分配',code:code,batch:batch||'待分配',unit:unit,on:0,avail:0,pending:0,qua:0,frozen:0,at:now()};DB.stock.push(s)}if(loc)s.loc=loc;return s}
+function docBy(no){return DB.doc.find(function(d){return d.no===no})}
+function tag(t){var m={'草稿':'g1','已保存':'g2','已审批':'g4','已驳回':'g5','已作废':'g1','已冲红':'g6','正常':'g4','低于下限':'g5','超过上限':'g3','待检':'g3','隔离':'g5','在库':'g4','已领用':'g2','已退库':'g2','已拒收':'g5','已报废':'g1','入':'g4','出':'g5','转':'g2'};return '<span class="tag '+(m[t]||'g1')+'">'+esc(t)+'</span>'}
+function unitSum(list){var g={};(list||[]).forEach(function(l){var q=num(l.qty);if(!q)return;var u=l.unit||mat(l.code).unit||'—';g[u]=(g[u]||0)+q});return Object.keys(g).map(function(u){return '<span class="qty-value">'+fmt(g[u])+'</span><span class="qty-unit">'+esc(u)+'</span>'}).join('<span class="mut"> · </span>')||'—'}
+function unitSumText(list){return String(unitSum(list)).replace(/<[^>]+>/g,'')}
+function stockUnitSum(list){var g={};(list||[]).forEach(function(s){g[s.unit]=(g[s.unit]||0)+num(s.on)});return Object.keys(g).map(function(u){return '<span class="qty-value">'+fmt(g[u])+'</span><span class="qty-unit">'+esc(u)+'</span>'}).join('<span class="mut"> · </span>')||'—'}
+function aggUnit(list,field){var g={};(list||[]).forEach(function(s){g[s.unit]=(g[s.unit]||0)+num(s[field])});return Object.keys(g).map(function(u){return '<span class="qty-value">'+fmt(g[u])+'</span><span class="qty-unit">'+esc(u)+'</span>'}).join('<span class="mut"> · </span>')||'—'}
+function qtyVal(v){return '<span class="qty-value">'+fmt(v)+'</span>'}
+function qtyCell(v,u){return '<span class="qty-value">'+fmt(v)+'</span><span class="qty-unit">'+esc(u||'')+'</span>'}
+function qtyPairCell(v,u){return '<td class="num">'+qtyVal(v)+'</td><td>'+esc(u||'—')+'</td>'}
+function amount(list){var s=0;(list||[]).forEach(function(l){s+=num(l.qty)*num(l.price)});return s}
+function alertOf(s){var m=mat(s.code);if(num(s.avail)<num(m.min))return '低于下限';if(num(s.on)>num(m.max))return '超过上限';return '正常'}
+function toast(m,bad){var t=document.getElementById('toast');t.textContent=m;t.style.background=bad?'#b42318':'#0f172a';t.classList.remove('hide');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hide')},2800);try{if(window.Store)Store.toast(m)}catch(e){}}
+function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide');var f=r.querySelector('#dlgBody button,#dlgBody input,#dlgFoot button');if(f)f.focus()}
+document.getElementById('dlgX').onclick=function(){document.getElementById('dlgRoot').classList.add('hide')};
+document.getElementById('dlgRoot').addEventListener('click',function(e){if(e.target===this||e.target.closest('[data-close]'))this.classList.add('hide')});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('dlgRoot').classList.add('hide')});
+
+/* ===== 4. 过账服务：唯一能改 inventory_stock / stock_ledger 的入口 ===== */
+function writeLedger(d,l,s,dir,qty,field,before,after,note){
+  var suffix=d.type==='wreturn'?'·车间退料·'+(d.judge_by||d.judge_state||'待判定'):(d.in_type?'·'+d.in_type:'')+(d.ret_type?'·'+d.ret_type:'');
+  DB.ledger.unshift({t:now(),doc:d.no,biz:VIEWS[d.type].name+suffix,code:l.code,batch:l.batch||'—',wh:s.wh,loc:s.loc,dir:dir,qty:qty,field:field,before:before,after:after,unit:l.unit||s.unit,by:d.handler||'—',note:note||''});
+}
+function audit(d,act,note){DB.audit.unshift({t:now(),doc:d.no,act:act,by:d.handler||'—',note:note||''})}
+function sumSrc(srcNo,type,code,key){var q=0;DB.doc.forEach(function(d){if(d.type===type&&d.status==='已审批'&&d[key]===srcNo)(d.lines||[]).forEach(function(l){if(l.code===code)q+=num(l.qty)})});return q}
+function rejectedOf(srcNo,code){var q=0;DB.doc.forEach(function(d){if(d.type==='reject'&&d.status==='已审批'&&d.source===srcNo)(d.lines||[]).forEach(function(l){if(l.code===code)q+=num(l.qty)})});return q}
+
+function validate(d){
+  var e=[];
+  (HEAD[d.type]||[]).forEach(function(f){var value=d[f[0]];if(f[3]&&(!Array.isArray(value)?!String(value==null?'':value).trim():!value.length))e.push('单头「'+f[1]+'」必填')});
+  if(!d.lines||!d.lines.length)e.push('清单为空：请点击“添加清单”，先选择客户、成品或车间，再从常规物料清单中加入物料');
+  (d.lines||[]).forEach(function(l,i){
+    var m=mat(l.code),n='第'+(i+1)+'行';
+    if(!m.code){e.push(n+'：未选择物料');return}
+    if(m.status!=='启用')e.push(n+'：物料「'+m.name+'」已停用，不能引用');
+    if(l.unit&&m.unit&&l.unit!==m.unit)e.push(n+'：单位「'+l.unit+'」与档案「'+m.unit+'」不一致，不允许跨单位');
+    var q=num(l.qty);
+    if(!(q>0))e.push(n+'：数量必须大于 0');
+    var noBatch=(l.batch===undefined||String(l.batch).trim()==='');
+    if(noBatch&&d.type==='issue')e.push(n+'：请选择有可用量的批次');
+    if(noBatch&&d.type!=='issue'&&m.mode==='按量（批次数量）'&&(d.type==='inbound'||d.type==='return'))e.push(n+'：批次号必填（按量管理物料，可点“批次生成”）');
+    if(d.type==='register'&&!(num(l.pack)>0&&num(l.sub)>0))e.push(n+'：包装数量与细分数量必须大于 0');
+    if(d.type==='reject'){if(num(l.qty)>num(l.qty_src))e.push(n+'：拒收数量不能大于来料数量');if(!l.reason)e.push(n+'：请选择拒收原因')}
+    if(d.type==='inbound'){
+      if(!l.qc)e.push(n+'：请选择质检结论');
+      if(l.qc==='不合格（转来料拒收）')e.push(n+'：不合格行不得入库，请到《来料拒收》建凭证');
+      if(num(l.qty)>num(l.qty_src))e.push(n+'：验收数量不能大于来料数量');
+      if(d.src_dj){var _rs=docBy(d.src_dj);if(!_rs||_rs.type!=='register')e.push('关联登记单 '+d.src_dj+' 不存在或不是物料登记单（关联仅作来源备查，不校验数量）')}
+      if(num(l.qty_src)>0){var rej=rejectedOf(d.source,l.code);if(rej&&num(l.qty)>num(l.qty_src)-rej)e.push(n+'：该行已被拒收 '+fmt(rej)+(l.unit||m.unit)+'，可入库上限 '+fmt(num(l.qty_src)-rej))}
+      if(num(l.qty)!==num(l.qty_src)&&!String(d.remark||'').trim())e.push(n+'：验收数与来料数不一致，必须在便签备注填写差异原因');
+    }
+    if(d.type==='issue'){
+      if(!l.batch)e.push(n+'：请选择有可用量的批次');
+      var s=st(d.wh,l.code,l.batch);
+      if(s){if(num(s.avail)<q)e.push(n+'：实发 '+fmt(q)+(l.unit||'')+' 超过可用量 '+fmt(s.avail)+(l.unit||''));if(num(s.on)<q)e.push(n+'：账面不足')}
+      else if(l.batch)e.push(n+'：'+d.wh+' 无批次 '+l.batch+' 的库存记录，请重新选择');
+      if(d.issue_flow==='直送车间（不入仓）'&&d.dept&&/^成品仓|原料仓|待检区|隔离区/.test(d.dept))e.push(n+'：直送车间时「领用车间/部门」不能选仓库/待检/隔离区');
+    }
+    if(d.type==='return'){var s2=st(d.wh,l.code,l.batch);if(!s2)e.push(n+'：'+d.wh+' 无该批次库存，不能减账/转移')}
+    if(d.type==='wreturn'&&!d.src_ly)e.push('「车间退料」必须填写原领用单号');
+    if(d.type==='wreturn'&&(l.batch===undefined||String(l.batch).trim()==='')&&m.mode==='按量（批次数量）')e.push(n+'：批次号必填（按量管理物料，可点“批次生成”）');
+  });
+  if(d.type==='wreturn'){
+    if(!d.judge_state)e.push('「车间自报状态」必选（可用/待检/隔离：车间申报，外仓判定后回增）');
+    (d.lines||[]).forEach(function(l,i){
+      var n='第'+(i+1)+'行';
+      var src=docBy(d.src_ly);
+      if(!src||src.type!=='issue')e.push(n+'：原领用单 '+d.src_ly+' 不存在或不是领用单');
+      else if(src.status!=='已审批')e.push(n+'：原领用单未审批，不能退料回仓');
+      else{
+        var issued=0;(src.lines||[]).forEach(function(x){if(x.code===l.code)issued+=num(x.qty)});
+        var back=sumSrc(d.src_ly,'wreturn',l.code,'src_ly');
+        if(num(l.qty)>issued-back)e.push(n+'：超退拦截 · 原领用 '+fmt(issued)+'，已退 '+fmt(back)+'，本次最多可退 '+fmt(Math.max(0,issued-back))+(l.unit||''));
+      }
+    });
+  }
+  if(d.type==='return'){
+    if(d.ret_type==='入库冲红'&&!d.src_rk)e.push('「入库冲红」必须填写原入库单号');
+    if((d.ret_type==='待检转合格'||d.ret_type==='隔离报废待核')&&!d.src_rk)e.push('状态互转必须关联来源单号');
+    (d.lines||[]).forEach(function(l,i){
+      var n='第'+(i+1)+'行',s3=st(d.wh,l.code,l.batch);
+      if(d.ret_type==='入库冲红'&&d.src_rk){
+        var os=docBy(d.src_rk);
+        if(!os||os.type!=='inbound')e.push(n+'：原入库单 '+d.src_rk+' 不存在或不是入库单');
+        else if(os.status!=='已审批')e.push(n+'：原入库单未审批，不能冲红');
+        else{
+          var acc=0;(os.lines||[]).forEach(function(x){if(x.code===l.code)acc+=num(x.qty)});
+          var red=sumSrc(d.src_rk,'return',l.code,'src_rk');
+          if(num(l.qty)>acc-red)e.push(n+'：超冲拦截 · 原验收 '+fmt(acc)+'，已冲红 '+fmt(red)+'，本次最多可冲 '+fmt(Math.max(0,acc-red))+(l.unit||''));
+        }
+      }
+      if((d.ret_type==='入库冲红'||d.ret_type==='损坏退还供应商')&&s3&&num(s3.on)<num(l.qty))e.push(n+'：账面 '+fmt(s3.on)+(s3.unit||'')+' 不足以减账');
+      if(d.ret_type==='待检转合格'&&s3&&num(s3.pending)<num(l.qty))e.push(n+'：待检量 '+fmt(s3.pending)+(s3.unit||'')+' 不足以转合格');
+      if(d.ret_type==='隔离报废待核'&&s3&&num(s3.avail)<num(l.qty))e.push(n+'：可用量不足以转隔离');
+    });
+  }
+  return e;
+}
+function post(d){
+  var e=validate(d);
+  if(e.length)return {ok:false,errors:e};
+  if(d.type==='reject'){
+    /* 拒收：只登记凭证 + 锁定来源可入量，绝不写 stock_ledger / inventory_stock */
+    audit(d,'拒收确认（不产生库存变动）',unitSum(d.lines)+' · 来源 '+(d.source||'—'));
+    return {ok:true,quiet:true};
+  }
+  if(d.type==='request'){
+    /* 申请领料：进仓前的需求意向，审批只做需求确认，绝不写 stock_ledger / inventory_stock */
+    audit(d,'申请确认（不产生库存变动）',unitSum(d.lines)+' · 期望 '+(d.date||'—'));
+    return {ok:true,quiet:true};
+  }
+  (d.lines||[]).forEach(function(l){
+    var m=mat(l.code),q=num(l.qty),s,before,after;
+    if(d.type==='register'){
+      if(!l.batch)l.batch=nextBatch();
+      s=stOrNew(d.wh,'',l.code,l.batch,m.unit);
+      before=s.on;s.on+=q;s.avail+=q;s.at=now();after=s.on;
+      if(m.mode==='一物一码'){
+        var n=Math.min(q,20),first='';
+        for(var k=0;k<n;k++){var bc='WL'+String(DB.seq.IB).padStart(8,'0');DB.seq.IB++;if(!first)first=bc;DB.item.push({barcode:bc,code:m.code,name:m.name,spec:m.spec,batch:l.batch,status:'在库',wh:d.wh,loc:'',holder:'—',doc:d.no,at:now()})}
+        l.itemBarcodes=n?('首码 '+first+'（共 '+n+' 件一物一码）'):'';
+      }
+      if(!l.barcode)l.barcode='QR-'+d.no+'-'+String((d.lines||[]).indexOf(l)+1).padStart(2,'0');
+      writeLedger(d,l,s,'入',q,'avail',before,after,'物料登记入账'+(m.mode==='一物一码'?' · 生成条码':''));
+    }
+    if(d.type==='inbound'){
+      if(!l.batch)l.batch=nextBatch();
+      s=stOrNew(d.wh,l.loc||d.loc,l.code,l.batch,m.unit);
+      before=s.on;s.on+=q;
+      if(l.qc==='待检'){var pb=s.pending;s.pending+=q;writeLedger(d,l,s,'入',q,'pending',pb,s.pending,'待检，不计可用'+(d.src_dj?' · 关联登记 '+d.src_dj:''))}
+      else{var ab=s.avail;s.avail+=q;writeLedger(d,l,s,'入',q,'avail',ab,s.avail,(d.src_dj?'关联登记 '+d.src_dj:''))}
+      s.at=now();
+      l.barcode='批次码 '+l.batch;l.labels=Math.max(1,Math.ceil(q/Math.max(1,num(l.pack||m.pack))));
+    }
+    if(d.type==='issue'){
+      s=st(d.wh,l.code,l.batch);
+      if(!s)return {ok:false,errors:['第1行：提交时未找到库存行（'+d.wh+' / '+(l.batch||'无批次')+'），请重新选择批次后再审批']};
+      var ob=s.on,oav=s.avail;
+      s.on-=q;s.avail-=q;s.at=now();
+      var flowTag=d.issue_flow||'车间自提（入车间账）';
+      writeLedger(d,l,s,'出',q,'avail',oav,s.avail,'领用人 '+(d.receiver||'—')+' · '+(d.dept||'—')+' · '+flowTag+(d.vehicle?' · 车辆 '+d.vehicle:''));
+      if(m.mode==='一物一码'){var left=q;DB.item.forEach(function(it){if(left>0&&it.code===l.code&&it.status==='在库'){it.status='已领用';it.holder=(d.dept||'')+' / '+(d.receiver||'');it.wh='直送车间（不入仓）'===(d.issue_flow||'')?(d.dept||'车间直送'):it.wh;it.at=now();left--}})}
+    }
+    if(d.type==='wreturn'){
+      /* 车间退料：方向=回仓进项。车间自报状态 + 外仓判定后回增到对应分量 */
+      s=stOrNew(d.wh,l.loc||d.loc,l.code,l.batch,m.unit);
+      s.on+=q;s.at=now();
+      var finalState=l.ret_state||d.judge_state||'可用';
+      if(finalState==='待检'){var p0=s.pending;s.pending+=q;writeLedger(d,l,s,'入',q,'pending',p0,s.pending,'车间退料回仓转待检 · 原领用单 '+d.src_ly+(d.judge_by?' · 判定 '+d.judge_by:''))}
+      else if(finalState==='隔离'){var q0=s.qua;s.qua+=q;writeLedger(d,l,s,'入',q,'qua',q0,s.qua,'车间退料回仓转隔离 · 原领用单 '+d.src_ly+(d.judge_by?' · 判定 '+d.judge_by:''))}
+      else{var a0=s.avail;s.avail+=q;writeLedger(d,l,s,'入',q,'avail',a0,s.avail,'车间退料回仓 · 原领用单 '+d.src_ly+(d.judge_by?' · 判定 '+d.judge_by:''))}
+      if(m.mode==='一物一码')DB.item.forEach(function(it){if(it.code===l.code&&it.status==='已领用'&&num(q)>0){it.status='已退库';it.holder='—';it.wh=d.wh;it.loc=l.loc||d.loc;it.at=now()}});
+    }
+    if(d.type==='return'){
+      if(d.ret_type==='入库冲红'){
+        s=st(d.wh,l.code,l.batch);
+        if(!s)return {ok:false,errors:['第1行：提交时未找到库存行（'+d.wh+' / '+(l.batch||'无批次')+'），冲红必须对应已有批次']};
+        var rb=s.on,ra=s.avail;
+        s.on-=q;s.avail-=q;s.at=now();
+        writeLedger(d,l,s,'出',q,'avail',ra,s.avail,'反向流水 · 冲红原单 '+d.src_rk+' · 原因：'+(d.reason||''));
+        var os=docBy(d.src_rk);if(os){os.reversed=num(os.reversed)+q;if(os.lines)os.lines.forEach(function(x){if(x.code===l.code)x.reversed=num(x.reversed)+q})}
+      }
+      if(d.ret_type==='损坏退还供应商'){
+        s=st(d.wh,l.code,l.batch);
+        if(!s)return {ok:false,errors:['第1行：提交时未找到库存行（'+d.wh+' / '+(l.batch||'无批次')+'），退还必须对应已有批次']};
+        var db0=s.on,da=s.avail,dq=s.qua;
+        s.on-=q;
+        if(l.ret_state==='隔离'&&s.qua>=q){s.qua-=q;writeLedger(d,l,s,'出',q,'qua',dq,s.qua,'损坏退还供应商 · '+(d.reason||''))}
+        else{s.avail-=q;writeLedger(d,l,s,'出',q,'avail',da,s.avail,'损坏退还供应商 · '+(d.reason||''))}
+        s.at=now();
+      }
+      if(d.ret_type==='待检转合格'){
+        s=st(d.wh,l.code,l.batch);
+        if(!s)return {ok:false,errors:['第1行：提交时未找到库存行（'+d.wh+' / '+(l.batch||'无批次')+'）']};
+        var tb=s.pending,ta=s.avail;
+        s.pending-=q;s.avail+=q;s.at=now();
+        writeLedger(d,l,s,'转',q,'avail',ta,s.avail,'待检 → 可用（账面数量不变）');
+      }
+      if(d.ret_type==='隔离报废待核'){
+        s=st(d.wh,l.code,l.batch);
+        if(!s)return {ok:false,errors:['第1行：提交时未找到库存行（'+d.wh+' / '+(l.batch||'无批次')+'）']};
+        var sb=s.avail,sq=s.qua;
+        s.avail-=q;s.qua+=q;s.at=now();
+        writeLedger(d,l,s,'转',q,'qua',sq,s.qua,'可用 → 隔离待核（等待处置审批）');
+      }
+    }
+  });
+  audit(d,'审批过账',unitSum(d.lines));
+  return {ok:true};
+}
+
+/* ===== 5. 视图状态与渲染（无页内切换：每个视图只能从左侧二级菜单一对一进入，URL view 即唯一入口） ===== */
+var view='request',mode='list',curNo='',sub='doc',queue='待办',kw='';
+function notifyParentRoute(){
+  if(!/from=app/.test(location.search))return;
+  var ids={materialCode:'materialCode',request:'materialRequest',register:'materialRegister',reject:'materialReject',inbound:'materialInbound',issue:'materialIssue',wreturn:'materialWReturn',return:'materialReturn',stock:'',onhand:'inventoryOnhand',ledger:'inventoryLedger'};
+  var id=ids[view];
+  if(!id&&view==='stock')id=sub==='ledger'?'inventoryLedger':'inventoryOnhand';
+  if(id){var frameView=view==='stock'?(sub==='ledger'?'ledger':'onhand'):view;var menuTab=id==='inventoryOnhand'?'stock:onhand':id==='inventoryLedger'?'stock:ledger':id==='materialCode'?'detail':frameView;try{parent.postMessage({from:'wms-nav',page:id,view:frameView,tab:menuTab},'*')}catch(e){}}
+}
+function routeView(){
+  var p=null;try{p=new URLSearchParams(location.search)}catch(e){return 'request'}
+  var v=p.get('view'),t=p.get('tab');
+  /* stock 已拆成两个独立二级菜单：onhand=仓库库存 / ledger=库存记录，无页内切换 */
+  if(v==='stock'||t==='stock'){var s0='';try{s0=p.get('sub')||''}catch(e){}return (s0==='ledger'||t==='ledger'||v==='ledger')?'ledger':'onhand'}
+  if(v==='onhand'||v==='ledger')return v;
+  if(t==='onhand'||t==='ledger')return t;
+  if(v==='detail')return 'materialCode';if(v&&VIEWS[v])return v;if(t==='detail')return 'materialCode';if(t&&VIEWS[t])return t;var n=parseInt(t,10);if(!isNaN(n)){/* 兼容旧数字序号 */var legacy={1:'register',2:'reject',3:'inbound',4:'issue',5:'return',6:'onhand',7:'request',8:'wreturn'};if(legacy[n])return legacy[n]}return 'request'}
+function routeSub(){var s='';try{s=new URLSearchParams(location.search).get('sub')||''}catch(e){}if(view==='ledger'||(view==='stock'&&s==='ledger'))return 'ledger';if(view==='onhand'||view==='stock')return 'onhand';if(view==='materialCode')return 'doc';return 'doc'}
+view=routeView();sub=routeSub();
+if(view==='register'&&sub==='material'){/* 物料档案已搬到基础资料/物料档案，旧深链回正到登记工单 */sub='doc';}
+function materialSources(stock){
+  var allowed={register:'物料登记',inbound:'物料入库',wreturn:'车间退料'},found=[];
+  DB.doc.forEach(function(d){
+    if(d.status!=='已审批'||!allowed[d.type])return;
+    (d.lines||[]).forEach(function(l){
+      if(l.code!==stock.code||String(l.batch||'')!==String(stock.batch||''))return;
+      if(d.wh&&d.wh!==stock.wh)return;
+      if(l.loc&&l.loc!==stock.loc)return;
+      found.push({no:d.no,type:allowed[d.type],date:d.date,party:d.party||d.source||d.unit||'—',qty:num(l.qty),price:num(l.price)||num(mat(l.code).price),batch:l.batch||stock.batch,loc:l.loc||d.loc||stock.loc});
+    });
+  });
+  DB.ledger.forEach(function(x){
+    if(x.dir!=='入'||x.code!==stock.code||String(x.batch||'')!==String(stock.batch||'')||x.wh!==stock.wh||x.loc!==stock.loc)return;
+    if(found.some(function(s){return s.no===x.doc}))return;
+    found.push({no:x.doc,type:x.biz||'入库流水',date:String(x.t||'').slice(0,10),party:'—',qty:num(x.qty),price:num(mat(x.code).price),batch:x.batch||stock.batch,loc:x.loc||stock.loc});
+  });
+  var grouped={};found.forEach(function(s){
+    var g=grouped[s.no];
+    if(!g)grouped[s.no]=g=s;
+    else g.qty+=s.qty;
+  });
+  return Object.keys(grouped).map(function(no){return grouped[no]}).sort(function(a,b){return String(b.date).localeCompare(String(a.date))||String(b.no).localeCompare(String(a.no))});
+}
+function renderSourceDialog(el){
+  var stock=DB.stock[Number(el.dataset.i)],m=stock&&mat(stock.code),sources=stock?materialSources(stock):[];
+  if(!stock||!m.code){toast('未找到对应库存明细',1);return}
+  var body='<div class="note">来源单只统计已审批并实际入账的登记、入库、车间退料单；当前库存行按物料、仓库、库区、批次、单位聚合。</div>'+
+    '<div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>单号</th><th>类型</th><th>日期</th><th>供应商 / 来源</th><th>数量</th><th>参考单价</th><th>参考金额</th><th>批次 / 库区</th></tr></thead><tbody>'+
+    (sources.map(function(s){return '<tr><td><span class="link" data-act="open" data-no="'+esc(s.no)+'">'+esc(s.no)+'</span></td><td>'+esc(s.type)+'</td><td>'+esc(s.date)+'</td><td>'+esc(s.party)+'</td><td class="num">'+fmt(s.qty)+esc(stock.unit)+'</td><td class="num">¥'+fmt(s.price)+'</td><td class="num">¥'+fmt(s.qty*s.price)+'</td><td class="sm">'+esc(s.batch)+' / '+esc(s.loc)+'</td></tr>'}).join('')||'<tr><td colspan="8" class="mut" style="text-align:center;padding:24px">暂无已审批来源单</td></tr>')+
+    '</tbody></table></div><div class="sum" style="margin-top:12px"><span>来源单 <b>'+sources.length+'</b> 张</span><span>来源数量 <b>'+fmt(sources.reduce(function(a,s){return a+s.qty},0))+esc(stock.unit)+'</b></span><span class="mut">金额仅作参考，不参与库存记账</span></div>';
+  dialog('来源单 · '+m.name+' · '+stock.batch,body);
+}
+function renderMaterialDetail(){
+  /* 独立二级菜单：物料编码 + 仓库 + 库区 + 批次 + 单位一行一条（只读聚合） */
+  sub='doc';
+  var dl=DB.stock.slice().sort(function(a,b){return String(a.code).localeCompare(String(b.code))});
+  var q=(kw||'').toLowerCase();
+  if(q)dl=dl.filter(function(s){var m=mat(s.code);return (s.code+' '+(m.name||'')+' '+(s.batch||'')+' '+(s.wh||'')+' '+(s.loc||'')).toLowerCase().indexOf(q)>=0});
+  var rows=dl.map(function(s){var m=mat(s.code),al=alertOf(s),gi=DB.stock.indexOf(s),sources=materialSources(s);
+    var ledn=DB.ledger.filter(function(x){return x.code===s.code&&x.batch===s.batch&&x.wh===s.wh&&x.loc===s.loc}).length;
+    var itn=DB.item.filter(function(x){return x.code===s.code&&x.batch===s.batch}).length;
+    var srcHtml=sources.length?'<span class="link" data-act="sources" data-i="'+gi+'">共 '+sources.length+' 张 · 查看来源</span>':'<span class="mut">—</span>';
+    return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(m.mode||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+fmt(s.on)+'</b>'+esc(s.unit)+'</td><td class="num">¥'+fmt(m.price||0)+'</td><td class="num">¥'+fmt(num(s.on)*num(m.price))+'</td><td class="num grn">'+fmt(s.avail)+'</td><td class="num org">'+fmt(s.pending)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num">'+fmt(s.frozen)+'</td><td class="sm mut">'+fmt(m.pack||0)+esc(m.unit||s.unit)+' / '+fmt(m.sub||0)+esc(m.unit||s.unit)+'</td><td class="sm mut">'+esc(m.min||'—')+'/'+esc(m.max||'—')+'</td><td>'+tag(al)+'</td><td class="num">'+ledn+'</td><td class="num">'+itn+'</td><td class="sm">'+srcHtml+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span> <span class="link" data-act="quick" data-i="'+gi+'">领用</span></td></tr>'}).join('');
+  document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>明细记录</small><b>'+dl.length+'</b><span class="sm mut">物料+仓库+库区+批次+单位</span></div><div class="kpi"><small>低于下限</small><b class="red">'+dl.filter(function(s){return alertOf(s)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(dl.reduce(function(a,s){return a+num(s.pending)},0))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+
+  '<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>物料明细（聚合只读）</b><span class="sm mut">包装量 = 每包基本单位数；细分量 = 最小可发 / 拆零单位。单价、金额仅作参考，不参与库存记账。</span><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div><div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>管理方式</th><th>仓库</th><th>库区</th><th>批次</th><th>单位</th><th>数量（账面）</th><th>参考单价</th><th>金额（参考）</th><th>可用</th><th>待检</th><th>隔离</th><th>冻结</th><th>包装量 / 细分量</th><th>最低/最高</th><th>预警</th><th>流水数</th><th>条码数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="23" class="mut" style="text-align:center;padding:28px">暂无库存明细</td></tr>')+'</tbody></table></div><div class="pad sum"><span>账面合计（按单位分组）：<b>'+esc(stockUnitSum(dl))+'</b></span><span>可用合计：<b>'+esc(aggUnit(dl,'avail'))+'</b></span><span class="mut">金额仅参考 ¥'+fmt(dl.reduce(function(a,s){return a+num(s.on)*(num(mat(s.code).price)||0)},0))+'（不参与记账）</span><span class="mut">不同单位永不相加</span></div></div>';
+}
+/* 单页归属提示：无页内切换时告诉用户当前页归属哪个二级菜单，返回走左侧菜单 */
+function renderMaterialSourcesDialog(code){
+  var material=mat(code),stocks=DB.stock.filter(function(stock){return stock.code===code}),sources=[];
+  stocks.forEach(function(stock){materialSources(stock).forEach(function(source){
+    var key=source.no+'|'+source.batch+'|'+stock.wh+'|'+source.loc;
+    if(!sources.some(function(item){return item.key===key}))sources.push({key:key,no:source.no,type:source.type,date:source.date,party:source.party,qty:source.qty,price:source.price,batch:source.batch,wh:stock.wh,loc:source.loc,unit:stock.unit});
+  })});
+  var body='<div class="note">汇总该物料在全部仓库、库区和批次中的已审批入账来源。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>单号</th><th>类型</th><th>日期</th><th>供应商 / 来源</th><th>仓库</th><th>库区</th><th>批次</th><th>数量</th><th>参考单价</th><th>参考金额</th></tr></thead><tbody>'+(
+    sources.map(function(source){return '<tr><td><span class="link" data-act="open" data-no="'+esc(source.no)+'">'+esc(source.no)+'</span></td><td>'+esc(source.type)+'</td><td>'+esc(source.date)+'</td><td>'+esc(source.party)+'</td><td>'+esc(source.wh)+'</td><td>'+esc(source.loc)+'</td><td>'+esc(source.batch)+'</td><td class="num">'+fmt(source.qty)+esc(source.unit)+'</td><td class="num">¥'+fmt(source.price)+'</td><td class="num">¥'+fmt(source.qty*source.price)+'</td></tr>'}).join('')||'<tr><td colspan="10" class="mut" style="text-align:center;padding:24px">暂无已审批来源单</td></tr>')+
+    '</tbody></table></div><div class="sum" style="margin-top:12px"><span>来源记录 <b>'+sources.length+'</b> 条</span><span class="mut">金额仅作参考，不参与库存记账</span></div>';
+  dialog('来源单 · '+(material.name||'')+' · '+code,body);
+}
+function renderMaterialDimensionDialog(code,dimension){
+  var material=mat(code),stocks=DB.stock.filter(function(stock){return stock.code===code});
+  var isLocation=dimension==='location',title=isLocation?'位置明细':'批次明细';
+  var rows=stocks.map(function(stock){var pu=(stock.unit==='个'?'袋':'箱');return '<tr><td>'+esc(stock.wh)+'</td><td>'+esc(stock.loc)+'</td><td>'+esc(stock.batch)+'</td><td class="num"><b>1'+pu+'</b></td><td class="num"><b>'+fmt(stock.on)+esc(stock.unit)+'</b></td><td class="num grn">'+fmt(stock.avail)+esc(stock.unit)+'</td><td class="num org">'+fmt(stock.pending)+esc(stock.unit)+'</td><td class="sm mut">'+esc(stock.at)+'</td></tr>'}).join('');
+  var body='<div class="note">'+(isLocation?'展示该物料所在的全部仓库和库区。':'展示该物料关联的全部库存批次及其所在位置。')+'</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>仓库</th><th>库区</th><th>批次</th><th>数量</th><th>库存量</th><th>可用</th><th>待检</th><th>最后变动</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="sum" style="margin-top:12px"><span>'+title+' <b>'+stocks.length+'</b> 条</span><span>数量合计 <b>'+stocks.length+'箱/袋</b></span><span>库存合计 <b>'+esc(stockUnitSum(stocks))+'</b></span><span>可用合计 <b>'+esc(aggUnit(stocks,'avail'))+'</b></span></div>';
+  dialog(title+' · '+(material.name||'')+' · '+code,body);
+}
+function renderMaterialDetailByItem(){
+  sub='doc';
+  var detailRows=DB.stock.slice().sort(function(a,b){return String(a.code).localeCompare(String(b.code))});
+  var query=(kw||'').toLowerCase();
+  if(query)detailRows=detailRows.filter(function(stock){var material=mat(stock.code);return (stock.code+' '+(material.name||'')+' '+(stock.batch||'')+' '+(stock.wh||'')+' '+(stock.loc||'')).toLowerCase().indexOf(query)>=0});
+  var grouped={};
+  detailRows.forEach(function(stock){(grouped[stock.code]||(grouped[stock.code]=[])).push(stock)});
+  function unique(stocks,key){var result=[];stocks.forEach(function(stock){if(stock[key]&&result.indexOf(stock[key])<0)result.push(stock[key])});return result}
+  function total(stocks,key){return stocks.reduce(function(sum,stock){return sum+num(stock[key])},0)}
+  var rows=Object.keys(grouped).map(function(code){
+    var stocks=grouped[code],first=stocks[0],material=mat(code),unit=first.unit||material.unit;
+    var sources=[];
+    stocks.forEach(function(stock){materialSources(stock).forEach(function(source){if(!sources.some(function(item){return item.no===source.no&&item.batch===source.batch&&item.loc===source.loc}))sources.push(source)})});
+    var sourceHtml=sources.length?'<span class="link" data-act="materialsources" data-code="'+esc(code)+'">共 '+sources.length+' 条 · 查看来源</span>':'<span class="mut">—</span>';
+    var alert=stocks.some(function(stock){return alertOf(stock)==='低于下限'})?'低于下限':stocks.some(function(stock){return alertOf(stock)!=='正常'})?'高于上限':'正常';
+    var lastChanged=unique(stocks,'at').sort().reverse();
+    var batchCount=unique(stocks,'batch');
+    var batchHtml='<span class="link" data-act="materialbatches" data-code="'+esc(code)+'">共 '+batchCount.length+' 条 · 点击查看</span>';
+    var packUnit=(unit==='个'?'袋':'箱');
+    return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(material.name)+'</td><td>'+esc(material.spec||'—')+'</td><td class="sm">'+batchHtml+'</td><td class="num"><b>'+stocks.length+packUnit+'</b></td><td class="num"><b>'+fmt(total(stocks,'on'))+esc(unit)+'</b></td><td class="num">¥'+fmt(material.price||0)+'</td><td class="num">¥'+fmt(total(stocks,'on')*num(material.price))+'</td><td class="num grn">'+fmt(total(stocks,'avail'))+esc(unit)+'</td><td class="num org">'+fmt(total(stocks,'pending'))+esc(unit)+'</td><td class="num">'+fmt(total(stocks,'qua'))+esc(unit)+'</td><td class="num">'+fmt(total(stocks,'frozen'))+esc(unit)+'</td><td class="sm mut">'+esc(material.min||'—')+'/'+esc(material.max||'—')+'</td><td>'+tag(alert)+'</td><td class="num">'+DB.ledger.filter(function(item){return item.code===code}).length+'</td><td class="num">'+DB.item.filter(function(item){return item.code===code}).length+'</td><td class="sm">'+sourceHtml+'</td><td class="sm mut">'+esc(lastChanged[0]||'—')+'</td><td><span class="link" data-act="flow" data-code="'+esc(code)+'">流水</span></td></tr>';
+  }).join('');
+  document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>物料种类</small><b>'+Object.keys(grouped).length+'</b><span class="sm mut">物料编码一行一条</span></div><div class="kpi"><small>低于下限</small><b class="red">'+detailRows.filter(function(stock){return alertOf(stock)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(total(detailRows,'pending'))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+ 
+  '<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>物料明细（按物料聚合）</b><span class="sm mut">批次显示全部关联记录；数量为包装件数。单价、金额仅作参考，不参与库存记账。</span><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div><div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>库存量</th><th>参考单价</th><th>金额（参考）</th><th>可用</th><th>待检</th><th>隔离</th><th>冻结</th><th>最低/最高</th><th>预警</th><th>流水数</th><th>条码数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="19" class="mut" style="text-align:center;padding:28px">暂无库存明细</td></tr>')+'</tbody></table></div><div class="pad sum"><span>账面合计（按单位分组）：<b>'+esc(stockUnitSum(detailRows))+'</b></span><span>可用合计：<b>'+esc(aggUnit(detailRows,'avail'))+'</b></span><span class="mut">金额仅参考 ¥'+fmt(detailRows.reduce(function(sum,stock){return sum+num(stock.on)*num(mat(stock.code).price)},0))+'（不参与记账）</span><span class="mut">不同单位永不相加</span></div></div>';
+}
+function renderPlace(){
+  var map={request:'物料管理 / 申请领料',register:'物料管理 / 物料登记',reject:'物料管理 / 来料拒收',inbound:'物料管理 / 物料入库',issue:'物料管理 / 物料领用',wreturn:'物料管理 / 车间退料',return:'物料管理 / 物料退库',materialCode:'物料管理 / 物料明细',onhand:'仓储作业 / 仓库库存',ledger:'仓储作业 / 库存记录',stock:'仓储作业 / 仓库库存'};
+  map.stock=(sub==='ledger')?'仓储作业 / 库存记录':'仓储作业 / 仓库库存';
+  var el=document.getElementById('crumbBack');if(el)el.textContent='当前页：'+(map[view]||view)+'（从左侧二级菜单进入，无页内切换）';
+}
+function pendingCount(){return DB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length}
+function whCount(){var a=[];DB.stock.forEach(function(s){if(a.indexOf(s.wh)<0)a.push(s.wh)});return a.length}
+function renderBar(){
+  var d=docBy(curNo),edit=mode==='edit'&&!!d,locked=edit&&(d.status==='已审批'||d.status==='已作废');
+  var b=[];
+  if(edit)b.push('<button class="b" data-act="backnav" title="返回" aria-label="返回">← 返回</button>');
+  if(!edit)b.push('<button class="b pri" data-act="new">新建工单</button>');
+  b.push('<button class="b" data-act="addline"'+(edit&&!locked?'':' disabled')+'>添加清单</button>');
+  if(edit&&!locked&&(d.type==='request'||d.type==='register')){b.push('<button class="b" data-act="newocr">新建OCR识别单</button>');b.push('<button class="b" data-act="ocrfill">OCR识别记录</button>');}
+  if(edit)b.push('<span class="sm mut" role="status" aria-live="polite">已自动保存</span>');
+  b.push('<span style="flex:1"></span>');
+  b.push('<button class="b '+(queue==='待办'?'on':'')+'" data-act="queue" data-q="待办">待办 <b>'+pendingCount()+'</b></button>');
+  b.push('<button class="b '+(queue==='已办'?'on':'')+'" data-act="queue" data-q="已办">已办</button>');
+  var sharedBar=document.getElementById('bar');
+  sharedBar.innerHTML=b.join('');
+  sharedBar.classList.add('has-content');
+}
+ function applyEditorActions(){
+   var editorSave=document.querySelector('#main aside [data-act="save"]');
+   if(editorSave){
+     var status=document.createElement('span');
+     status.className='sm mut';
+     status.setAttribute('role','status');
+     status.setAttribute('aria-live','polite');
+     status.textContent='\u5DF2\u81EA\u52A8\u4FDD\u5B58';
+     editorSave.replaceWith(status);
+   }
+ }
+function render(){
+  var sharedBar=document.getElementById('bar');
+  if(sharedBar){sharedBar.innerHTML='';sharedBar.classList.remove('has-content')}
+  var place={request:'物料管理 / 申请领料',register:'物料管理 / 物料登记',reject:'物料管理 / 来料拒收',inbound:'物料管理 / 物料入库',issue:'物料管理 / 物料领用',wreturn:'物料管理 / 车间退料',return:'物料管理 / 物料退库',materialCode:'物料管理 / 物料明细',onhand:'仓储作业 / 仓库库存',ledger:'仓储作业 / 库存记录',stock:'仓储作业 / 仓库库存'};
+  document.getElementById('crumb').textContent=place[view]||(VIEWS[view]||VIEWS.request).name;
+  document.getElementById('ttl').textContent=(view==='onhand'?'仓库库存':view==='ledger'?'库存记录':(VIEWS[view]||VIEWS.request).name);
+  document.getElementById('dsc').textContent=(VIEWS[view]||VIEWS.request).desc;
+  notifyParentRoute();
+  renderPlace();
+  if(view==='onhand'||view==='ledger'||view==='stock')return renderStock();
+  if(view==='materialCode')return renderMaterialDetailByItem();
+  renderBar();
+  if(mode==='edit'&&docBy(curNo)){renderEditor();applyEditorActions();paintFlowLine();return;}
+  renderList();
+}
+function paintFlowLine(){
+  try{
+    var d=docBy(curNo);if(!d)return;
+    var el=document.querySelector('[data-flowline]');if(!el)return;
+    if(window.ApproveFlow){ApproveFlow.ensureFlow(d,d.type);
+      var nx=ApproveFlow.nextPending(d.type,d.flow);
+      el.innerHTML='审批流：<b>'+esc(ApproveFlow.flowText(d.type,d.flow))+'</b> · 当前节点 <b>'+esc(d.flow.done?'DONE(可仓管确认)':(nx?nx.k+'('+nx.role+')':'—'))+'</b> · <span class="link" data-act="gocfg">去审批流配置</span>';
+    }
+  }catch(e){}
+}
+function renderList(){
+  function destination(d){
+    if(d.type==='inbound'||d.type==='register'||d.type==='wreturn')return (d.wh||'—')+(d.loc?' · '+d.loc:'');
+    if(d.type==='reject')return d.rj_action||d.party||'—';
+    return d.dept||d.receiver||d.party||d.unit||'—';
+  }
+  function customers(d){
+    var seen=[];(d.lines||[]).forEach(function(l){var c=mat(l.code).customer;if(c&&seen.indexOf(c)<0)seen.push(c)});
+    return seen.join('、')||'—';
+  }
+  if(view!=='request'&&view!=='register'&&view!=='reject'&&view!=='inbound'&&view!=='issue'&&view!=='wreturn'&&view!=='return'){view='request'}
+  var list=DB.doc.filter(function(d){return d.type===view});
+  list=list.filter(function(d){return queue==='待办'?(d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'):(d.status==='已审批'||d.status==='已作废'||d.status==='已冲红')});
+  if(kw)list=list.filter(function(d){return (d.no+' '+(d.party||'')+' '+(d.dept||'')+' '+(d.receiver||'')+' '+(d.lines||[]).map(function(l){return mat(l.code).name+l.code}).join(' ')).toLowerCase().indexOf(kw.toLowerCase())>=0});
+  var rows=list.map(function(d){
+    var brief=(d.lines||[]).map(function(l){return mat(l.code).name+' '+fmt(num(l.qty))+(l.unit||'')}).join('；')||'—';
+    return '<tr><td><b class="link" data-act="open" data-no="'+esc(d.no)+'">'+esc(d.no)+'</b>'+(d.reversed?' <span class="sm red">已冲 '+fmt(d.reversed)+'</span>':'')+'</td><td>'+esc(d.date)+'</td><td>'+esc(destination(d))+'</td><td>'+esc(customers(d))+'</td><td>'+esc(brief)+'</td><td>'+esc(unitSum(d.lines))+'</td><td class="num">¥'+fmt(amount(d.lines))+'</td><td>'+tag(d.status)+'</td><td><span class="link" data-act="open" data-no="'+esc(d.no)+'">'+(d.status==='已审批'?'查看':'继续办理')+'</span></td></tr>';
+  }).join('');
+  document.getElementById('main').innerHTML=
+    '<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button><span class="sm mut">状态机：草稿 → 已保存 → 已审批（过账）；已过账只能冲红，不可修改</span></div>'+ 
+    '<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>工单号</th><th>工单日期</th><th>物料去向</th><th>所属客户</th><th>物料明细</th><th>按单位合计</th><th>参考金额</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9" class="mut" style="text-align:center;padding:34px">当前没有'+esc(queue)+'的'+VIEWS[view].name+'工单</td></tr>')+'</tbody></table></div><div class="pad sm mut">共 '+list.length+' 条 · 数量按单位分组，不跨单位相加 · 表：stock_doc + stock_doc_line</div></div>';
+}
+function lineCell(d,l,i,c){
+  var k=c[0],ctl=c[2],m=mat(l.code);
+  if(ctl==='mat')return '<td><select class="f" data-l="code" data-i="'+i+'" style="min-width:200px"><option value="">请选择物料</option>'+DB.material.filter(function(x){return x.status==='启用'}).map(function(x){return '<option value="'+esc(x.code)+'" '+(x.code===l.code?'selected':'')+'>'+esc(x.code)+' '+esc(x.name)+' '+esc(x.spec||'')+'</option>'}).join('')+'</select></td>';
+  if(ctl==='selbatch'){var bs=DB.stock.filter(function(s){return s.wh===d.wh&&s.code===l.code&&num(s.avail)>0});return '<td><select class="f" data-l="batch" data-i="'+i+'">'+(bs.length?bs.map(function(s){return '<option value="'+esc(s.batch)+'" '+(s.batch===l.batch?'selected':'')+'>'+esc(s.batch)+'（可用 '+fmt(s.avail)+'）</option>'}).join(''):'<option value="">该仓库无可用批次</option>')+'</select></td>'}
+  if(ctl==='num')return '<td><input class="f num" style="width:96px" type="number" min="0" step="0.001" data-l="'+k+'" data-i="'+i+'" value="'+esc(l[k]==null?'':l[k])+'"></td>';
+  if(ctl==='text')return '<td><input class="f" style="width:140px" data-l="'+k+'" data-i="'+i+'" value="'+esc(l[k]||'')+'"></td>';
+  if(ctl==='source')return '<td><span class="source-record">'+esc(l[k]||'手动添加')+'</span></td>';
+  if(ctl.indexOf('sel:')===0){var o=OPT[ctl.slice(4)]||[];return '<td><select class="f" data-l="'+k+'" data-i="'+i+'">'+o.map(function(x){return '<option '+(x===(l[k]||'')?'selected':'')+'>'+x+'</option>'}).join('')+'</select></td>'}
+  if(ctl.indexOf('ro:')===0){var f=ctl.slice(3);return '<td><input class="f" readonly style="width:86px" value="'+esc(f==='unit'?(l.unit||m.unit||''):f==='pack'?(m.pack||''):(m.sub||''))+'"></td>'}
+  var a=ctl.slice(5),s;
+  if(a==='diff'){var df=num(l.qty)-num(l.qty_src);return '<td class="'+(df?'red':'mut')+'"><b>'+(df>0?'+':'')+fmt(df)+'</b></td>'}
+  if(a==='avail'){s=st(d.wh,l.code,l.batch);return '<td class="'+(s&&num(s.avail)<num(l.qty)?'red':'')+'">'+(s?fmt(s.avail):'—')+'</td>'}
+  if(a==='book'){s=st(d.wh,l.code,l.batch);return '<td>'+(s?fmt(s.on)+(s.unit||''):'—')+'</td>'}
+  if(a==='loc'){s=st(d.wh,l.code,l.batch);return '<td class="mut">'+esc(s?s.loc:'—')+'</td>'}
+  if(a==='barcode'){
+    var qr=l.barcode||'';
+    return '<td class="mut">'+(qr?'<img class="qr-preview" alt="二维码 '+esc(qr)+'" src="https://api.qrserver.com/v1/create-qr-code/?size=84x84&margin=3&data='+encodeURIComponent(qr)+'"><span>'+esc(qr)+'</span>':'登记时生成')+'</td>';
+  }
+  if(a==='labels')return '<td>'+(num(l.qty)>0?fmt(Math.max(1,Math.ceil(num(l.qty)/Math.max(1,num(l.pack||m.pack))))):'—')+'</td>';
+  if(a==='amount')return '<td class="num">¥'+fmt(num(l.qty)*num(l.price))+'</td>';
+  return '<td>—</td>';
+}
+/* ===== 5.1 物料登记 · 批次+区域分组（按批次核对） ===== */
+function normalizeRegisterBatches(d){
+  if(!d||d.type!=='register')return;
+  if(!d.batchRegions||typeof d.batchRegions!=='object')d.batchRegions={};
+  (d.lines||[]).forEach(function(l){
+    if(l.batch&&l.region&&!d.batchRegions[l.batch])d.batchRegions[l.batch]=l.region;
+    if(l.batch&&(l.region||l.loc)&&!d.batchRegions[l.batch])d.batchRegions[l.batch]=l.region||l.loc;
+    if(!l.region)l.region=l.loc||d.batchRegions[l.batch]||d.loc||'';
+  });
+  if(!d.activeBatch){
+    var first=(d.lines||[]).filter(function(l){return l.batch})[0];
+    d.activeBatch=first?first.batch:'';
+  }
+}
+function registerBatchOrder(d){
+  var order=[],seen={};
+  function push(b){b=String(b||'待分配批次');if(!seen[b]){seen[b]=1;order.push(b)}}
+  if(d.activeBatch)push(d.activeBatch);
+  Object.keys(d.batchRegions||{}).forEach(push);
+  (d.lines||[]).forEach(function(l){push(l.batch||'待分配批次')});
+  return order;
+}
+function registerBatchRegion(d,batch){
+  if(d.batchRegions&&d.batchRegions[batch])return d.batchRegions[batch];
+  var f=(d.lines||[]).filter(function(l){return String(l.batch||'待分配批次')===String(batch)})[0];
+  return f?(f.region||f.loc||d.loc||''):(d.loc||'');
+}
+function registerBatchStats(d,batch){
+  var rows=(d.lines||[]).filter(function(l){return String(l.batch||'待分配批次')===String(batch)});
+  var regions={};rows.forEach(function(l){var r=l.region||l.loc||d.loc||'未分配区域';regions[r]=1});
+  return {n:rows.length,regions:Object.keys(regions),sum:unitSum(rows)};
+}
+function renderRegisterBatchBar(d){
+  var locked=d.status==='已审批'||d.status==='已作废';
+  var order=registerBatchOrder(d);
+  var chips=order.map(function(b){
+    var st=registerBatchStats(d,b),rg=registerBatchRegion(d,b);
+    var on=d.activeBatch===b;
+    return '<span class="subtab'+(on?' on':'')+'" style="cursor:pointer" data-act="regpick" data-batch="'+esc(b)+'">批次 '+esc(b)+' · '+st.n+'行 · '+esc(st.sum)+'<span class="sm" style="opacity:.8"> / '+esc(rg||'未设区域')+'</span></span>';
+  }).join('');
+  return '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    +'<b class="sm">批次视角：</b>'+(chips||'<span class="sm mut">暂无批次，请点“新建批次”</span>')
+    +'<span style="flex:1"></span>'
+    +(locked?'':'<button class="b pri" data-act="newbatch">新建批次</button><span class="sm mut">先建批次定区域，再向批次里加物料</span>')+'</div>';
+}
+function renderRegisterGroupedLines(d,cols){
+  var locked=d.status==='已审批'||d.status==='已作废';
+  var indexed=(d.lines||[]).map(function(l,i){return {l:l,i:i}});
+  var order=registerBatchOrder(d);
+  var pos={};order.forEach(function(b,ix){pos[String(b)]=ix});
+  indexed.sort(function(a,b){
+    var pa=pos[String(a.l.batch||'待分配批次')],pb=pos[String(b.l.batch||'待分配批次')];
+    if(pa===undefined)pa=999;if(pb===undefined)pb=999;
+    if(pa!==pb)return pa-pb;
+    var ra=a.l.region||a.l.loc||d.loc||'',rb=b.l.region||b.l.loc||d.loc||'';
+    if(ra!==rb)return String(ra).localeCompare(String(rb));
+    return a.i-b.i;
+  });
+  if(!indexed.length)return '';
+  var out='';
+  var lastBatch='__none__',lastRegion='__none__';
+  indexed.forEach(function(it){
+    var l=it.l,i=it.i;
+    var batch=String(l.batch||'待分配批次'),region=String(l.region||l.loc||d.loc||'未分配区域');
+    if(batch!==lastBatch){
+      var st=registerBatchStats(d,batch),rg=registerBatchRegion(d,batch);
+      out+='<tr class="batch-row"><td colspan="'+(cols.length+2)+'"><span class="batch-mark"><i class="fa-solid fa-layer-group"></i>批次：'+esc(batch)+' · '+st.n+'行 · '+esc(st.sum)+' · 区域 '+esc(rg||'未设')+'</span>'
+        +(locked?'':'<span style="float:right;display:inline-flex;gap:8px"><span class="link" data-act="regadd" data-batch="'+esc(batch)+'">+ 加物料到本批次</span><span class="link" data-act="regregion" data-batch="'+esc(batch)+'">设区域</span><span class="link" data-act="regrename" data-batch="'+esc(batch)+'">改批次号</span></span>')+'</td></tr>';
+      lastBatch=batch;lastRegion='__none__';
+    }
+    if(region!==lastRegion){
+      out+='<tr class="region-row"><td colspan="'+(cols.length+2)+'"><span class="region-mark"><i class="fa-solid fa-location-dot"></i>区域：'+esc(region)+'</span></td></tr>';
+      lastRegion=region;
+    }
+    out+='<tr><td>'+(i+1)+'</td>'+cols.map(function(c){return lineCell(d,l,i,c)}).join('')+'<td><button class="b danger" data-act="drop" data-i="'+i+'" aria-label="移除第'+(i+1)+'行">✕</button></td></tr>';
+  });
+  return out;
+}
+ function requestOptions(current){return DB.doc.filter(function(doc){return doc.type==='request'&&doc.status!=='已作废'&&doc.status!=='已冲红'}).slice(0,50).map(function(doc){return '<option value="'+esc(doc.no)+'" '+(doc.no===current?'selected':'')+'>'+esc(doc.no)+' · '+esc(doc.date||'')+' · '+esc(doc.unit||doc.listCustomer||doc.dept||'')+'</option>'}).join('')}
+ function inboundOptions(current){return DB.doc.filter(function(doc){return doc.type==='inbound'&&doc.status==='已审批'}).slice(0,50).map(function(doc){return '<option value="'+esc(doc.no)+'" '+(doc.no===current?'selected':'')+'>'+esc(doc.no)+' · '+esc(doc.date||'')+' · '+esc(doc.unit||doc.dept||doc.party||'')+'</option>'}).join('')}
+ function stockOptions(current){return DB.stock.filter(function(stock){return num(stock.on)>0}).slice(0,100).map(function(stock){var key=[stock.wh,stock.code,stock.batch,stock.loc].join('|'),material=mat(stock.code);return '<option value="'+esc(key)+'" '+(key===current?'selected':'')+'>'+esc(material.name||stock.code)+' · '+esc(stock.wh||'')+' · 批次 '+esc(stock.batch||'—')+' · '+esc(stock.loc||'—')+' · 账面 '+fmt(stock.on)+(stock.unit||'')+'</option>'}).join('')}
+ function renderEditor(){
+  var d=docBy(curNo),cols=COLS[d.type];
+  ensureRegisterQrs(d);
+  var batchBar='';
+  var lines=renderGroupedLines(d,cols);
+  function renderGroupedLines(doc,columns){
+    var output='',lastBatch='',lastRegion='';
+    (doc.lines||[]).forEach(function(line,index){
+      if(doc.type!=='request'&&doc.type!=='register'){
+        var batch=String(line.batch||'待分配批次'),region=String(line.region||line.loc||doc.loc||'未分配区域');
+        if(batch!==lastBatch){output+='<tr class="batch-row"><td colspan="'+(columns.length+2)+'"><span class="batch-mark"><i class="fa-solid fa-layer-group"></i>批次：'+esc(batch)+'</span></td></tr>';lastBatch=batch;lastRegion=''}
+        if(region!==lastRegion){output+='<tr class="region-row"><td colspan="'+(columns.length+2)+'"><span class="region-mark"><i class="fa-solid fa-location-dot"></i>区域：'+esc(region)+'</span></td></tr>';lastRegion=region}
+      }
+      output+='<tr><td>'+(index+1)+'</td>'+columns.map(function(c){return lineCell(doc,line,index,c)}).join('')+'<td><button class="b danger" data-act="drop" data-i="'+index+'" aria-label="移除第'+(index+1)+'行">✕</button></td></tr>';
+    });
+    return output;
+  }
+  var headForm=HEAD[d.type].map(function(f){
+    var k=f[0],lab=f[1],ctl=f[2],req=f[3],v=(d[k]==null&&d.type==='issue'&&k==='issue_type')?'常规领用':(d[k]==null&&d.type==='request'&&k==='material_type'?['生产领料']:(d[k]==null?'':d[k])),inner;
+    if(ctl==='date')inner='<input class="f" type="date" data-h="'+k+'" value="'+esc(v)+'">';
+    else if(ctl==='area')inner='<textarea class="f" rows="2" data-h="'+k+'">'+esc(v)+'</textarea>';
+    else if(ctl.indexOf('multi:')===0){var selected=Array.isArray(v)?v:(v?[v]:[]),o=OPT[ctl.slice(6)]||[],valueHtml=selected.length?selected.map(function(x){return '<span class="multi-chip">'+esc(x)+'</span>'}).join(''):'<span class="multi-placeholder">请选择领料类型</span>';inner='<div class="multi-select" data-multi="'+k+'"><button type="button" class="f multi-select-toggle" aria-haspopup="listbox" aria-expanded="false"><span class="multi-value">'+valueHtml+'</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button><div class="multi-select-menu hide" role="listbox">'+o.map(function(x){return '<label><input type="checkbox" value="'+esc(x)+'" '+(selected.indexOf(x)>-1?'checked':'')+'>'+esc(x)+'</label>'}).join('')+'</div></div>'}
+    else if(ctl==='sel:REQ'){var reqs=DB.doc.filter(function(x){return x.type==='request'&&x.status!=='已作废'});inner='<select class="f" onchange="setHeadAuto(\''+esc(d.no)+'\',\''+k+'\',this.value)"><option value="">不关联，直接登记</option>'+reqs.map(function(x){return '<option value="'+esc(x.no)+'"'+(x.no===v?' selected':'')+'>'+esc(x.no+' · '+(x.date||'')+' · '+(x.dept||x.unit||''))+'</option>'}).join('')+'</select>'}
+ else if(ctl==='sel:REG'){var regs=DB.doc.filter(function(x){return x.type==='register'});inner='<select class="f" onchange="setHeadAuto(\''+esc(d.no)+'\',\''+k+'\',this.value)"><option value="">不关联，直接入库</option>'+regs.map(function(x){return '<option value="'+esc(x.no)+'"'+(x.no===v?' selected':'')+'>'+esc(x.no+' · '+(x.date||'')+' · '+unitSum(x.lines))+'</option>'}).join('')+'</select>'}
+    else inner='<input class="f" data-h="'+k+'" value="'+esc(v)+'">';
+    return '<label class="fl'+(ctl==='area'?' wide':'')+'"><span class="fl-label">'+esc(lab)+(req?'<i>*</i>':'')+'</span>'+inner+'</label>';
+  }).join('');
+  var locked=d.status==='已审批'||d.status==='已作废';
+  var srcBar='';
+  if(!locked&&d.type==='issue'){
+    srcBar='<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b class="sm">关联申请领料单（可选）：</b><select class="f" style="max-width:280px" data-h="src_sq"><option value="">不关联，直接领用</option>'+requestOptions(d.src_sq)+'</select><b class="sm">关联入库单（可选）：</b><select class="f" style="max-width:280px" data-h="src_rk"><option value="">不关联，直接领用</option>'+inboundOptions(d.src_rk)+'</select></div>';
+  }else if(!locked&&d.type==='wreturn'){
+    srcBar='<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b class="sm">关联物料入库单（可选）：</b><select class="f" style="max-width:360px" data-h="src_rk"><option value="">不关联物料入库单</option>'+inboundOptions(d.src_rk)+'</select></div>';
+  }else if(!locked&&d.type==='return'){
+    srcBar='<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b class="sm">关联物料库存单（可选）：</b><select class="f" style="max-width:360px" data-h="src_kc"><option value="">不关联物料库存单</option>'+stockOptions(d.src_kc)+'</select></div>';
+  }else if(d.type==='inbound'&&!locked){
+    var cands=DB.doc.filter(function(x){return x.type==='register'&&(x.status==='已审批'||x.status==='已保存'||x.status==='已驳回')}).slice(0,20);
+    srcBar='<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sm mut">已选登记单请到右侧单头「关联物料登记单」下拉选择</span><button class="b" data-act="pullreg">从登记单带入清单</button><span class="sm mut">带入后可在本单修改验收数量与质检结论；登记单本身不受影响</span></div>';
+  }
+  document.getElementById('main').innerHTML=
+    '<div class="split">'+
+      '<section class="card">'+
+        '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>工单清单 · '+esc(d.no)+' '+tag(d.status)+(d.reversed?' '+tag('已冲红'):'')+'</b><span class="sm mut">'+(locked?'已过账：明细不可修改，如需更正请走《物料退库 · 入库冲红》':'')+(d.type==='request'&&!locked?'<button type="button" class="b" data-act="addsingle" style="margin-left:8px">+单条</button>':'')+'</span></div>'+batchBar+srcBar+
+        '<div class="tblwrap"><table class="t"><thead><tr><th>序号</th>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th>操作</th></tr></thead><tbody>'+(lines||'<tr><td colspan="'+(cols.length+2)+'" style="text-align:center;padding:26px"><button class="empty-add" data-act="addline" title="添加清单" aria-label="添加清单">＋</button></td></tr>')+'</tbody></table></div>'+ 
+        '<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+esc(unitSum(d.lines))+'</b></span><span>参考金额 <b>¥'+fmt(amount(d.lines))+'</b><span class="mut">（仅展示，不参与记账）</span></span>'+((d.type==='reject'||d.type==='request')?'<span class="red"><b>本单审批不产生任何库存变动</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签张数按 验收数量 ÷ 包装数量 向上取整</span>':'')+(d.type==='wreturn'?'<span class="grn"><b>回仓进项：审批后目标仓库存量增加</b></span>':'')+(d.type==='return'?'<span class="red"><b>出库/冲红方向：审批后库存减少或分量互转</b></span>':'')+'</div></div>'+
+      '</section>'+
+      '<aside class="card pad work-order-info">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>工单信息'+(d.status==='草稿'?'（新工单，未保存）':'')+'</b><button class="b" data-act="print">打印</button></div>'+
+        '<div class="hd">'+headForm+'</div>'+
+        '<div class="note" style="margin-top:12px">'+ruleTip(d.type)+'</div>'+
+        '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" data-act="save"'+(locked?' disabled':'')+'>保存</button><button class="b pri" data-act="submit"'+(locked?' disabled':'')+'>提交</button><button class="b" data-act="audit"'+(locked?' disabled':'')+'>审核</button><button class="b pri" data-act="confirm"'+(locked?' disabled':'')+'>仓管确认</button><button class="b danger" data-act="void"'+(locked?' disabled':'')+'>作废</button></div>'+ 
+        '<div class="sm mut" style="margin-top:8px" data-flowline>审批流：加载中…</div>'+
+        '<div class="sm mut" style="margin-top:10px">附件上传数量：'+(d.files||0)+' <span class="link" data-act="file">上传照片 / 送货单</span></div>'+
+        '<div class="sm mut" style="margin-top:6px">审批日志 <span class="link" data-act="log">查看</span> · 库存记录 <span class="link" data-act="flow" data-code="'+esc((d.lines[0]||{}).code||'')+'">查看</span></div>'+
+      '</aside>'+
+    '</div>';
+}
+function ruleTip(t){return{request:'申请领料＝进仓前需求意向：只登记车间要什么、要多少、何时要。审批=需求确认，不写库存记录、不增减库存；随后由仓库按申请发料（物料领用）。',register:'物料登记＝进仓加库存第1步：建码建账，一物一码逐件生成二维码；审批后自动入账并写流水。',reject:'来料拒收＝物料登记的分支：不合格只留凭证，审批不产生库存变动；来源单的可入库数量被锁定。',inbound:'物料入库＝进仓加库存第2步：可关联已审批物料登记单带入清单（仅备查）；待检行只增加“待检”分量不计可用；验收数≠来料数必须填差异原因；不合格行请走《来料拒收》。',issue:'进仓后执行：只能选择有可用量的批次；实发>可用直接整单拦截；审批后扣减账面与可用，并记录领用人/车间/车辆（含车间接收签收）。新增「出库去向」：车间自提入车间账，直送车间不入仓、直达生产。',wreturn:'车间退料＝回仓进项：必须关联已审批领用单并校验超退；审批后按回增状态加到目标仓库（可用/待检/隔离），外仓判定人+判定说明留痕。',return:'物料退库＝侧线减账：入库冲红写反向流水并锁原单余量；损坏退还供应商为出库；待检/隔离为分量互转。车间余料回仓请走《车间退料》。',stock:''}[t]}
+function renderMaterial(){
+  /* 已下线：物料档案唯一入口为基础资料/物料档案；旧调用直接跳转，不再渲染 */
+  try{if(parent&&parent.go)parent.go('base','2')}catch(e){}try{if(window.__WMS_GO)window.__WMS_GO('base')}catch(e){}
+  try{location.href='base.html?tab=2'}catch(e){}
+  return;
+}
+function renderStock(){
+  var body='';
+  if(sub!=='onhand'&&sub!=='ledger')sub='onhand';
+  if(sub==='onhand'){
+    var whs=[];DB.stock.forEach(function(s){if(whs.indexOf(s.wh)<0)whs.push(s.wh)});
+    var scope=window.onhandScope||'';
+    var list=DB.stock.filter(function(s){var m=mat(s.code);return (!kw||(s.code+m.name+s.batch+s.wh+s.loc).toLowerCase().indexOf(kw.toLowerCase())>=0)&&(!scope||s.wh===scope)});
+    var rows=list.map(function(s){var m=mat(s.code),al=alertOf(s),gi=DB.stock.indexOf(s);
+      return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+fmt(s.on)+'</b></td><td class="num grn"><b>'+fmt(s.avail)+'</b></td><td class="num org">'+fmt(s.pending)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num">'+fmt(m.min)+'</td><td class="num">'+fmt(m.max)+'</td><td>'+tag(al)+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span> <span class="link" data-act="quick" data-i="'+gi+'">发起领用</span></td></tr>'}).join('');
+    var whBtns='<button class="b '+(scope?'':'on')+'" data-act="whscope" data-wh="">全部库区</button>'+whs.map(function(w){return '<button class="b '+(scope===w?'on':'')+'" data-act="whscope" data-wh="'+esc(w)+'">'+esc(w)+'</button>'}).join('');
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>仓库库存 inventory_stock</b><span class="sm mut">由 stock_ledger 派生，页面只读，不可直接改数 · 可用 = 账面 − 待检 − 隔离 − 冻结</span></div>'+
+      '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b class="sm">库区视角：</b>'+whBtns+'<span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div>'+
+      '<div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>仓库</th><th>库区</th><th>批次</th><th>单位</th><th>账面</th><th>可用</th><th>待检</th><th>隔离</th><th>最低</th><th>最高</th><th>预警</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无库存</td></tr>')+'</tbody></table></div><div class="pad sum"><span>当前范围：'+esc(scope||'全部库区')+'</span><span>账面合计（按单位分组）：<b>'+esc(stockUnitSum(list))+'</b></span><span>可用合计：<b>'+esc(aggUnit(list,'avail'))+'</b></span><span class="mut">不同单位永不相加</span></div></div>';
+  }else{
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><b>库存记录 stock_ledger</b> <span class="sm mut">只增不改不删 · 冲红为反向流水并指向原单 · 账实核对以本表为准</span><span style="flex:1"></span><button class="b" data-act="cmp">数据比对</button></div><div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>物料</th><th>批次</th><th>仓库</th><th>库区</th><th>方向</th><th>数量</th><th>变动前</th><th>变动后</th><th>分量</th><th>操作人</th><th>备注</th><th>操作</th></tr></thead><tbody>'+(DB.ledger.map(function(x){var m=mat(x.code);return '<tr><td>'+esc(x.t)+'</td><td class="link" data-act="open" data-no="'+esc(x.doc)+'">'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc((m.name||'')+' '+x.code)+'</td><td>'+esc(x.batch)+'</td><td>'+esc(x.wh)+'</td><td>'+esc(x.loc)+'</td><td>'+tag(x.dir)+'</td><td class="num">'+fmt(x.qty)+esc(x.unit)+'</td><td class="num">'+fmt(x.before)+'</td><td class="num">'+fmt(x.after)+'</td><td>'+esc(x.field)+'</td><td>'+esc(x.by)+'</td><td class="sm mut">'+esc(x.note||'')+'</td><td><span class="link" data-act="godetail" data-key="'+esc(x.code+'|'+x.batch+'|'+x.wh+'|'+x.loc)+'">明细</span></td></tr>'}).join('')||'<tr><td colspan="15" class="mut" style="text-align:center;padding:28px">暂无流水</td></tr>')+'</tbody></table></div></div>';
+  }
+  var kpiTitle=sub==='ledger'?'库存记录':'仓库库存';
+  var kpiUnit=sub==='ledger'?'物料+批次+仓库+库区':'仓库+库区+物料+批次';
+  document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>'+kpiTitle+'</small><b>'+DB.stock.length+'</b><span class="sm mut">'+kpiUnit+'</span></div><div class="kpi"><small>低于下限</small><b class="red">'+DB.stock.filter(function(s){return alertOf(s)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(DB.stock.reduce(function(a,s){return a+num(s.pending)},0))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+body;
+}
+
+/* ===== 6. 动作 ===== */
+function blankDoc(t){
+  var d={no:nextNo(VIEWS[t].prefix),type:t,status:'草稿',date:today(),lines:[],files:0,unit:'单位本部',dept:'办公室',wh:'成品仓A',loc:'第1栏第1格',handler:'张建国',remark:'',flow:{S1:0,S2:0,S3:0,S4:0,S5:0,S6:0,submitted:0,cur:'S1',done:0,hist:[]}};
+  if(t==='register'){d.batchRegions={};d.activeBatch=''}
+  if(t==='inbound'){d.in_type='采购入库';d.party='宏远纺织';d.acceptor='王芳'}
+  if(t==='reject'){d.party='恒达辅料';d.inspector='王芳';d.rj_type='部分拒收';d.rj_action='退回供应商';d.source='';d.dept='办公室'}
+  if(t==='issue'){d.receiver='李小明';d.dept='缝制一车间';d.issue_type='常规领用';d.issue_flow='车间自提（入车间账）';d.purpose=''}
+  if(t==='request'){d.unit='恒达服饰';d.receiver='李小明';d.dept='缝制一车间';d.material_type=['生产领料'];d.due_date=today()}
+  if(t==='wreturn'){d.receiver='李小明';d.dept='缝制一车间';d.reason='';d.src_ly='';d.judge_state='可用';d.judge_by='';d.judge_note=''}
+  if(t==='return'){d.ret_type='入库冲红';d.receiver='';d.dept='办公室';d.reason='';d.src_rk=''}
+  return d;
+}
+function newLine(d){
+  var first=DB.material.filter(function(x){return x.status==='启用'})[0];
+  if(!first){toast('暂无已启用物料档案，请先在「物料登记 → 物料档案（管理员）」新增',1);return null}
+  return newMaterialLine(d,first.code,'','');
+}
+function newMaterialLine(d,code,qty,ref){
+  var m=mat(code);
+  if(!m.code||m.status!=='启用')return null;
+  var l={code:m.code,name:m.name,unit:m.unit,qty:d.type==='register'?1:'',qty_src:'',price:m.price||0,loc:d.type==='register'?'':(d.loc||''),region:d.type==='register'?'':(d.loc||''),batch:'',pack:m.pack,sub:m.sub};
+  if(d.type==='register'&&d.activeBatch){l.batch=d.activeBatch;l.region=registerBatchRegion(d,d.activeBatch)||d.loc||'';l.loc=l.region||l.loc}
+  if(d.type==='inbound')l.qc='合格';
+  if(d.type==='reject'){l.reason='质量问题';l.qty_src=0;l.qty_bad=0;l.qty=0}
+  if(d.type==='request'){l.ref='手动添加';l.batch='';l.region='';l.loc=''}
+  if(d.type==='wreturn')l.ret_state=d.judge_state||'可用';
+  if(d.type==='issue'){var bs=DB.stock.filter(function(s){return s.wh===d.wh&&s.code===l.code&&num(s.avail)>0});l.batch=bs[0]?bs[0].batch:'';l.loc=bs[0]?bs[0].loc:l.loc}
+  else if(d.type==='register'&&d.activeBatch){}
+  else if(d.type!=='request'&&d.type!=='register'&&m.mode==='按量（批次数量）')l.batch=nextBatch();
+  else l.batch='';
+  if(qty!==''&&qty!=null){l.qty=num(qty);if(d.type==='inbound'||d.type==='reject')l.qty_src=num(qty)}
+  if(ref&&d.type==='request')l.ref=ref;
+  return l;
+}
+var ADD_PRESETS={
+  product:[
+    {name:'秋季夹克 · HD-JK-24秋',customer:'恒达服饰',items:[['10A0501020100013',2],['10A0501020100015',1],['10A0501020100016',5]]},
+    {name:'冬季大衣 · HD-DK-24冬',customer:'恒达服饰',items:[['10A0501020100013',2.4],['10A0501020100014',1.2],['10A0501020100016',6]]}
+  ],
+  workshop:[
+    {name:'缝制一车间',items:[['10A0501020100013',200],['10A0501020100015',100],['10A0501020100016',50]]},
+    {name:'裁剪车间',items:[['10A0501020100013',300],['10A0501020100014',200]]},
+    {name:'缝制二车间',items:[['10A0501020100014',250],['10A0501020100015',80],['10A0501020100016',40]]}
+  ]
+};
+var OCR_PRESETS=[{no:'OCR2026091201',name:'OCR2026091201 · 送货单识别结果',customer:'恒达服饰',items:[['10A0501020100013',1200],['10A0501020100015',2000]]}];
+function pickerTargets(kind){
+  if(kind==='ocr'){
+    var records=(DB.ocr||[]).map(function(record){
+      var preset=OCR_PRESETS.filter(function(item){return item.no===record.no})[0]||OCR_PRESETS[0];
+      return{no:record.no,name:record.no+' · '+(record.status||'待复核')+(record.created?' · '+record.created:''),customer:record.customer||preset.customer,items:preset.items};
+    });
+    OCR_PRESETS.forEach(function(item){if(!records.some(function(record){return record.no===item.no}))records.push(item)});
+    return records;
+  }
+  if(kind==='history'){
+    var query=String((window._materialPicker&&window._materialPicker.query)||'').toLowerCase();
+    return DB.doc.filter(function(doc){
+      if(doc.type!=='request'||doc.status==='已作废')return false;
+      var text=[doc.no,doc.date,doc.dept,doc.receiver,doc.unit,doc.listCustomer].concat((doc.lines||[]).map(function(line){var material=mat(line.code);return [line.code,material.name,material.customer].join(' ')})).join(' ').toLowerCase();
+      return !query||text.indexOf(query)>=0;
+    }).map(function(doc){return{no:doc.no,name:doc.no+' · '+(doc.date||'')+' · '+(doc.dept||doc.receiver||doc.unit||'—'),customer:doc.listCustomer||'',items:(doc.lines||[]).filter(function(line){return !!mat(line.code).code}).map(function(line){return[line.code,num(line.qty)||1]})}});
+  }
+  if(kind==='customer'){
+    var names=[];DB.material.forEach(function(m){if(m.status==='启用'&&m.customer&&names.indexOf(m.customer)<0)names.push(m.customer)});
+    return names.map(function(name){return{name:name,items:DB.material.filter(function(m){return m.status==='启用'&&m.customer===name}).map(function(m){return[m.code,1]})}});
+  }
+  return ADD_PRESETS[kind]||[];
+}
+function pickerAvailability(d,code){
+  if(d.type!=='issue'&&d.type!=='return')return null;
+  return DB.stock.filter(function(s){return s.wh===d.wh&&s.code===code&&num(d.type==='issue'?s.avail:s.on)>0}).reduce(function(sum,s){return sum+num(d.type==='issue'?s.avail:s.on)},0);
+}
+function renderMaterialPicker(){
+  var state=window._materialPicker,d=cur();if(!state||!d)return;
+  var targets=pickerTargets(state.kind);
+  if(!targets.length){
+    document.getElementById('dlgTitle').textContent='添加清单 · '+d.no;
+    document.getElementById('dlgBody').innerHTML='<div class="picker-kind"><button class="b '+(state.kind==='customer'?'on':'')+'" data-act="pickkind" data-kind="customer">客户</button><button class="b '+(state.kind==='product'?'on':'')+'" data-act="pickkind" data-kind="product">成品</button><button class="b '+(state.kind==='workshop'?'on':'')+'" data-act="pickkind" data-kind="workshop">车间</button><button class="b '+(state.kind==='history'?'on':'')+'" data-act="pickkind" data-kind="history">历史申请</button><button class="b '+(state.kind==='ocr'?'on':'')+'" data-act="pickkind" data-kind="ocr">OCR记录</button></div>'+(state.kind==='history'?'<input class="f" data-role="pick-history-query" placeholder="筛选：工单号 / 日期 / 车间 / 申请人 / 物料" value="'+esc(state.query||'')+'">':'')+'<div class="note" style="margin-top:12px">'+(state.kind==='history'?'没有符合筛选条件的历史申请领料工单。':state.kind==='ocr'?'没有可用的 OCR 识别记录。':'暂无可用的常规物料清单。')+'</div>';
+    document.getElementById('dlgFoot').innerHTML='<button class="b" data-close>关闭</button>';return;
+  }
+  if(state.index>=targets.length)state.index=0;
+  var target=targets[state.index],rows=target.items.map(function(item,index){var m=mat(item[0]),available=pickerAvailability(d,m.code),disabled=available===0;
+    return '<tr><td><input type="checkbox" data-pick-check="'+index+'" '+(disabled?'disabled':'checked')+' aria-label="选择 '+esc(m.name)+'"></td><td><b>'+esc(m.name)+'</b><div class="sm mut">'+esc(m.code)+' · '+esc(m.spec||'—')+'</div></td><td>'+esc(m.unit)+'</td><td><input class="f num" style="width:100px" type="number" min="0" step="0.001" data-pick-qty="'+index+'" value="'+esc(item[1])+'" '+(disabled?'disabled':'')+'></td><td class="sm '+(disabled?'red':'mut')+'">'+(available==null?'常规清单':disabled?'当前仓库无可用库存':'当前仓库可用 '+fmt(available)+esc(m.unit))+'</td></tr>';
+  }).join('');
+  document.getElementById('dlgTitle').textContent='添加清单 · '+d.no;
+  var historyFilter=state.kind==='history'?'<input class="f" data-role="pick-history-query" placeholder="筛选：工单号 / 日期 / 车间 / 申请人 / 物料" value="'+esc(state.query||'')+'">':'';
+  var kindLabel=state.kind==='customer'?'客户':state.kind==='product'?'成品':state.kind==='workshop'?'车间':state.kind==='ocr'?'OCR记录':'历史申请工单';
+  var sourceLabel=state.kind==='history'?'历史申请物料':state.kind==='ocr'?'OCR识别物料':'常规物料';
+  document.getElementById('dlgBody').innerHTML='<div class="picker-kind"><button class="b '+(state.kind==='customer'?'on':'')+'" data-act="pickkind" data-kind="customer">客户</button><button class="b '+(state.kind==='product'?'on':'')+'" data-act="pickkind" data-kind="product">成品</button><button class="b '+(state.kind==='workshop'?'on':'')+'" data-act="pickkind" data-kind="workshop">车间</button><button class="b '+(state.kind==='history'?'on':'')+'" data-act="pickkind" data-kind="history">历史申请</button><button class="b '+(state.kind==='ocr'?'on':'')+'" data-act="pickkind" data-kind="ocr">OCR记录</button></div>'+historyFilter+'<div class="picker-target"><b>选择'+kindLabel+'</b><select class="f" data-role="pick-target">'+targets.map(function(x,i){return '<option value="'+i+'" '+(i===state.index?'selected':'')+'>'+esc(x.name)+'</option>'}).join('')+'</select></div><div class="tblwrap"><table class="t"><thead><tr><th></th><th>'+sourceLabel+'</th><th>单位</th><th>本次数量</th><th>说明</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="note" style="margin-top:12px">'+(state.kind==='history'?'选择历史申请领料工单后，可勾选其中物料加入当前工单；原申请单号会保留在来源记录中。':state.kind==='ocr'?'选择 OCR 识别记录后，可勾选识别物料并修改本次数量；OCR 编号会保留在来源记录中。':'选择归属对象后带出常规物料清单；可取消勾选或修改本次数量，加入后仍可在工单中调整。')+'</div>';
+  document.getElementById('dlgFoot').innerHTML='<button class="b" data-close>取消</button><button class="b pri" data-act="pickconfirm">加入所选物料</button>';
+}
+function openMaterialPicker(){
+  window._materialPicker={kind:'customer',index:0,query:''};
+  document.getElementById('dlgRoot').classList.remove('hide');renderMaterialPicker();
+}
+function edit(no){curNo=no;mode='edit';sub='doc';render()}
+function showErrors(es){dialog('校验未通过：本单未过账','<ul class="errs">'+es.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul><div class="note" style="margin-top:12px">过账是原子操作：任何一行不通过，整单不写流水、不改仓库库存。数据一致性优先于操作便利。</div>')}
+function goLegacy(page){try{if(parent&&parent.go)parent.go(page,page==='transfer'?'nomaterial':'')}catch(e){}try{if(window.__WMS_GO)window.__WMS_GO(page)}catch(e){}toast('已跳转：'+({'transfer':'仓储作业 · 库存调仓','stocktake':'仓储作业 · 库存盘点'})[page||'']+'（同一账套，仓库库存与库存记录互通）')}
+function cur(){return docBy(curNo)}
+var ACT={
+  backnav:function(){
+    var target=view==='request'?'materialRequest':view==='register'?'materialRegister':view==='reject'?'materialReject':view==='inbound'?'materialInbound':view==='issue'?'materialIssue':view==='wreturn'?'materialWReturn':view==='return'?'materialReturn':'materialCode';
+    try{if(parent&&parent.go){parent.go(target);return}}catch(e){}
+    if(history.length>1)history.back();
+  },
+  view:function(el){var v=el.dataset.v;try{var keep=/from=app/.test(location.search)?'?from=app&view=':'?view=';location.href='material-workbench.html'+keep+v;}catch(e){location.href='material-workbench.html?view='+v}},
+  sub:function(el){var s=el.dataset.s;if(s==='material'){try{if(parent&&parent.go)parent.go('base','2')}catch(e){}try{if(window.__WMS_GO)window.__WMS_GO('base')}catch(e){}toast('物料档案入口：基础资料 / 物料档案');return}sub=s;mode='list';curNo='';render()},
+  queue:function(el){queue=el.dataset.q;mode='list';curNo='';render()},
+  search:function(){render()},
+  whscope:function(el){kw='';sub='onhand';window.onhandScope=el.dataset.wh||'';render()},
+  cmp:function(){var mismatch=0;DB.stock.forEach(function(s){var ledger=DB.ledger.filter(function(x){return x.code===s.code&&x.batch===s.batch&&x.wh===s.wh&&x.loc===s.loc}).reduce(function(a,x){return a+(x.dir==='出'?-num(x.qty):x.dir==='入'?num(x.qty):0)},0);if(Math.abs(ledger-num(s.on))>0.001)mismatch++});dialog('库存记录数据比对','<div class="note">比对维度：物料+批次+仓库+库区 · 仓库库存 inventory_stock 对比 stock_ledger 入出累计。</div><div class="kpis" style="margin-top:12px"><div class="kpi"><small>库存记录</small><b>'+DB.stock.length+'</b></div><div class="kpi"><small>比对异常</small><b class="'+(mismatch?'red':'grn')+'">'+mismatch+'</b></div><div class="kpi"><small>结论</small><b class="'+(mismatch?'red':'grn')+'">'+(mismatch?'需复核':'一致')+'</b></div></div>')},
+  gotransfer:function(){goLegacy('transfer')},
+  gostocktake:function(){goLegacy('stocktake')},
+  printloc:function(el){toast('已推送库区条码到打印队列：LOC-'+(Number(el.dataset.i)+1))},
+  new:function(){if(view==='stock'){toast('库存台账不可直接改数：请到「物料入库 / 物料领用 / 车间退料 / 物料退库」发起工单',1);return}var d=blankDoc(view);DB.doc.unshift(d);save();edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
+  open:function(el){var d=docBy(el.dataset.no);if(!d){toast('未找到单据 '+el.dataset.no+'（可能是流水示例数据）',1);return}view=d.type;mode='edit';curNo=d.no;render()},
+   back:function(){var d=cur();if(d&&d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存')}mode='list';curNo='';render()},
+   cancel:function(){var d=cur();if(!d)return;if(d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存，未提交审批')}curNo='';mode='list';render()},
+  void:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no)},
+  newbatch:function(){
+    var d=cur();if(!d||d.type!=='register'){toast('请先打开一张物料登记工单',1);return}
+    if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能新增批次',1);return}
+    var suggested=nextBatch();DB.seq.BT--;
+    dialog('新建批次 · '+d.no,
+      '<label class="fl"><span class="fl-label">批次号<i>*</i></span><input class="f" id="nb_no" value="'+esc(suggested)+'"></label>'
+      +'<label class="fl" style="margin-top:8px"><span class="fl-label">批次区域（库区/分区）<i>*</i></span><input class="f" id="nb_region" placeholder="如 第1栏第1格 / A区-01" value="'+esc(d.loc||'')+'"></label>'
+      +'<label class="fl" style="margin-top:8px"><span class="fl-label">是否立即向该批次加一行物料</span><select class="f" id="nb_add"><option value="1">是：建完批次直接加1行</option><option value="0">否：只建批次稍后添加</option></select></label>'
+      +'<div class="note" style="margin-top:10px">批次=本次核对单元：后续清单按批次分组显示，批次下再按区域/库区分割。批次号在本单内唯一。</div>',
+      '<button class="b" data-close>取消</button><button class="b pri" id="nbSave">创建批次</button>');
+    document.getElementById('nbSave').onclick=function(){
+      var no=String(document.getElementById('nb_no').value||'').trim();
+      var region=String(document.getElementById('nb_region').value||'').trim();
+      if(!no){toast('批次号必填',1);return}
+      if(!region){toast('批次区域必填',1);return}
+      if(!d.batchRegions||typeof d.batchRegions!=='object')d.batchRegions={};
+      var dup=(d.lines||[]).some(function(l){return String(l.batch||'')===no});
+      if(dup||d.batchRegions[no]){toast('本单已存在批次 '+no+'，请换一个批次号',1);return}
+      d.batchRegions[no]=region;d.activeBatch=no;
+      if(no===suggested)DB.seq.BT++;
+      var add=document.getElementById('nb_add').value==='1';
+      if(add){var l=newLine(d);if(l){l.batch=no;l.region=region;l.loc=region;d.lines.push(l)}}
+      audit(d,'新建批次',no+' / '+region);
+      save();document.getElementById('dlgRoot').classList.add('hide');render();
+      toast('已新建批次 '+no+'（区域：'+region+'），清单已按批次+区域分组');
+    };
+  },
+  regpick:function(el){var d=cur();if(!d||d.type!=='register')return;d.activeBatch=el.dataset.batch||'';save();render();toast('当前批次：'+(d.activeBatch||'—')+'，新加物料将归入该批次')},
+  regadd:function(el){var d=cur();if(!d||d.type!=='register')return;if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能增行，请走冲红',1);return}normalizeRegisterBatches(d);d.activeBatch=el.dataset.batch||d.activeBatch;var l=newLine(d);if(!l)return;l.batch=d.activeBatch;l.region=registerBatchRegion(d,d.activeBatch);l.loc=l.region||l.loc;d.lines.push(l);save();render();toast('已向批次 '+d.activeBatch+' 加1行物料')},
+  regregion:function(el){
+    var d=cur();if(!d||d.type!=='register')return;var b=el.dataset.batch;
+    if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能改区域',1);return}
+    dialog('设置批次区域 · '+b,'<label class="fl"><span class="fl-label">区域（库区/分区）<i>*</i></span><input class="f" id="rg_val" value="'+esc(registerBatchRegion(d,b))+'"></label><div class="note" style="margin-top:8px">修改后，该批次下所有行的区域/存放库区将同步更新，便于按区域核对。</div>','<button class="b" data-close>取消</button><button class="b pri" id="rgSave">保存区域</button>');
+    document.getElementById('rgSave').onclick=function(){
+      var v=String(document.getElementById('rg_val').value||'').trim();
+      if(!v){toast('区域不能为空',1);return}
+      if(!d.batchRegions)d.batchRegions={};d.batchRegions[b]=v;
+      (d.lines||[]).forEach(function(l){if(String(l.batch||'待分配批次')===String(b)){l.region=v;l.loc=v}});
+      audit(d,'设置批次区域',b+' → '+v);
+      save();document.getElementById('dlgRoot').classList.add('hide');render();toast('批次 '+b+' 区域已更新：'+v);
+    };
+  },
+  regrename:function(el){
+    var d=cur();if(!d||d.type!=='register')return;var b=el.dataset.batch;
+    if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能改批次号',1);return}
+    dialog('修改批次号 · '+b,'<label class="fl"><span class="fl-label">新批次号<i>*</i></span><input class="f" id="rn_val" value="'+esc(b)+'"></label><div class="note" style="margin-top:8px">仅调整本单内该批次下所有行的批次号，不影响已过账库存。</div>','<button class="b" data-close>取消</button><button class="b pri" id="rnSave">保存批次号</button>');
+    document.getElementById('rnSave').onclick=function(){
+      var v=String(document.getElementById('rn_val').value||'').trim();
+      if(!v){toast('批次号不能为空',1);return}
+      var dup=(d.lines||[]).some(function(l){return String(l.batch||'')===v});
+      if(v!==b&&(dup||(d.batchRegions&&d.batchRegions[v]))){toast('本单已存在批次 '+v,1);return}
+      (d.lines||[]).forEach(function(l){if(String(l.batch||'待分配批次')===String(b))l.batch=v});
+      if(d.batchRegions){d.batchRegions[v]=d.batchRegions[b]||registerBatchRegion(d,b);if(v!==b)delete d.batchRegions[b]}
+      if(d.activeBatch===b)d.activeBatch=v;
+      audit(d,'修改批次号',b+' → '+v);
+      save();document.getElementById('dlgRoot').classList.add('hide');render();toast('批次号已更新：'+v);
+    };
+  },
+  addline:function(){var d=cur();if(!d){toast('请先点“新工单”或打开一张工单',1);return}if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能增行，请走冲红',1);return}if(d.type==='register')normalizeRegisterBatches(d);openMaterialPicker()},
+  addsingle:function(){var d=cur();if(!d||d.type!=='request'){toast('“+单条”仅适用于申请领料',1);return}if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能增行，请走冲红',1);return}var line=newLine(d);if(!line)return;d.lines.push(line);save();render();toast('已添加1条物料明细，请选择物料并填写数量')},
+  pickkind:function(el){window._materialPicker={kind:el.dataset.kind,index:0};renderMaterialPicker()},
+  pickconfirm:function(){
+    var d=cur(),state=window._materialPicker;if(!d||!state)return;
+    var targets=pickerTargets(state.kind),target=targets[state.index];if(!target)return;
+    var added=0;
+    target.items.forEach(function(item,index){
+      var checked=document.querySelector('[data-pick-check="'+index+'"]'),qtyInput=document.querySelector('[data-pick-qty="'+index+'"]');
+      if(!checked||!checked.checked)return;
+      var qty=qtyInput?num(qtyInput.value):num(item[1]);if(!(qty>0))return;
+       var sourcePrefix=state.kind==='customer'?'客户':state.kind==='product'?'成品':state.kind==='workshop'?'车间':state.kind==='ocr'?'OCR记录':'历史申请';
+       var line=newMaterialLine(d,item[0],qty,sourcePrefix+'：'+target.name);if(!line)return;
+      d.lines.push(line);added++;
+    });
+    if(!added){toast('请至少选择一项数量大于 0 的物料',1);return}
+    d.listOwnerType=state.kind;d.listOwner=target.name;
+    if(state.kind==='workshop'){if(!String(d.dept||'').trim()||d.dept==='办公室')d.dept=target.name}
+    if(state.kind==='customer'){d.listCustomer=target.name;if(!String(d.unit||'').trim()||d.unit==='单位本部')d.unit=target.name;if(d.type==='inbound'||d.type==='reject')d.party=target.name}
+    if(state.kind==='product'){d.listCustomer=target.customer||'';if(d.type==='register'&&!String(d.unit||'').trim())d.unit=target.customer||d.unit;if(d.type==='request')d.order=target.name}
+    if(state.kind==='history'){d.sourceRequest=target.no;d.listCustomer=target.customer||'';if(d.type==='register'&&target.customer&&(!String(d.unit||'').trim()||d.unit==='单位本部'))d.unit=target.customer;if(d.type==='register'&&target.dept&&(!String(d.dept||'').trim()||d.dept==='办公室'))d.dept=target.dept;if(d.type==='register'&&target.no&&!String(d.source||'').trim())d.source=target.no}
+    if(state.kind==='ocr'){d.ocrRecord=target.no;d.listCustomer=target.customer||'';if(d.type==='register'&&target.customer&&(!String(d.unit||'').trim()||d.unit==='单位本部'))d.unit=target.customer;if(d.type==='register'&&target.no&&!String(d.source||'').trim())d.source=target.no}
+    ensureRegisterQrs(d);save();window._materialPicker=null;document.getElementById('dlgRoot').classList.add('hide');render();toast('已加入 '+added+' 项常规物料 · '+target.name);
+  },
+  newocr:function(){var d=cur(),no=nextOcrNo();if(!DB.ocr)DB.ocr=[];DB.ocr.unshift({no:no,source:'工单OCR识别',doc:d?d.no:'',status:'待复核',created:now()});save();try{if(parent&&parent.go)parent.go('ocrResult',no);else location.href='../app.html?page=ocrResult&tab='+encodeURIComponent(no)}catch(e){location.href='../app.html?page=ocrResult&tab='+encodeURIComponent(no)}},
+  ocrfill:function(){var d=cur();if(!d){toast('请先点“新工单”或打开一张工单',1);return}if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不可再识别填入',1);return}
+    /* 演示版模拟识别：送货单/BOM/箱唛三套候选，行内可改 */
+    var demo=d.type==='request'
+      ?{title:'识别送货单 / BOM',hint:'候选：送货单 DN-20260912-03 / BOM HD-JK-24秋 · 置信度 62%（数量）/ 97%（客户）',rows:[{code:'10A0501020100013',qty:1200,ref:'DN-20260912-03'},{code:'10A0501020100015',qty:1000,ref:'DN-20260912-03'}]}
+      :{title:'识别箱唛码',hint:'候选：箱唛 BX-20260912-07 · 有哪些物料+各多少（送货单物料名/数量仅作参考）',rows:[{code:'10A0501020100013',qty:4200,ref:'箱唛 BX-20260912-07'},{code:'10A0501020100014',qty:2150,ref:'箱唛 BX-20260912-07'}]};
+    var body='<div class="sm mut">'+demo.hint+'</div><div class="tblwrap" style="margin-top:8px"><table class="t"><thead><tr><th></th><th>物料</th><th>数量</th><th>来源</th><th>置信度</th></tr></thead><tbody>'+
+      demo.rows.map(function(r,i){var m=mat(r.code);return '<tr><td><input type="checkbox" data-ocr-i="'+i+'" checked></td><td>'+m.code+' '+m.name+' '+(m.spec||'')+'</td><td><input class="f num" style="width:96px" type="number" min="0" step="0.001" data-ocr-q="'+i+'" value="'+r.qty+'"></td><td class="sm mut">'+r.ref+'</td><td class="sm">'+(i===0?'<b class="red">62% 低</b>':'97%')+'</td></tr>'}).join('')+'</tbody></table></div>'+
+      '<div class="note" style="margin-top:8px">勾选需要的行，可改数量；'+(d.type==='request'?'填入到申请清单（申请数量）':'填入到登记清单（登记数量+包装/细分），二维码在物料登记时生成')+'。以人工确认为准。</div>';
+    dialog(demo.title+' · '+d.no,body,'<button class="b" data-close>取消</button><button class="b" data-act="ocrgo">确认填入</button><button class="b" data-act="ocrwork">进入智能识别结果页复核</button>');
+    window._ocrDemo=demo;},
+  ocrgo:function(){var d=cur(),demo=window._ocrDemo;if(!d||!demo)return;var n=0;
+    demo.rows.forEach(function(r,i){var c=document.querySelector('[data-ocr-i="'+i+'"]');if(c&&!c.checked)return;var q=document.querySelector('[data-ocr-q="'+i+'"]');var qty=q?num(q.value):num(r.qty);if(!(qty>0))return;var m=mat(r.code);
+      if(d.type==='request')d.lines.push({code:r.code,name:m.name,unit:m.unit,qty:qty,ref:r.ref});
+      else d.lines.push({code:r.code,name:m.name,unit:m.unit,qty:qty,qty_src:qty,price:m.price||0,loc:d.loc||'',batch:m.mode==='一物一码'?'':nextBatch(),pack:m.pack,sub:m.sub});
+      n++;});
+    if(!n){toast('未选中有效行',1);return}
+    document.getElementById('dlgRoot').classList.add('hide');window._ocrDemo=null;save();render();toast('已填入 '+n+' 行（可继续修改），以人工确认为准')},
+  ocrwork:function(){document.getElementById('dlgRoot').classList.add('hide');try{if(parent&&parent.go)parent.go('ocrResult')}catch(e){}try{if(window.__WMS_GO)window.__WMS_GO('ocrResult')}catch(e){}toast('已进入智能识别结果页复核低置信字段')},
+  pullreg:function(){var d=cur();if(!d||d.type!=='inbound')return;if(!d.src_dj){toast('请先在上方选择要关联的登记单',1);return}var src=docBy(d.src_dj);if(!src||src.type!=='register'){toast('登记单不存在：'+d.src_dj,1);return}var n=0;(src.lines||[]).forEach(function(x){if(!x.code)return;var m=mat(x.code);d.lines.push({code:x.code,name:m.name||x.name,unit:m.unit||x.unit,qty_src:num(x.qty)||num(x.qty_src)||'',qty:num(x.qty)||num(x.qty_src)||'',price:num(x.price)||m.price||0,loc:x.loc||d.loc||'',batch:'',pack:m.pack,sub:m.sub,qc:'合格'});n++});if(!n){toast('登记单没有可带入的物料行',1);return}save();render();toast('已从 '+src.no+' 带入 '+n+' 行：请核对验收数量与质检结论后再保存审批')},
+  delline:function(){var d=cur();if(!d)return;if(!d.lines.length){toast('没有可移除的记录');return}if(d.status==='已审批'){toast('已过账单据不能删行',1);return}d.lines.pop();save();render();toast('已移除最后一条未过账明细（历史单据不受影响）')},
+  drop:function(el){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账，只能冲红',1);return}d.lines.splice(Number(el.dataset.i),1);save();render()},
+  save:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账，无需保存');return}ensureRegisterQrs(d);d.status='已保存';audit(d,'保存待审批');save();render();toast(d.no+' 已保存为待审批（二维码已生成，库存未变动）')},
+  submit:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账无需提交',1);return}
+    if(d.status==='草稿'){d.status='已保存'}
+    ApproveFlow.ensureFlow(d,d.type);
+    var r=ApproveFlow.submit(d,d.type,d.handler||'经办人');if(!r.ok){toast(r.msg,1);return}
+    audit(d,'提交(S1=1)','');save();render();toast(d.no+' '+r.msg)},
+  audit:function(){var d=cur();if(!d)return;var f=ApproveFlow.ensureFlow(d,d.type);
+    if(!f||!f.submitted){toast('请先点“提交”(S1=1) 后再审核',1);return}
+    if(ApproveFlow.needPost(d,d.type)){toast('各节点已通过，请点“仓管确认”完成过账');return}
+    var nx=ApproveFlow.nextPending(d.type,f);if(!nx){toast('审批流已走完，请仓管确认',1);return}
+    dialog('审核 · '+nx.k+'（'+nx.role+'）',
+      '<div class="note">当前进度：'+esc(ApproveFlow.flowText(d.type,f))+'</div>'+
+      '<div class="hd" style="margin-top:10px"><label class="fl"><span class="fl-label">审批结论</span><select class="f" id="af_pass"><option value="1">通过</option><option value="0">驳回</option></select></label><label class="fl"><span class="fl-label">审批人 / 意见</span><input class="f" id="af_note" placeholder="如：张建国 · 同意"></label></div>',
+      '<button class="b" data-close>取消</button><button class="b pri" id="afDo">确定</button>');
+    document.getElementById('afDo').onclick=function(){
+      var pass=document.getElementById('af_pass').value==='1',note=document.getElementById('af_note').value.trim();
+      if(pass&&d.status!=='已审批'){
+        var r=ApproveFlow.approve(d,d.type,d.handler||'审批人',nx.role,pass,note);
+        if(r.reject){d.status='已驳回';audit(d,'审核驳回(' +nx.k+')',note);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' 已驳回：'+r.msg,1);return}
+        audit(d,'审核通过('+nx.k+')',note||nx.role);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' '+r.msg);return;
+      }
+      document.getElementById('dlgRoot').classList.add('hide');
+    };
+  },
+  confirm:function(){var d=cur();if(!d)return;
+    var f=ApproveFlow.ensureFlow(d,d.type);
+    if(!f.submitted){toast('请先点“提交”(S1=1)',1);return}
+    var left=ApproveFlow.nextPending(d.type,f);
+    if(left&&left.k!=='S6'){toast('还有未审核节点：'+left.k+'('+left.role+')',1);return}
+    if(d.status==='已审批'){toast('该单已过账（幂等保护）',1);return}
+    var r=post(d);
+    if(!r.ok){showErrors(r.errors);return}
+    f=ApproveFlow.ensureFlow(d,d.type);
+    f.S6=1;f.done=1;f.cur='DONE';(f.hist=f.hist||[]).push({t:now(),act:'仓管确认(S6=1)',by:d.handler||'仓管员',s:'完成'});
+    d.status='已审批';d.approved_at=now();audit(d,'仓管确认·过账(S6=1)','入库/出库确认，工单完成');save();render();
+    toast(d.no+' 仓管确认完成：S6=1，工单完成并过账')},
+  gocfg:function(){try{if(parent&&parent.go)parent.go('approveFlow');else location.href='approve-flow.html'}catch(e){location.href='approve-flow.html'}},
+  approve:function(){var d=cur();if(!d){toast('请先打开工单');return}
+    if(d.status==='已审批'){toast('该单已过账，重复审批被拒绝（幂等保护）',1);return}
+    var r=post(d);
+    if(!r.ok){showErrors(r.errors);return}
+    d.status='已审批';d.approved_at=now();audit(d,'审批通过');save();render();
+    toast(r.quiet?d.no+' 已审批：拒收凭证已登记，未产生库存变动':d.no+' 审批通过，仓库库存与流水已联动')},
+  reject:function(){var d=cur();if(!d||d.status!=='已保存'){toast('只有待审批工单可驳回');return}d.status='已驳回';audit(d,'驳回');save();render();toast(d.no+' 已驳回，退回经办人修改后可重新保存提交')},
+  print:function(){var d=cur();if(!d)return;var codes=(d.lines||[]).map(function(l){return l.barcode}).filter(Boolean);toast(codes.length?('已推送 '+codes.length+' 张二维码标签到打印队列（二维码 / 名称 / 单价）'):'物料登记后才会生成二维码标签')},
+  file:function(){var d=cur();if(!d)return;d.files=(d.files||0)+1;audit(d,'上传附件');save();render();toast('附件已上传（照片/送货单），计入工单附件数量')},
+  log:function(){var d=cur();var ls=DB.audit.filter(function(a){return d&&a.doc===d.no});dialog('审批日志 · '+(d?d.no:''),'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>动作</th><th>操作人</th><th>说明</th></tr></thead><tbody>'+(ls.map(function(a){return '<tr><td>'+esc(a.t)+'</td><td>'+esc(a.act)+'</td><td>'+esc(a.by)+'</td><td>'+esc(a.note)+'</td></tr>'}).join('')||'<tr><td colspan="4" class="mut">暂无日志</td></tr>')+'</tbody></table></div>')},
+  flow:function(el){var code=el.dataset.code;if(!code){toast('该单还没有物料行');return}var ls=DB.ledger.filter(function(x){return x.code===code});dialog('库存记录 · '+(mat(code).name||'')+' '+code,ls.length?'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>方向</th><th>数量</th><th>变动前 / 后</th><th>操作人</th></tr></thead><tbody>'+ls.map(function(x){return '<tr><td>'+esc(x.t)+'</td><td>'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc(x.dir)+'</td><td class="num">'+fmt(x.qty)+esc(x.unit)+'</td><td>'+fmt(x.before)+' / '+fmt(x.after)+'</td><td>'+esc(x.by)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="mut">该物料暂无流水：只有已审批单据才会写账</div>')},
+  sources:function(el){renderSourceDialog(el)},
+  materialsources:function(el){renderMaterialSourcesDialog(el.dataset.code)},
+  materialbatches:function(el){renderMaterialDimensionDialog(el.dataset.code,'batch')},
+  quick:function(el){var s=DB.stock[Number(el.dataset.i)];view='issue';var d=blankDoc('issue');d.wh=s.wh;d.lines=[{code:s.code,unit:s.unit,qty:'',price:mat(s.code).price||0,batch:s.batch,loc:s.loc}];DB.doc.unshift(d);save();edit(d.no);toast('已按库存行预填领用单，请填写实发数量')},
+  godetail:function(el){var p=String(el.dataset.key||'').split('|');view='materialCode';mode='list';curNo='';kw=p[0];render();
+    /* 定位到目标行：物料明细页以该物料过滤，kw 保证只剩相关行 */
+    var trs=document.querySelectorAll('#main tbody tr');for(var i=0;i<trs.length;i++){if(trs[i].textContent.indexOf(p[1])>=0){trs[i].style.background='#fff7e0';setTimeout((function(r){return function(){r.style.background=''}})(trs[i]),1600);break}}},
+  label:function(el){var it=DB.item[Number(el.dataset.i)];toast('标签打印：'+it.barcode+' / '+it.name+' / 单价 '+mat(it.code).price)},
+  matnew:function(){
+    function fld(k,lab,ctl,req){var inner;
+      if(ctl==='sel:UNIT')inner='<select class="f" id="mf_'+k+'">'+OPT.UNIT.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select>';
+      else if(ctl==='sel:MODE')inner='<select class="f" id="mf_'+k+'">'+OPT.MODE.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select>';
+      else if(ctl.charAt(0)==='n')inner='<input class="f" id="mf_'+k+'" type="number" min="0" step="0.001" value="'+esc(ctl.slice(1))+'">';
+      else inner='<input class="f" id="mf_'+k+'" value="'+esc(ctl)+'">';
+      return '<label class="fl"><span class="fl-label">'+esc(lab)+(req?'<i>*</i>':'')+'</span>'+inner+'</label>'}
+    dialog('新增物料档案（管理员统一录入）','<div class="hd">'+fld('code','物料编码','10A05010201000'+(16+DB.material.length),1)+fld('name','物料名称','',1)+fld('spec','规格型号','',0)+fld('unit','单位','sel:UNIT',1)+fld('mode','管理方式','sel:MODE',1)+fld('pack','包装数量（每包=基本单位数）','n50',1)+fld('sub','细分数量（最小可发）','n1',1)+fld('min','最低库存','n0',1)+fld('max','最高库存','n5000',1)+fld('price','参考单价','n0',0)+fld('customer','归属客户/单位','单位本部',0)+'</div><div class="note" style="margin-top:12px">保存后初始库存固定为 <b>0</b>；要产生库存请走「物料登记」或「物料入库」工单。编码全站唯一，停用为软删除，历史单据与流水保留。</div>','<button class="b" data-close>取消</button><button class="b pri" id="matSave">保存档案</button>');
+    document.getElementById('matSave').onclick=function(){
+      var g=function(id){var x=document.getElementById('mf_'+id);return x?String(x.value).trim():''};
+      var code=g('code'),name=g('name');
+      if(!code||!name){toast('物料编码与名称必填',1);return}
+      if(DB.material.some(function(m){return m.code===code})){toast('物料编码已存在：必须唯一',1);return}
+      DB.material.push({code:code,name:name,spec:g('spec'),unit:g('unit'),mode:g('mode'),pack:num(g('pack')),sub:num(g('sub')),min:num(g('min')),max:num(g('max')),price:num(g('price')),customer:g('customer'),status:'启用',created:now()});
+      audit({no:code},'物料档案新增','初始库存 0');
+      save();document.getElementById('dlgRoot').classList.add('hide');render();toast('物料档案已登记：'+code+'（初始库存 0）')}
+  },
+  matstop:function(el){var m=DB.material[Number(el.dataset.i)];m.status=m.status==='启用'?'停用':'启用';audit({no:m.code},'物料档案'+m.status,'软删除，历史留痕');save();render();toast(m.code+' 已'+m.status)}
+};
+function enhanceSharedActions(){
+  var bar=document.getElementById('bar');
+  var aside=document.querySelector('#main aside');
+  var saveButton=aside&&aside.querySelector('[data-act="save"]');
+  if(saveButton&&!aside.querySelector('[data-act="approve"]')){
+    var actions=saveButton.parentElement;
+    var agree=document.createElement('button');agree.className='b pri';agree.type='button';agree.dataset.act='approve';agree.textContent='同意';
+    var disagree=document.createElement('button');disagree.className='b danger';disagree.type='button';disagree.dataset.act='reject';disagree.textContent='不同意';
+    actions.appendChild(agree);actions.appendChild(disagree);
+  }
+}
+var sharedActionObserver=new MutationObserver(enhanceSharedActions);
+sharedActionObserver.observe(document.body,{childList:true,subtree:true});
+document.addEventListener('click',function(e){var el=e.target.closest('[data-act]');if(!el)return;var a=el.dataset.act;if(ACT[a]){e.preventDefault();ACT[a](el)}});
+function refreshMultiSelect(box,values){
+  var value=box.querySelector('.multi-value');
+  value.innerHTML=values.length?values.map(function(item){return '<span class="multi-chip">'+esc(item)+'</span>'}).join(''):'<span class="multi-placeholder">请选择领料类型</span>';
+}
+document.addEventListener('click',function(e){
+  var box=e.target.closest('.multi-select');
+  document.querySelectorAll('.multi-select-menu').forEach(function(menu){if(!box||!box.contains(menu))menu.classList.add('hide')});
+  if(!box)return;
+  var menu=box.querySelector('.multi-select-menu'),toggle=e.target.closest('.multi-select-toggle');
+  if(toggle){e.preventDefault();var open=menu.classList.contains('hide');menu.classList.toggle('hide',!open);toggle.setAttribute('aria-expanded',open?'true':'false');return}
+});
+document.addEventListener('input',function(e){var el=e.target;if(!el.dataset)return;if(el.dataset.role==='kw')kw=el.value;if(el.dataset.role==='pick-history-query'&&window._materialPicker){window._materialPicker.query=el.value;window._materialPicker.index=0;renderMaterialPicker()}});
+window.setHeadAuto=function(no,k,v){
+  var d=docBy(no);if(!d)return;
+  d[k]=v;
+  if(k==='src_request'&&d.type==='register')fillFromRequest(d,docBy(v));
+  if(k==='src_dj'&&d.type==='inbound'&&v){
+    var r=docBy(v);
+    if(r&&r.type==='register'){
+      if(r.unit&&(!String(d.unit||'').trim()||d.unit==='单位本部'))d.unit=r.unit;
+      if(r.dept&&(!String(d.dept||'').trim()||d.dept==='办公室'))d.dept=r.dept;
+      if(r.handler)d.handler=d.handler||r.handler;
+      if(r.date)d.date=r.date;
+      if(r.wh)d.wh=r.wh;
+      if(r.source&&!String(d.source||'').trim())d.source=r.source;
+      if(r.remark&&!String(d.remark||'').trim())d.remark=r.remark;
+      toast('已关联 '+r.no+' · 单头已自动填写，可点“从登记单带入清单”');
+    }
+  }
+  save();render();
+};
+function setHead(d,k,v){d[k]=v}
+function fillFromRequest(d,sq){
+  if(!sq||sq.type!=='request')return;
+  d.unit=sq.unit||d.unit;
+  d.dept=sq.dept||d.dept;
+  d.handler=sq.handler||d.handler;
+  if(!d.date||d.date===today())d.date=sq.date||d.date;
+  if(!String(d.source||'').trim()&&String(sq.no||'').trim())d.source=sq.no;
+  if(!d.remark&&sq.remark)d.remark=sq.remark;
+  if(d.type==='register'){
+    if(!d.wh||d.wh==='成品仓A'){
+      var loc=String(sq.dept||'');
+      if(loc&&OPT.WH.indexOf(loc)>=0)d.wh=loc;
+      else if(/缝制一车间/.test(loc))d.wh='缝制一车间';
+      else if(/裁剪车间/.test(loc))d.wh='裁剪车间';
+      else if(/缝制二车间/.test(loc))d.wh='缝制二车间';
+    }
+  }
+}
+function fillIssueFromRequest(d,sq){
+  if(!sq||sq.type!=='request')return;
+  d.unit=sq.unit||d.unit;
+  d.dept=sq.dept||d.dept;
+  d.receiver=sq.receiver||d.receiver;
+  d.handler=sq.handler||sq.receiver||d.handler;
+  if(sq.material_type&&sq.material_type.length)d.issue_type=sq.material_type[0]==='生产领料'?'常规领用':d.issue_type;
+  if(!d.date||d.date===today())d.date=sq.date||d.date;
+  if(sq.remark&&!String(d.remark||'').trim())d.remark=sq.remark;
+  if(!String(d.src_rk||'').trim()){
+    var cands=(DB.doc||[]).filter(function(x){return x.type==='inbound'&&x.status==='已审批'});
+    var hit=null;
+    (sq.lines||[]).forEach(function(l){
+      if(hit)return;
+      cands.forEach(function(x){
+        if(hit)return;
+        (x.lines||[]).forEach(function(r){if(r.code===l.code)hit=x});
+      });
+    });
+    if(hit)d.src_rk=hit.no;
+  }
+  if(sq.lines&&sq.lines.length&&(!d.lines||!d.lines.length||d.lines.every(function(l){return !num(l.qty)}))){
+    d.lines=(sq.lines||[]).map(function(x){
+      var mm=mat(x.code);
+      var stocks=(DB.stock||[]).filter(function(s){return s.code===x.code&&num(s.avail)>0});
+      var first=stocks[0]||null;
+      return {code:x.code,name:mm.name||x.code,unit:x.unit||mm.unit,qty:num(x.qty)||'',price:mm.price||0,batch:first?first.batch:'',loc:first?first.loc:(d.loc||'')};
+    });
+    if(d.lines.length)toast('已关联 '+sq.no+' · 带入 '+d.lines.length+' 行申请数量，可用批次已预选');
+  }
+}
+function fillIssueFromInbound(d,ib){
+  if(!ib||ib.type!=='inbound')return;
+  d.wh=ib.wh||d.wh;
+  if(ib.unit&&(!String(d.unit||'').trim()||d.unit==='一监区'))d.unit=ib.unit;
+  if(ib.remark&&!String(d.remark||'').trim())d.remark=ib.remark;
+  if(ib.lines&&ib.lines.length&&(!d.lines||!d.lines.length||d.lines.every(function(l){return !num(l.qty)}))){
+    d.lines=(ib.lines||[]).map(function(x){
+      var mm=mat(x.code);
+      var stocks=(DB.stock||[]).filter(function(s){return s.code===x.code&&num(s.avail)>0});
+      var first=stocks[0]||null;
+      return {code:x.code,name:mm.name||x.code,unit:x.unit||mm.unit,qty:num(x.qty)||'',price:mm.price||0,batch:first?first.batch:(x.batch||''),loc:first?first.loc:(x.loc||'')};
+    });
+    if(d.lines.length)toast('已关联 '+ib.no+' · 带入 '+d.lines.length+' 行，请核对实发数量与可用量');
+  }
+}
+document.addEventListener('change',function(e){
+  var el=e.target;if(!el.dataset)return;
+  var multiBox=el.closest('.multi-select');
+  if(multiBox&&el.matches('.multi-select-menu input[type="checkbox"]')){
+    var d0=cur();if(!d0)return;var values=[].slice.call(multiBox.querySelectorAll('input:checked')).map(function(input){return input.value});
+    d0[multiBox.dataset.multi]=values;save();refreshMultiSelect(multiBox,values);return;
+  }
+  if(el.dataset.role==='pick-target'){
+    if(window._materialPicker){window._materialPicker.index=Number(el.value)||0;renderMaterialPicker()}
+    return;
+  }
+  if(el.dataset.l!==undefined){
+    var d=cur();if(!d)return;var i=Number(el.dataset.i),l=d.lines[i],k=el.dataset.l,v=el.value;
+    if(k==='code'){var m=mat(v);l.code=v;l.unit=m.unit;l.price=m.price;l.name=m.name;l.pack=m.pack;l.sub=m.sub;
+      if(d.type==='register'&&!l.barcode)l.barcode='QR-'+d.no+'-'+String(i+1).padStart(2,'0');
+      if(d.type==='register'&&d.activeBatch){l.batch=d.activeBatch;l.region=registerBatchRegion(d,d.activeBatch);l.loc=l.region||l.loc}
+      else if(m.mode==='一物一码')l.batch='';else if(!l.batch)l.batch=nextBatch();
+      if(d.type==='issue'){var bs=DB.stock.filter(function(s){return s.wh===d.wh&&s.code===v&&num(s.avail)>0});l.batch=bs[0]?bs[0].batch:'';l.loc=bs[0]?bs[0].loc:l.loc}}
+    else if(['qty','qty_src','qty_bad','price','pack','sub'].indexOf(k)>=0)l[k]=num(v);
+    else{
+      l[k]=v;
+      if(d.type==='register'&&k==='batch'&&d.batchRegions&&typeof d.batchRegions==='object'){
+        if(v&&!(d.batchRegions[v]))d.batchRegions[v]=l.region||l.loc||d.loc||'';
+      }
+      if(d.type==='register'&&k==='loc'&&l.batch){l.region=v;if(d.batchRegions)d.batchRegions[l.batch]=v}
+    }
+    save();render();return;
+  }
+  if(el.dataset.h){
+    var d2=cur();if(!d2)return;setHead(d2,el.dataset.h,el.multiple?[].slice.call(el.selectedOptions).map(function(option){return option.value}):el.value);
+    if(el.dataset.h==='wh')d2.lines.forEach(function(l){var s=st(d2.wh,l.code,l.batch);if(s)l.loc=s.loc});
+    if(el.dataset.h==='src_sq'&&(d2.type==='register'||d2.type==='issue')){
+      if(el.value){
+        var sq=docBy(el.value);
+        if(d2.type==='issue'&&sq){d2.src_sq=sq.no;fillIssueFromRequest(d2,sq)}
+        else fillFromRequest(d2,sq);
+      }
+      save();render();return;
+    }
+    if(el.dataset.h==='src_rk'&&d2.type==='issue'){
+      if(el.value){var ib=docBy(el.value);fillIssueFromInbound(d2,ib)}
+      save();render();return;
+    }
+    if(el.dataset.h==='src_rk'&&d2.type==='wreturn'&&el.value){
+      var wib=docBy(el.value);
+      if(wib&&wib.type==='inbound'){
+        if(!d2.wh||d2.wh==='成品仓A')d2.wh=wib.wh||d2.wh;
+        if(wib.unit&&(!String(d2.dept||'').trim()||d2.dept==='办公室'))d2.dept=wib.unit;
+        if(wib.lines&&wib.lines.length&&!d2.lines.length){
+          d2.lines=wib.lines.map(function(x){var mm=mat(x.code);return newMaterialLine(d2,x.code,'',x.batch||'')||{code:x.code,batch:x.batch||'',qty:'',unit:x.unit||mm.unit,loc:x.loc||''}});
+          toast('已关联 '+wib.no+' · 预填 '+d2.lines.length+' 行，请填本次退库数量');
+        }
+      }
+      save();render();return;
+    }
+    if(el.dataset.h==='src_kc'&&d2.type==='return'&&el.value){
+      var parts=String(el.value).split('|');
+      if(parts.length>=4&&!d2.lines.length){
+        var sk=DB.stock.filter(function(s){return s.wh===parts[0]&&s.code===parts[2]&&s.batch===parts[3]})[0];
+        if(sk){var mm2=mat(sk.code);d2.lines=[{code:sk.code,batch:sk.batch,qty:'',unit:mm2.unit||sk.unit}];d2.wh=sk.wh;toast('已带入库存行，请填本次退库数量')}
+      }
+      save();render();return;
+    }
+    save();render();
+  }
+});
+render();
+enhanceSharedActions();
+})();
+</script>
+</body></html>

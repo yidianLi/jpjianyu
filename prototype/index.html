@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>监狱公司物料管理系统 · 高保真原型总览 V1.0</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+body{background:#0b1428;font-family:"PingFang SC","Microsoft YaHei",system-ui}
+.pc-frame{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid #1e2d4d}
+.browser-bar{background:#eef1f6;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #dde3ec}
+.dot{width:11px;height:11px;border-radius:99px}.url{background:#fff;border:1px solid #dde3ec;border-radius:8px;font-size:12px;color:#5b6b82;padding:4px 12px;flex:1}
+.phone{width:390px;height:844px;background:#000;border-radius:52px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid #333}
+.phone-screen{background:#f4f6fa;border-radius:42px;overflow:hidden;height:100%;position:relative}
+.sec-title{scroll-margin-top:90px}
+.navlink:hover{background:#1a2c52;color:#fff}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2a3d63;border-radius:8px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+@media(max-width:900px){body{overflow-x:hidden}.flex.min-h-screen{display:block!important}.flex.min-h-screen>aside{display:none}.flex.min-h-screen>main{width:100%;max-width:none;padding:1rem!important}.pc-frame{max-width:100%;overflow:hidden}.browser-bar{font-size:10px}.browser-bar .url{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pc-frame iframe{width:100%;min-width:0}.sec-title>div:first-child{flex-wrap:wrap;gap:.5rem}.phone{width:min(390px,100vw);max-width:100%;height:min(844px,100dvh);box-sizing:border-box}}
+@media(prefers-reduced-motion:reduce){*,*::before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="flex min-h-screen">
+<!-- 左侧目录 -->
+<aside class="w-[280px] shrink-0 sticky top-0 h-screen overflow-y-auto bg-[#0f1e3a] border-r border-[#1e2d4d] p-5 text-slate-200">
+<div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
+<div><div class="font-bold text-white leading-tight">监狱公司物料管理系统</div><div class="text-[11px] text-slate-400">高保真原型 · V1.0 · 一期闭环</div></div></div>
+<div class="text-[11px] text-slate-400 bg-[#14264a] rounded-lg p-3 my-3 leading-relaxed">岗位：仓库负责人 · 张建国<br>范围：外仓/内仓1/内仓2 · 一监区<br>截至：2026-09-12 08:30 · 内网</div>
+<div class="text-xs font-bold text-cyan-300 mt-4 mb-2">P0 核心闭环（必走）</div>
+<div class="space-y-1 text-[13px]">
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#home">🏠 00 首页 · 工作台</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#login">🔐 01 登录与安全</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#dashboard">📊 01 业务运营驾驶舱</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#inventory">📦 02 库存总览（三仓）</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#location">🗄️ 02b 仓位管理（库区货架库位）</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#receipt">📥 03 入库/送料接收+OCR</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#issue">📤 04 出库/直送车间</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#transfer">🔀 05 调拨申请与执行</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#request">🧾 06 车间申请/领料/接收</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#return">↩️ 07 退料判定</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#finished">🏁 08 成品输出/暂存/交接</a>
+</div>
+<div class="text-xs font-bold text-cyan-300 mt-4 mb-2">P1 支撑页面</div>
+<div class="space-y-1 text-[13px]">
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#ocr">🔍 09 OCR工作台+扫描仪</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#stocktake">📋 10 盘点与异常</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#docs">🗂️ 11 单据中心查询</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#base">🧱 12 物料/BOM/组织/库位</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#ai">🤖 13 AI问数 Agent</a>
+</div>
+<div class="text-xs font-bold text-cyan-300 mt-4 mb-2">P2 报表审计权限 + 系统 + 移动端</div>
+<div class="space-y-1 text-[13px]">
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#report">📈 14 报表中心·Agent生成</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#users">👥 15 用户管理·角色账号</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#equipment">🛠️ 15b 设备管理·台账保养维修</a>
+<a class="navlink flex gap-2 items-center px-3 py-2 rounded-lg" href="#mobile">📱 16 现场作业APP(独立)</a>
+</div>
+<div class="mt-6 text-[11px] text-slate-500 leading-relaxed">验收链路：送料OCR→直送接收→调拨→领料→退料三种判定→成品三种去向→盘点差异→车间账号切换。所有按钮均有反馈，抽屉/弹窗/空/错/无权限齐备。</div>
+</aside>
+<!-- 右侧平铺 -->
+<main class="flex-1 p-6 space-y-10 max-w-[1280px] mx-auto">
+<div class="text-white"><h1 class="text-2xl font-extrabold">高保真原型平铺总览 <span class="text-cyan-300 text-sm font-normal">PC 1440 + 移动 390 · Tailwind + FontAwesome · 可直接交付开发</span></h1>
+<p class="text-slate-300 text-sm mt-1">UX分析→信息架构→UI设计→HTML实现 · 每个界面为独立HTML（pages/），本页仅用 iframe 平铺嵌入 · 状态色：<span class="text-blue-300">蓝=处理中</span> <span class="text-green-300">绿=已确认</span> <span class="text-orange-300">橙=待处理</span> <span class="text-red-300">红=异常隔离</span></p>
+<div class="flex gap-2 mt-3 text-xs"><span class="bg-blue-600 px-3 py-1.5 rounded-full">客户独立归属 · 不混账</span><span class="bg-slate-700 px-3 py-1.5 rounded-full">外仓/内仓1/内仓2 独立记账</span><span class="bg-slate-700 px-3 py-1.5 rounded-full">数量必带单位 · 不跨单位相加</span><span class="bg-emerald-600 px-3 py-1.5 rounded-full">OCR人工值为准</span></div></div>
+
+<!-- 通用卡片生成：每个section = 标题 + 说明 + pc-frame iframe -->
+<section id="home" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">00 · 首页 · 工作台 <span class="text-xs text-slate-400 font-normal">pages/home.html · 数据速览+快捷入口</span></h2><p class="text-slate-400 text-xs">本周数据 donut · 今日待办日历 · 常见应用 · 待办助手 · 实时趋势 · 流转漏斗 · 公告文档（系统默认打开页）</p></div><a href="pages/home.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/home · pages/home.html</span></div><iframe src="pages/home.html" class="w-full" style="height:1180px" loading="lazy"></iframe></div></section>
+
+<section id="login" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">00 · 登录与安全 <span class="text-xs text-slate-400 font-normal">pages/login.html · 5种原型状态</span></h2><p class="text-slate-400 text-xs">内网识别岗位+数据范围确认 · 默认/密码错/锁定/断网/首次确认</p></div><a href="pages/login.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">http://10.8.0.12/material/login · 内网 · pages/login.html</span></div><iframe src="pages/login.html" class="w-full" style="height:760px" loading="lazy"></iframe></div></section>
+
+<section id="dashboard" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">01 · 业务运营驾驶舱 <span class="text-xs text-slate-400 font-normal">pages/dashboard.html · dashboard_task</span></h2><p class="text-slate-400 text-xs">KPI按单位拆分 · 优先任务 · 待处理单据表 · 主链路 · 数据范围 · 快捷操作</p></div><a href="pages/dashboard.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/dashboard · pages/dashboard.html</span></div><iframe src="pages/dashboard.html" class="w-full" style="height:980px" loading="lazy"></iframe></div></section>
+
+<section id="inventory" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">02 · 仓库库存总览 <span class="text-xs text-slate-400 font-normal">pages/inventory.html · inventory_balance</span></h2><p class="text-slate-400 text-xs">三仓切换 · 按物料/批次 vs 按仓库/位置双视图 · 容量卡 · 流水抽屉</p></div><a href="pages/inventory.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/warehouse/inventory · pages/inventory.html</span></div><iframe src="pages/inventory.html" class="w-full" style="height:980px" loading="lazy"></iframe></div></section>
+
+<section id="location" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">02b · 仓位管理 · 库区货架库位 <span class="text-xs text-slate-400 font-normal">pages/location.html · 仓库→库区→货架→库位</span></h2><p class="text-slate-400 text-xs">库位主数据 · 占用按托/箱位 · 多物料多单位混放分行 · 待检/隔离/冻结状态 · 一步一页新建向导</p></div><a href="pages/location.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/warehouse/location · pages/location.html</span></div><iframe src="pages/location.html" class="w-full" style="height:1120px" loading="lazy"></iframe></div></section>
+
+<section id="receipt" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">03 · 入库管理 / 客户送料接收 <span class="text-xs text-slate-400 font-normal">pages/receipt.html · warehouse_receipt</span></h2><p class="text-slate-400 text-xs">8步向导：拍照→OCR→修正→勾选→扫码→按物料拆分多仓/多车间去向→签名→提交 · 门禁缺失只能存草稿</p></div><a href="pages/receipt.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/warehouse/receipt · pages/receipt.html</span></div><iframe src="pages/receipt.html" class="w-full" style="height:1100px" loading="lazy"></iframe></div></section>
+
+<section id="issue" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">04 · 出库管理 / 直送车间 <span class="text-xs text-slate-400 font-normal">pages/issue.html · warehouse_issue</span></h2><p class="text-slate-400 text-xs">待送列表+扫码工作区+申请单对照 · WH实盘 vs DM直送台账 · 异常拦截</p></div><a href="pages/issue.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/warehouse/issue · pages/issue.html</span></div><iframe src="pages/issue.html" class="w-full" style="height:980px" loading="lazy"></iframe></div></section>
+
+<section id="transfer" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">05 · 仓间调拨（申请+执行） <span class="text-xs text-slate-400 font-normal">pages/transfer.html · transfer_order</span></h2><p class="text-slate-400 text-xs">草稿→源仓出库→运输中→目标仓扫码接收→完成 · 双向调拨 · 差异进异常</p></div><a href="pages/transfer.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/transfer · pages/transfer.html</span></div><iframe src="pages/transfer.html" class="w-full" style="height:1000px" loading="lazy"></iframe></div></section>
+
+<section id="request" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">06 · 车间申请 / 领料 / 接收 <span class="text-xs text-slate-400 font-normal">pages/workshop.html</span></h2><p class="text-slate-400 text-xs">申请表单(监区楼栋楼层车间班组工位)+领料工作台(BOM参考/扫码)+接收差异 · 车间只看本车间</p></div><a href="pages/workshop.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/workshop · pages/workshop.html</span></div><iframe src="pages/workshop.html" class="w-full" style="height:1120px" loading="lazy"></iframe></div></section>
+
+<section id="return" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">07 · 退料管理 <span class="text-xs text-slate-400 font-normal">pages/return.html · material_return_order</span></h2><p class="text-slate-400 text-xs">关联原领料→自报状态→拍照扫码→外仓判定：可用回原仓 / 待检暂存 / 损坏隔离</p></div><a href="pages/return.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/workshop/return · pages/return.html</span></div><iframe src="pages/return.html" class="w-full" style="height:980px" loading="lazy"></iframe></div></section>
+
+<section id="finished" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">08 · 成品输出 / 暂存 / 客户交接 <span class="text-xs text-slate-400 font-normal">pages/finished.html</span></h2><p class="text-slate-400 text-xs">只记数量+去向：外部客户 / 外仓 / 内仓1 / 内仓2 · 签收证据 · 成品库存</p></div><a href="pages/finished.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/finished · pages/finished.html</span></div><iframe src="pages/finished.html" class="w-full" style="height:1000px" loading="lazy"></iframe></div></section>
+
+<section id="ocr" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">09 · OCR工作台 + PC扫描仪 <span class="text-xs text-slate-400 font-normal">pages/ocr.html · ocr_document</span></h2><p class="text-slate-400 text-xs">左原图·中识别进度·右候选字段·底操作 · 扫描仪唤起流程 · 大模型仅候选值</p></div><a href="pages/ocr.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/docs/ocr · pages/ocr.html</span></div><iframe src="pages/ocr.html" class="w-full" style="height:1000px" loading="lazy"></iframe></div></section>
+
+<section id="stocktake" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">10 · 盘点与异常（含02:30自动盘点/追溯） <span class="text-xs text-slate-400 font-normal">pages/stocktake.html</span></h2><p class="text-slate-400 text-xs">创建→实盘清单（可修改）→差异→冻结复核审批→追溯(MB→SB→箱唛→人码时单) · 有错才溯源</p></div><a href="pages/stocktake.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/stocktake · pages/stocktake.html</span></div><iframe src="pages/stocktake.html" class="w-full" style="height:1080px" loading="lazy"></iframe></div></section>
+
+<section id="docs" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">11 · 单据中心查询 <span class="text-xs text-slate-400 font-normal">pages/docs.html · business_document</span></h2><p class="text-slate-400 text-xs">全业务单据统一检索 · 高级筛选 · 全链路时间线 · 批量导出/打印</p></div><a href="pages/docs.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/docs · pages/docs.html</span></div><iframe src="pages/docs.html" class="w-full" style="height:900px" loading="lazy"></iframe></div></section>
+
+<section id="base" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">12 · 基础资料：物料/BOM/组织/库位/客户 <span class="text-xs text-slate-400 font-normal">pages/base.html</span></h2><p class="text-slate-400 text-xs">BOM版本+物料反查+超耗提醒不拦截 · 组织树监区楼栋楼层车间班组工位 · 库位容量</p></div><a href="pages/base.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/base · pages/base.html</span></div><iframe src="pages/base.html" class="w-full" style="height:1020px" loading="lazy"></iframe></div></section>
+
+<section id="ai" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">13 · AI问数 Agent <span class="text-xs text-slate-400 font-normal">pages/ai.html · ai_query_log</span></h2><p class="text-slate-400 text-xs">右侧抽屉 · 条件确认→查询→口径+截至+范围+引用单据 · 只读不改账 · 降级搜索</p></div><a href="pages/ai.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/ai · pages/ai.html</span></div><iframe src="pages/ai.html" class="w-full" style="height:900px" loading="lazy"></iframe></div></section>
+
+<section id="report" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">14 · 报表/对账/审计/权限 <span class="text-xs text-slate-400 font-normal">pages/report.html</span></h2><p class="text-slate-400 text-xs">8张报表+加工费概要(不含发票收款)+字段级审计+角色×权限矩阵+数据范围</p></div><a href="pages/report.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/reports · pages/report.html</span></div><iframe src="pages/report.html" class="w-full" style="height:1080px" loading="lazy"></iframe></div></section>
+
+<section id="mobile" class="sec-title">
+<div class="mb-3"><h2 class="text-white font-bold text-lg">15 · 现场作业APP（独立开发 · 不嵌入PC · 原生/Flutter独立工程） <span class="text-xs text-slate-400 font-normal">mobile-app/index.html + api-client.js</span></h2>
+<p class="text-slate-400 text-xs">APP与PC解耦：APP只调后端 /api/v1/app/*，不引用PC的store.js；共用业务库+审计。旧 pages/mobile.html 仅保留为历史参考，开发以 mobile-app 为准。</p></div>
+<div class="flex justify-center gap-8 flex-wrap">
+<div class="phone"><div class="phone-screen"><iframe src="mobile-app/index.html" class="w-full h-full" loading="lazy"></iframe></div></div>
+</div>
+<div class="text-center mt-3 text-xs text-slate-400">独立APP主流程（含待办/扫码/OCR/签名/提交/离线） <a href="mobile-app/index.html" target="_blank" class="text-cyan-300">新窗口打开APP</a> · <a href="mobile-app/api-contract.html" target="_blank" class="text-cyan-300">API契约</a> · <span class="opacity-60">历史参考：pages/mobile.html / pages/mobile-scan.html</span></div>
+</section>
+
+<section id="users" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">15 · 用户管理 · 配置角色账号 <span class="text-xs text-slate-400 font-normal">pages/users.html · sys_user/sys_role/user_data_scope</span></h2><p class="text-slate-400 text-xs">账号列表+角色多选+数据范围+权限影响预览+角色×权限矩阵 · 变更写审计</p></div><a href="pages/users.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/system/users · pages/users.html</span></div><iframe src="pages/users.html" class="w-full" style="height:1080px" loading="lazy"></iframe></div></section>
+
+<section id="equipment" class="sec-title"><div class="flex items-end justify-between mb-3"><div><h2 class="text-white font-bold text-lg">15b · 设备管理 · 台账保养维修 <span class="text-xs text-slate-400 font-normal">pages/equipment.html · equipment</span></h2><p class="text-slate-400 text-xs">设备台账 · 运行/维修/停机/报废 · 保养到期预警 · 报修维修单 · 一步一页新建向导</p></div><a href="pages/equipment.html" target="_blank" class="text-cyan-300 text-xs">新窗口打开 <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div><div class="pc-frame"><div class="browser-bar"><span class="dot bg-red-400"></span><span class="dot bg-yellow-400"></span><span class="dot bg-green-400"></span><span class="url">/system/equipment · pages/equipment.html</span></div><iframe src="pages/equipment.html" class="w-full" style="height:1020px" loading="lazy"></iframe></div></section>
+
+<footer class="text-center text-slate-500 text-xs pb-16">原型交付物：页面关系图（本页目录即关系）· PC高保真14屏 · 移动2屏 · 表单/抽屉/弹窗/空/错/无权限全覆盖 · 可点击链路：送料→直送→调拨→领料→退料→成品→盘点→审计 · 直接双击 index.html 预览，无需构建。</footer>
+</main>
+</div>
+<script>
+window.addEventListener('message', function(e){
+  if(!e.data || e.data.from!=='wms-nav') return;
+  var id = e.data.go || e.data.page;
+  if(!id) return;
+  var sec = document.getElementById(id);
+  if(sec){ sec.scrollIntoView({behavior:'smooth', block:'start'}); }
+  try{
+    var f = document.querySelector('section#'+id+' iframe');
+    if(f && e.data.tab){ /* tab参数透传给子页面 */ 
+      var src = f.getAttribute('src').split('?')[0];
+      f.src = src + '?tab=' + e.data.tab;
+    }
+  }catch(err){}
+});
+</script>
+</body></html>

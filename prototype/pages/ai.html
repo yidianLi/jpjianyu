@@ -1,0 +1,307 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI问数 · 智能问数工作台</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui}.ai-bg{background:radial-gradient(1200px 500px at 20% -10%,#312e81 0%,transparent 60%),radial-gradient(900px 420px at 90% 0%,#0ea5e9 0%,transparent 55%),linear-gradient(180deg,#0b1428 0%,#101c3d 100%)}.glass{background:rgba(255,255,255,.07);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12)}.hero-orb{background:conic-gradient(from 180deg,#6366f1,#22d3ee,#a78bfa,#6366f1);filter:blur(60px);opacity:.5}.msg-ai{background:#fff;border:1px solid #e5eaf2;border-radius:16px;border-top-left-radius:6px}.msg-me{background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff;border-radius:16px;border-bottom-right-radius:6px}.chip{border:1px solid #e2e8f0;background:#fff;border-radius:99px;padding:7px 13px;font-size:12px;cursor:pointer;transition:.15s}.chip:hover{border-color:#6366f1;color:#4f46e5;box-shadow:0 4px 14px rgba(99,102,241,.18)}.sess.on{background:#eef2ff;border-color:#6366f1!important;color:#3730a3}.typing span{width:7px;height:7px;border-radius:99px;background:#94a3b8;display:inline-block;animation:tp 1s infinite}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}@keyframes tp{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#c7d2fe;border-radius:8px}.grad-text{background:linear-gradient(90deg,#a5b4fc,#67e8f9,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}.side-scroll{max-height:calc(100vh - 260px);overflow:auto}.ai-inputbar{position:sticky;bottom:0;z-index:20;background:#fff;box-shadow:0 -8px 24px rgba(15,23,42,.08)}.mode-btn{transition:.15s}.mode-btn.on{background:#fff!important;color:#0f172a!important;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.25)}.tl-dot{width:26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}.tl-line{width:2px;flex:1;background:#e2e8f0;margin:0 auto;min-height:14px}.rpt-grid th{background:#f8fafc}</style></head>
+<body class="bg-[#eef1f8]"><div class="flex h-screen overflow-hidden">
+<aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] h-screen overflow-y-auto shrink-0"></aside>
+<div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+<!-- 顶栏：参考0187风格 深色AI顶栏+模型选择 -->
+<header class="ai-bg text-white px-6 pt-5 pb-12 relative overflow-hidden shrink-0">
+<div class="hero-orb absolute w-[420px] h-[220px] left-1/3 -top-20 pointer-events-none"></div>
+<div class="relative flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-400 via-cyan-300 to-fuchsia-300 flex items-center justify-center text-[#0b1428] text-lg shadow-lg"><i class="fa-solid fa-sparkles"></i></div>
+<div><div class="font-extrabold text-[15px]">AI 问数工作台 <span class="text-[11px] font-normal text-indigo-200 ml-1">物料业务专用 · 只读问数</span></div><div class="text-[11px] text-indigo-200/80">范围：外仓 / 内仓1 / 内仓2 · 一监区 · 数据截至今日 08:40 · 授权内查询</div></div>
+<div class="flex-1"></div>
+<div class="glass rounded-full flex items-center gap-1 px-1 py-1 text-xs"><button id="modeAsk" class="mode-btn on px-3 py-1.5 rounded-full text-indigo-100" onclick="switchMode('ask')">问数 V1</button><button id="modeReport" class="mode-btn px-3 py-1.5 rounded-full text-indigo-100" onclick="switchMode('report')">报表模式</button><button id="modeTrace" class="mode-btn px-3 py-1.5 rounded-full text-indigo-100" onclick="switchMode('trace')">追溯模式</button></div>
+<button onclick="newSession()" class="text-xs bg-white text-slate-800 font-bold px-4 py-2 rounded-full hover:shadow-lg"><i class="fa-solid fa-plus mr-1"></i>新建会话</button>
+<button onclick="document.getElementById('ctxPanel').classList.toggle('hidden')" class="lg:hidden text-xs glass px-3 py-2 rounded-full">上下文</button>
+</div>
+<!-- hero 欢迎语（随模式切换） -->
+<div class="relative mt-5 max-w-[860px]" id="heroBlock"><h1 class="text-[26px] leading-tight font-extrabold" id="heroTitle">你好，张建国，我是 <span class="grad-text">物料问数助手</span><br>用一句话，查库存、单据、差异与追溯</h1><p class="text-indigo-200/90 text-xs mt-2" id="heroSub">先确认条件再查询 · 回答带统计口径 / 截至时间 / 授权范围 / 引用单据 · 数量按单位分组 · 可跳转明细、打开追溯、生成报表草稿</p>
+<div class="flex gap-2 mt-3 text-xs flex-wrap"><span class="glass rounded-full px-3 py-1.5"><i class="fa-solid fa-shield-halved mr-1 text-emerald-300"></i>只读 · 不改库存不关异常不代签</span><span class="glass rounded-full px-3 py-1.5"><i class="fa-solid fa-clock mr-1 text-cyan-200"></i>口径：账面可用量（不含待检/隔离）</span><span id="degBadge" class="glass rounded-full px-3 py-1.5"><span class="text-emerald-300">●</span> 模型在线 · 大模型 v3.2</span></div></div>
+</header>
+
+<div class="flex flex-1 min-h-0 -mt-8 px-6 pb-4 gap-4 relative">
+<!-- 左：会话+技能（参考0187左侧栏） -->
+<div class="w-[248px] shrink-0 hidden lg:flex flex-col gap-3 min-h-0 overflow-y-auto">
+<div class="card p-3"><div class="flex items-center justify-between"><b class="text-[13px]">历史会话 <span id="sessCount" class="text-[11px] font-normal text-slate-400">4</span></b><div class="flex gap-1"><button onclick="openHistory()" class="text-[11px] text-indigo-600 font-bold">问答记录</button><button onclick="toast('历史已按本账号隔离，仅见授权范围：一监区')" class="text-[11px] text-slate-400">管理</button></div></div><div class="mt-2 flex gap-1.5"><div class="flex-1 flex items-center border rounded-full px-3 py-1.5 text-xs bg-slate-50"><i class="fa-solid fa-magnifying-glass text-slate-400 mr-1.5"></i><input id="sessSearch" placeholder="搜索会话 / 问题关键词…" class="bg-transparent outline-none flex-1 text-xs" oninput="renderSessions(this.value)"></div><button onclick="exportHistory()" title="导出问答历史" class="border rounded-full w-8 h-8 text-slate-500 hover:text-indigo-600 hover:border-indigo-400"><i class="fa-solid fa-download text-xs"></i></button></div><div class="mt-2 space-y-1.5 text-xs side-scroll" id="sessList"></div><div class="flex justify-between items-center mt-2 text-[11px] text-slate-400"><span>按账号隔离 · 切换即载入上下文</span><button onclick="clearAllSessions()" class="text-red-400 hover:text-red-600">清空全部</button></div></div>
+<div class="card p-3 text-xs"><b class="text-[13px]" id="skillTitle">问数技能</b><div class="grid grid-cols-2 gap-1.5 mt-2" id="skillGrid">
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('查恒达拉链各仓余额和库位')">📦<br>库存余额</button>
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('查昨日收发存汇总')">📊<br>收发存</button>
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('查TL2026091201退料进度')">↩️<br>退料进度</button>
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('查PD2026091201差异原因')">⚠️<br>差异异常</button>
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('追MB2026091003全链路')">🔗<br>流转追溯</button>
+<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask('生成本月收发存月报草稿')">📝<br>生成报表</button>
+</div><div class="mt-2 bg-slate-50 rounded-xl p-2 text-[11px] text-slate-500">点技能即填入标准问法，可直接发送。</div></div>
+</div>
+
+<!-- 中：对话区（输入框固定底部） -->
+<div class="flex-1 card flex flex-col min-w-0 min-h-0 overflow-hidden">
+<div class="px-4 py-2.5 border-b flex items-center gap-2 text-xs shrink-0"><button onclick="document.getElementById('qaDrawer').classList.remove('hidden');renderHistory('')" class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-bold hover:bg-indigo-100"><i class="fa-solid fa-clock-rotate-left mr-1"></i>本会话问答记录</button><span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-full" id="sessTitle">当前会话 · 恒达牛津布各仓余额</span><span class="text-slate-400 hidden xl:inline">条件：恒达 / HD-OXF-001 / 全部仓 / 米 / 截至今日</span><span class="flex-1"></span><button onclick="toast('上下文已同步到筛选：客户恒达·物料OXF')" class="text-indigo-600 font-bold">同步筛选</button><button onclick="clearCtx()" class="text-slate-400">清空</button></div>
+<div id="chat" class="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-[#f8faff] to-white">
+<!-- 示例 chips（随模式切换） -->
+<div class="flex gap-2 flex-wrap text-xs" id="chipRow"><span class="text-slate-400 py-2">试试这样问：</span></div>
+<div class="flex justify-end"><div class="msg-me px-4 py-2.5 text-[13px] max-w-[82%]">恒达牛津布各仓余额多少？在哪个库位？</div></div>
+<div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="flex items-center gap-2 font-bold"><span class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-robot"></i></span>条件确认 <span class="text-[11px] font-normal text-slate-400">执行前请确认 · 可修改</span></div><div class="mt-2 text-slate-600 bg-slate-50 border rounded-xl p-2.5">客户=恒达服饰 · 物料=HD-OXF-001 牛津布 · 仓库=全部 · 单位=米 · 日期=截至今日 08:40</div><div class="flex gap-2 mt-2"><button onclick="toast('条件已确认，开始查询（1.2s）')" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs">确认查询</button><button onclick="toast('已修改条件：仅外仓WH-A')" class="border px-3 py-1.5 rounded-lg text-xs">修改条件</button></div></div>
+<div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="flex items-center gap-2 font-bold"><span class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-robot"></i></span>回答 <span class="text-[11px] font-normal text-slate-400">口径：账面可用量（不含待检/隔离）· 截至08:40 · 范围：一监区</span></div>
+<div class="mt-2 space-y-1.5"><div class="border rounded-xl p-2.5 flex justify-between"><span>外仓 WH-A · <b>3,980 米</b><br><span class="text-[11px] text-slate-400">WH-A-05-02-03 等4个库位</span></span><button class="text-indigo-600 font-bold text-xs" onclick="goPage('inventory')">查看明细 ›</button></div>
+<div class="border rounded-xl p-2.5 flex justify-between"><span>内仓1 WH-B · <b>1,200 米</b><br><span class="text-[11px] text-slate-400">WH-B-02-01</span></span><button class="text-indigo-600 font-bold text-xs" onclick="goPage('inventory')">查看明细 ›</button></div>
+<div class="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5">合计 <b>5,180 米</b>（同单位已分组，未跨单位相加） · 另有待检 440米 / 隔离 15米不在此数</div></div>
+<div class="mt-2 flex items-end gap-2"><div class="flex-1"><div class="text-[11px] text-slate-400 mb-1">各仓可用量对比</div><div class="flex items-end gap-2 h-20"><div class="flex-1 bg-indigo-200 rounded-t" style="height:72%"></div><div class="flex-1 bg-indigo-500 rounded-t" style="height:100%"></div><div class="flex-1 bg-cyan-300 rounded-t" style="height:30%"></div></div><div class="flex text-[10px] text-slate-400 mt-1"><span class="flex-1 text-center">内仓1</span><span class="flex-1 text-center">外仓</span><span class="flex-1 text-center">内仓2</span></div></div><div class="flex-1 text-[11px] text-slate-500 bg-slate-50 border rounded-xl p-2">引用单据：<button class="text-indigo-600 font-bold" onclick="goPage('docs')">SL2026091209</button> · <button class="text-indigo-600 font-bold" onclick="goPage('stocktake')">PD2026091201</button> · LY2026091108<br>审计：08:31 张建国改120→1200米 · 签名✓</div></div>
+<div class="flex gap-2 mt-3 flex-wrap"><button onclick="goPage('inventory')" class="border px-3 py-1.5 rounded-lg text-xs">查看明细</button><button onclick="goPage('stocktake')" class="border px-3 py-1.5 rounded-lg text-xs">打开追溯</button><button onclick="toast('筛选已应用到库存总览：恒达·OXF·米')" class="border px-3 py-1.5 rounded-lg text-xs">应用筛选</button><button onclick="toast('报表草稿 BB-AG-0912 已生成，待确认发布')" class="bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">生成报表草稿</button></div></div>
+<div id="live"></div>
+</div>
+<!-- 输入区：固定在对话卡底部，不随聊天滚动 -->
+<div class="ai-inputbar border-t p-3 shrink-0 rounded-b-[14px]">
+<div class="border-2 border-indigo-100 focus-within:border-indigo-400 rounded-2xl p-2 transition">
+<textarea id="qi" rows="2" placeholder="输入问题，回车发送 / Shift+回车换行…如：恒达拉链各仓余额 / 昨日差异 / 本月成品输出 / 追MB2026091003" class="w-full outline-none text-[13px] px-2 resize-none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+<div class="flex items-center gap-1.5 px-1 pb-0.5 text-[11px] text-slate-400"><span id="inputTools" class="flex items-center gap-1.5"></span><span class="flex-1"></span><span>Enter 发送 · Shift+Enter 换行</span><button onclick="send()" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-cyan-500 text-white shadow-lg hover:shadow-xl"><i class="fa-solid fa-paper-plane"></i></button></div>
+</div>
+<div class="flex justify-between text-[11px] text-slate-400 mt-1.5 px-1"><span>Agent 只读 · 不改库存 / 不完成调拨 / 不关闭异常 / 不替代签名 · 客户数量批次单位结果须人工核对</span><button onclick="degrade()" class="text-orange-500">模拟模型不可用（降级）</button></div>
+</div>
+</div>
+
+<!-- 右：上下文+引用+审计 -->
+<div id="ctxPanel" class="w-[300px] shrink-0 hidden xl:flex flex-col gap-3 min-h-0 overflow-y-auto">
+<div class="card p-3.5 text-xs"><b class="text-[13px]"><i class="fa-solid fa-layer-group text-indigo-500 mr-1"></i>当前上下文</b><div class="mt-2 space-y-1.5"><div class="flex justify-between bg-slate-50 border rounded-lg px-2.5 py-1.5"><span class="text-slate-400">客户</span><b>恒达服饰 <span class="text-red-400 cursor-pointer" onclick="toast('已移除客户条件')">×</span></b></div><div class="flex justify-between bg-slate-50 border rounded-lg px-2.5 py-1.5"><span class="text-slate-400">物料</span><b>HD-OXF-001 <span class="text-red-400 cursor-pointer" onclick="toast('已移除物料条件')">×</span></b></div><div class="flex justify-between bg-slate-50 border rounded-lg px-2.5 py-1.5"><span class="text-slate-400">仓库</span><b>全部（外/内1/内2）</b></div><div class="flex justify-between bg-slate-50 border rounded-lg px-2.5 py-1.5"><span class="text-slate-400">单位/日期</span><b>米 · 截至今日</b></div><div class="flex justify-between bg-slate-50 border rounded-lg px-2.5 py-1.5"><span class="text-slate-400">组织</span><b>一监区（本岗范围）</b></div></div><button onclick="toast('上下文已同步：驾驶舱→库存→报表均生效')" class="w-full mt-2 border rounded-lg py-2">同步到页面筛选</button></div>
+<div class="card p-3.5 text-xs"><b class="text-[13px]"><i class="fa-solid fa-file-lines text-indigo-500 mr-1"></i>引用单据（可下钻）</b><div class="mt-2 space-y-1.5"><button onclick="goPage('docs')" class="w-full text-left border rounded-lg p-2 hover:border-indigo-400">SL2026091209 · 送料1200米<br><span class="text-slate-400">OCR120→人工1200 · 签名✓</span></button><button onclick="goPage('stocktake')" class="w-full text-left border rounded-lg p-2 hover:border-indigo-400">PD2026091201 · 差异-35米<br><span class="text-red-500">已冻结·待复核</span></button><button onclick="goPage('docs')" class="w-full text-left border rounded-lg p-2 hover:border-indigo-400">LY2026091108 · 领料800米<br><span class="text-slate-400">双签名存证</span></button></div></div>
+<div class="card p-3.5 text-xs"><div class="flex justify-between items-center"><b class="text-[13px]">ai_query_log 审计</b><button onclick="toast('审计已导出（只读）')" class="text-indigo-600">导出</button></div><div class="mt-2 space-y-1.5"><div class="border rounded-lg p-2">08:40 · 各仓余额 · 命中3单 · 1.2s ✓</div><div class="border rounded-lg p-2">08:22 · 领退料汇总 · 命中18单 ✓</div><div class="border rounded-lg p-2 bg-red-50">昨日 · 模型超时 · 已降级搜索</div></div><button onclick="clearCtx()" class="w-full mt-2 border rounded-lg py-2">清空上下文</button></div>
+</div>
+</div>
+</div></div>
+<!-- 本会话问答记录抽屉（右侧滑出，不遮挡左侧系统菜单） -->
+<div id="qaDrawer" class="hidden fixed right-0 top-0 h-full w-[440px] max-w-[92vw] bg-white shadow-2xl border-l z-[70] flex flex-col">
+<div class="p-4 border-b"><div class="flex items-center justify-between"><div><b class="text-sm"><i class="fa-solid fa-clock-rotate-left text-indigo-600 mr-1"></i>本会话问答记录</b><div class="text-[11px] text-slate-400 mt-0.5" id="qaSub">恒达牛津布各仓余额 · 共 2 轮</div></div><button onclick="document.getElementById('qaDrawer').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+<div class="flex gap-1.5 mt-3"><div class="flex-1 flex items-center border rounded-full px-3 py-1.5 text-xs bg-slate-50"><i class="fa-solid fa-magnifying-glass text-slate-400 mr-1.5"></i><input id="qaSearch" placeholder="搜索本会话问答关键词…" class="bg-transparent outline-none flex-1 text-xs" oninput="renderHistory(this.value)"></div><button onclick="exportHistory(true)" class="text-xs border rounded-full px-3 py-1.5 hover:border-indigo-400 hover:text-indigo-600"><i class="fa-solid fa-download mr-1"></i>导出</button><button onclick="reAskAll()" class="text-xs border rounded-full px-3 py-1.5 hover:border-indigo-400 hover:text-indigo-600">重新问一遍</button></div></div>
+<div id="qaList" class="flex-1 overflow-auto p-4 space-y-3 text-xs bg-[#f8faff]"></div>
+<div class="p-3 border-t text-[11px] text-slate-400 flex justify-between"><span>点击问题可回填到输入框追问 · 回答保留口径/引用</span><button onclick="document.getElementById('qaDrawer').classList.add('hidden')" class="text-indigo-600 font-bold">关闭</button></div>
+</div>
+<!-- 全量问答历史弹窗 -->
+<div id="histModal" class="hidden fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-4"><div class="bg-white rounded-2xl w-[720px] max-w-full max-h-[86vh] flex flex-col overflow-hidden"><div class="p-4 border-b flex items-center justify-between"><div><b class="text-sm">问答历史记录 <span class="text-[11px] font-normal text-slate-400">对应 ai_query_log · 按账号隔离</span></b><div class="text-[11px] text-slate-400 mt-0.5">支持按会话 / 关键词 / 日期 / 类型筛选 · 点击可回到该会话继续问</div></div><button onclick="document.getElementById('histModal').classList.add('hidden')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+<div class="p-3 border-b flex gap-2 text-xs flex-wrap items-center"><div class="flex items-center border rounded-full px-3 py-1.5 bg-slate-50 flex-1 min-w-[180px]"><i class="fa-solid fa-magnifying-glass text-slate-400 mr-1.5"></i><input id="histSearch" placeholder="搜索问题 / 回答 / 单据号…" class="bg-transparent outline-none flex-1 text-xs" oninput="renderAllHistory()"></div><select id="histType" class="border rounded-full px-2.5 py-1.5 text-xs" onchange="renderAllHistory()"><option value="">全部类型</option><option>库存查询</option><option>收发存</option><option>单据状态</option><option>差异异常</option><option>流转追溯</option><option>报表生成</option></select><input id="histDate" type="date" value="" class="border rounded-full px-2.5 py-1.5 text-xs" onchange="renderAllHistory()"><button onclick="exportHistory(false)" class="border rounded-full px-3 py-1.5 hover:border-indigo-400 hover:text-indigo-600"><i class="fa-solid fa-download mr-1"></i>导出</button></div>
+<div id="histList" class="flex-1 overflow-auto p-4 space-y-2 text-xs"></div></div></div>
+<div id="t" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full z-[90] shadow-xl"></div>
+<script>
+/* ===== 问答历史记录（对应 ai_query_log：一问一答全留痕） ===== */
+var LS_KEY='wms_ai_history_v1';
+var SESS=[
+ {id:'s1',title:'恒达牛津布各仓余额',desc:'库存查询',time:'今日 08:40',hits:'命中3单'},
+ {id:'s2',title:'昨日领退料汇总',desc:'收发存',time:'今日 08:22',hits:'命中18单'},
+ {id:'s3',title:'DB2026091202 到哪了',desc:'单据状态',time:'昨日 17:02',hits:'调拨追踪'},
+ {id:'s4',title:'8月月报草稿',desc:'报表生成',time:'09-01',hits:'Agent生成'}
+];
+var QA={ // 每个会话的多轮问答
+ s1:[{q:'恒达牛津布各仓余额多少？在哪个库位？',a:'外仓WH-A 3,980米（4个库位）· 内仓1 1,200米 · 合计5,180米（同单位分组，未跨单位相加）。',refs:'SL2026091209 · PD2026091201',time:'08:40',ok:true},{q:'待检和隔离的有多少？',a:'待检 440米（WH-A-D01）· 隔离 15米（WH-A-G01锁定），均不计入可用量。',refs:'库存WH-A',time:'08:41',ok:true}],
+ s2:[{q:'昨天车间领了多少？退了多少？',a:'领料 2,400米 + 3,000件（18单）· 退料 195米（可用150/待检30/隔离15）。',refs:'LY2026091108 · TL2026091201',time:'08:22',ok:true}],
+ s3:[{q:'DB2026091202 调拨到哪了？',a:'外仓→内仓1 · 拉链2000件 · 运输中（已发2000/已收—）· 预计10:30达。',refs:'DB2026091202',time:'昨日 17:02',ok:true}],
+ s4:[{q:'生成8月收发存月报草稿',a:'草稿 BB-AG-0801 已生成（月口径，按客户/仓库/单位分组），待确认发布。',refs:'报表中心',time:'09-01',ok:true},
+     {q:'模型超时那次呢？',a:'模型超时，已自动降级为全局搜索+报表筛选，未阻断业务。',refs:'降级记录',time:'09-01',ok:false}]
+};
+var curSess='s1';
+function sessTitle(id){var s=SESS.find(function(x){return x.id===id});return s?s.title:'';}
+function loadExtra(){try{var e=JSON.parse(localStorage.getItem(LS_KEY)||'[]');e.forEach(function(r){if(!QA[r.sess])QA[r.sess]=[];QA[r.sess].push(r);});}catch(err){}}
+function persistExtra(rec){try{var e=JSON.parse(localStorage.getItem(LS_KEY)||'[]');e.push({sess:rec.sess,q:rec.q,a:rec.a.replace(/<[^>]+>/g,'').slice(0,120),refs:rec.refs,time:rec.time,ok:rec.ok});localStorage.setItem(LS_KEY,JSON.stringify(e.slice(-100)));}catch(err){}}
+/* 左栏：会话列表（带搜索） */
+function renderSessions(kw){
+  kw=(kw||'').trim();
+  var list=SESS.filter(function(s){return !kw||s.title.indexOf(kw)>=0||s.desc.indexOf(kw)>=0;});
+  document.getElementById('sessCount').textContent=list.length;
+  document.getElementById('sessList').innerHTML=list.map(function(s){
+    var n=(QA[s.id]||[]).length;
+    var on=s.id===curSess?' on':'';
+    return '<div class="sess'+on+' w-full border rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer" onclick="switchSess(\''+s.id+'\')">'
+    +'<div class="flex-1 min-w-0 text-left"><div class="font-bold truncate">'+s.title+'</div><div class="text-[11px] text-slate-400">'+s.time+' · '+s.desc+' · '+n+'轮问答</div></div>'
+    +'<button title="查看问答记录" onclick="event.stopPropagation();openSessionHistory(\''+s.id+'\')" class="text-slate-400 hover:text-indigo-600 shrink-0"><i class="fa-solid fa-clock-rotate-left"></i></button>'
+    +'<button title="删除会话" onclick="event.stopPropagation();delSession(\''+s.id+'\')" class="text-slate-300 hover:text-red-500 shrink-0"><i class="fa-solid fa-trash-can text-[11px]"></i></button></div>';
+  }).join('')||'<div class="text-center text-slate-400 py-4">无匹配会话</div>';
+}
+function switchSess(id){
+  curSess=id;
+  document.querySelectorAll('.sess').forEach(function(x){x.classList.remove('on')});
+  renderSessions(document.getElementById('sessSearch')?document.getElementById('sessSearch').value:'');
+  document.getElementById('sessTitle').textContent='当前会话 · '+sessTitle(id);
+  document.getElementById('live').innerHTML='';
+  toast('已切换会话：'+sessTitle(id)+'（'+((QA[id]||[]).length)+'轮问答已载入）');
+}
+function openSessionHistory(id){curSess=id;renderSessions('');document.getElementById('qaDrawer').classList.remove('hidden');renderHistory('');}
+function delSession(id){if(!confirm('删除会话「'+sessTitle(id)+'」及其问答记录？'))return;SESS=SESS.filter(function(x){return x.id!==id});delete QA[id];if(curSess===id)curSess=SESS[0]?SESS[0].id:'';renderSessions('');toast('会话已删除（审计保留删除记录）');}
+function clearAllSessions(){if(!confirm('清空全部历史会话与问答记录？'))return;SESS=[];QA={};curSess='';try{localStorage.removeItem(LS_KEY);}catch(e){}renderSessions('');toast('历史已清空');}
+/* 右抽屉：本会话问答记录 */
+function renderHistory(kw){
+  kw=(kw||'').trim();
+  var rows=(QA[curSess]||[]).filter(function(r){return !kw||r.q.indexOf(kw)>=0||r.a.indexOf(kw)>=0||r.refs.indexOf(kw)>=0;});
+  document.getElementById('qaSub').textContent=sessTitle(curSess)+' · 共 '+rows.length+' 轮'+(kw?' · 搜索：'+kw:'');
+  document.getElementById('qaList').innerHTML=rows.map(function(r,i){
+    return '<div class="bg-white border rounded-2xl p-3"><div class="flex items-center gap-2 text-[11px] text-slate-400"><span class="bg-slate-900 text-white w-5 h-5 rounded-full flex items-center justify-center font-bold">'+(i+1)+'</span><span>问 · '+r.time+'</span><span class="flex-1"></span>'+(r.ok?'<span class="text-emerald-600">✓ 已答</span>':'<span class="text-red-500">已降级</span>')+'</div>'
+    +'<div class="mt-1.5 font-bold text-slate-800 cursor-pointer hover:text-indigo-700" onclick="refillAsk(\''+r.q.replace(/'/g,'&#39;')+'\')">Q：'+r.q+'</div>'
+    +'<div class="mt-1 text-slate-600 leading-relaxed">A：'+r.a+'</div>'
+    +'<div class="mt-1.5 flex items-center gap-2 text-[11px]"><span class="text-slate-400">引用：'+r.refs+'</span><span class="flex-1"></span><button onclick="refillAsk(\''+r.q.replace(/'/g,'&#39;')+'\')" class="text-indigo-600 font-bold">追问</button><button onclick="toast(\'已复制回答（含口径/引用）\')" class="text-slate-400">复制</button></div></div>';
+  }).join('')||'<div class="text-center text-slate-400 py-8">本会话暂无问答，提问后自动记入历史</div>';
+}
+function refillAsk(q){document.getElementById('qaDrawer').classList.add('hidden');document.getElementById('qi').value=q;document.getElementById('qi').focus();toast('已回填，可修改后追问');}
+function reAskAll(){var rows=QA[curSess]||[];if(!rows.length){toast('本会话暂无问答');return;}document.getElementById('qi').value=rows[rows.length-1].q;document.getElementById('qaDrawer').classList.add('hidden');send();}
+/* 全量弹窗：跨会话搜索 */
+function openHistory(){document.getElementById('histModal').classList.remove('hidden');renderAllHistory();}
+function renderAllHistory(){
+  var kw=(document.getElementById('histSearch').value||'').trim();
+  var tp=document.getElementById('histType').value||'';
+  var dt=document.getElementById('histDate').value||'';
+  var html='';
+  SESS.forEach(function(s){
+    var rows=(QA[s.id]||[]).filter(function(r){
+      if(tp&&s.desc!==tp&&r.a.indexOf(tp)<0)return false;
+      if(kw&&(r.q+r.a+r.refs+s.title).indexOf(kw)<0)return false;
+      if(dt&&r.time.indexOf(dt.slice(5).replace('-','-'))<0&&r.time.indexOf(dt)<0&&dt!=='')return false;
+      return true;
+    });
+    if(!rows.length)return;
+    html+='<div class="font-bold text-slate-700 mt-1">会话 · '+s.title+' <span class="font-normal text-slate-400">'+s.time+' · '+s.desc+'</span></div>';
+    rows.forEach(function(r){
+      html+='<div class="bg-slate-50 border rounded-xl p-2.5 hover:border-indigo-300 cursor-pointer" onclick="backToSession(\''+s.id+'\')"><div class="font-bold text-slate-800">Q：'+r.q+'</div><div class="text-slate-600 mt-0.5">A：'+r.a+'</div><div class="text-[11px] text-slate-400 mt-1">'+r.time+' · 引用'+r.refs+' · 点击回到该会话 ›</div></div>';
+    });
+  });
+  document.getElementById('histList').innerHTML=html||'<div class="text-center text-slate-400 py-8">无匹配问答，换个关键词试试</div>';
+}
+function backToSession(id){document.getElementById('histModal').classList.add('hidden');switchSess(id);}
+function exportHistory(onlyCur){
+  var n=onlyCur?((QA[curSess]||[]).length):Object.keys(QA).reduce(function(s,k){return s+QA[k].length},0);
+  toast('问答历史已导出'+(onlyCur?'（本会话 '+n+' 轮）':'（共 '+n+' 轮）')+'：含问题/回答/口径/引用/时间');
+}
+loadExtra();renderSessions('');
+/* ===== 三模式：问数 / 报表 / 追溯（同输入框固定底部，仅切换技能/chips/回答模板） ===== */
+var MODE='ask';
+var MODES={
+ ask:{tab:'modeAsk',skill:'问数技能',sub:'先确认条件再查询 · 回答带统计口径 / 截至时间 / 授权范围 / 引用单据 · 数量按单位分组 · 可跳转明细、打开追溯、生成报表草稿',
+  hero:'你好，张建国，我是 <span class="grad-text">物料问数助手</span><br>用一句话，查库存、单据、差异与追溯',
+  skills:[['查恒达拉链各仓余额和库位','📦<br>库存余额'],['查昨日收发存汇总','📊<br>收发存'],['查TL2026091201退料进度','↩️<br>退料进度'],['查PD2026091201差异原因','⚠️<br>差异异常'],['追MB2026091003全链路','🔗<br>流转追溯'],['生成本月收发存月报草稿','📝<br>生成报表']],
+  chips:['恒达拉链各仓余额？在哪个库位？','昨天车间领了多少？退了多少？','DB2026091202 调拨到哪了？','PD2026091201 差异-35米原因？'],
+  ph:'输入问题，回车发送 / Shift+回车换行…如：恒达拉链各仓余额 / 昨日差异 / 本月成品输出 / 追MB2026091003',
+  tools:[['带上下文','fa-filter',"toast('已附加当前页筛选作为上下文')"],['截图','fa-image',"toast('已附加单据截图，OCR候选值待确认')"],['语音','fa-microphone',"toast('语音输入演示：恒达牛津布余额')"]]},
+ report:{tab:'modeReport',skill:'报表技能',sub:'说清客户+周期+口径 → 生成报表草稿 → 人工确认发布 · 只读不改账 · 定期日报/周报/月报与完工汇总自动触发',
+  hero:'你好，张建国，我是 <span class="grad-text">报表生成助手</span><br>一句话生成收发存 / 余额 / 差异 / 完工汇总草稿',
+  skills:[['生成恒达9月收发存月报','📊<br>收发存月报'],['生成客户物料余额表','📦<br>余额表'],['生成昨日领退料日报','🧾<br>领退日报'],['生成一轮完工汇总','🏁<br>完工汇总'],['生成库龄与呆滞分析','⏳<br>库龄分析'],['查看定期任务：日报/周报/月报','🗓️<br>定期任务']],
+  chips:['生成恒达9月收发存月报','生成昨日领退料日报','生成一轮完工汇总 HD20260908-03','定期任务：每周一自动生成周报'],
+  ph:'描述报表需求回车生成草稿…如：生成恒达9月收发存月报 / 一轮完工后汇总成品与差异 / 每周一自动生成周报',
+  tools:[['选周期 09-01~09-12','fa-calendar-days',"toast('周期已设为 09-01~09-12')"],['选客户 恒达','fa-user-tag',"toast('客户已设为恒达服饰')"],['选口径 可用量','fa-scale-balanced',"toast('口径：账面可用量（不含待检/隔离）')"]]},
+ trace:{tab:'modeTrace',skill:'追溯技能',sub:'给单号 / 批次 / 箱唛 → 返回 MB→SB→箱唛→人码时单全链路 · 差异才溯源 · 精确到谁何时扫何码签何单',
+  hero:'你好，张建国，我是 <span class="grad-text">流转追溯助手</span><br>给一个单号，查清物料从哪来、到哪去',
+  skills:[['追MB2026091003全链路','🔗<br>主批次追溯'],['追SB-03去向','📦<br>小批次追溯'],['追箱唛 BX2026091003-02','🏷️<br>箱唛追溯'],['查DB2026091202在途位置','🚚<br>调拨追踪'],['查TL2026091201退料链','↩️<br>退料链'],['查差异PD2026091201溯源','⚠️<br>差异溯源']],
+  chips:['追MB2026091003全链路','DB2026091202 调拨到哪了？','TL2026091201 退料链？','PD2026091201 差异-35米溯源？'],
+  ph:'输入单号/批次/箱唛回车追溯…如：MB2026091003 / SB-03 / BX2026091003-02 / DB2026091202',
+  tools:[['扫码追溯','fa-qrcode',"toast('PDA扫码：SB必扫/箱唛可选，已填入 SB-03')"],['按单号','fa-hashtag',"toast('已按单号模式：MB/SB/箱唛均可')"],['时间线','fa-timeline',"toast('追溯按时间线展开：人·码·时·单')"]]}
+};
+function switchMode(m){
+  MODE=m;
+  ['modeAsk','modeReport','modeTrace'].forEach(function(id){document.getElementById(id).classList.remove('on')});
+  document.getElementById(MODES[m].tab).classList.add('on');
+  var cfg=MODES[m];
+  document.getElementById('heroTitle').innerHTML=cfg.hero;
+  document.getElementById('heroSub').textContent=cfg.sub;
+  document.getElementById('skillTitle').textContent=cfg.skill;
+  document.getElementById('skillGrid').innerHTML=cfg.skills.map(function(s){return '<button class="border rounded-xl py-2 hover:border-indigo-400 hover:text-indigo-700" onclick="ask(\''+s[0]+'\')">'+s[1]+'</button>'}).join('');
+  document.getElementById('chipRow').innerHTML='<span class="text-slate-400 py-2">试试这样问：</span>'+cfg.chips.map(function(c){return '<button class="chip" onclick="ask(this.innerText)">'+c+'</button>'}).join('');
+  document.getElementById('qi').placeholder=cfg.ph;
+  document.getElementById('inputTools').innerHTML=cfg.tools.map(function(t){return '<button onclick="'+t[2]+'" class="border rounded-full px-2.5 py-1 hover:text-indigo-600"><i class="fa-solid '+t[1]+' mr-1"></i>'+t[0]+'</button>'}).join('');
+  toast(m==='ask'?'已切换：问数模式（查数/单据/差异）':m==='report'?'已切换：报表模式（生成草稿+定期任务）':'已切换：追溯模式（MB/SB/箱唛全链路）');
+}
+/* 报表模式回答：草稿卡（确认→生成→发布） */
+function reportAnswer(q){
+  var title='收发存汇总';
+  if(/余额/.test(q))title='客户物料余额表';
+  else if(/领退|日报/.test(q))title='车间领退料日报（09-11）';
+  else if(/完工|成品/.test(q))title='一轮完工汇总 · HD20260908-03';
+  else if(/库龄|呆滞/.test(q))title='库龄与呆滞分析';
+  else if(/差异/.test(q))title='库存差异表';
+  else if(/周报/.test(q))title='第37周周报（自动）';
+  else if(/月报/.test(q))title='9月收发存月报';
+  else if(/定期|自动/.test(q))title='定期任务配置';
+  var draft='BB-AG-'+new Date().getMinutes()+new Date().getSeconds();
+  var body='';
+  if(title==='定期任务配置'){
+    body='<div class="space-y-1.5"><div class="border rounded-xl p-2.5 flex justify-between"><span>日报 · 收/发/存/差异/待办<br><span class="text-[11px] text-slate-400">每日 06:00 自动生成草稿</span></span><span class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[11px] h-fit">已启用</span></div><div class="border rounded-xl p-2.5 flex justify-between"><span>周报 · 周汇总<br><span class="text-[11px] text-slate-400">每周一 06:00 自动生成</span></span><span class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[11px] h-fit">已启用</span></div><div class="border rounded-xl p-2.5 flex justify-between"><span>月报 · 余额快照+对账<br><span class="text-[11px] text-slate-400">次月1日 06:00 自动生成</span></span><span class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[11px] h-fit">已启用</span></div><div class="border rounded-xl p-2.5 flex justify-between"><span>完工汇总 · 一轮工作完成后触发<br><span class="text-[11px] text-slate-400">成品登记完成后自动触发+Agent补全</span></span><span class="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full text-[11px] h-fit">完工触发</span></div></div>';
+  }else{
+    body='<table class="w-full text-xs mt-1 rpt-grid"><thead><tr class="text-slate-400 text-left"><th class="py-1.5 px-2">项目</th><th>数量（按单位分组）</th><th>口径</th></tr></thead><tbody>'
+    +'<tr class="border-t"><td class="py-1.5 px-2">送料/入库</td><td><b>6,300米</b>（14单）</td><td class="text-slate-400">SL+WH收</td></tr>'
+    +'<tr class="border-t"><td class="py-1.5 px-2">领料/出库</td><td><b>3,200米 + 3,000件</b></td><td class="text-slate-400">LY+直送</td></tr>'
+    +'<tr class="border-t"><td class="py-1.5 px-2">退料</td><td><b>195米</b>（可用150/待检30/隔离15）</td><td class="text-slate-400">TL三种判定</td></tr>'
+    +'<tr class="border-t"><td class="py-1.5 px-2">成品</td><td><b>1,500件</b>（外部900/暂存600）</td><td class="text-slate-400">CP三种去向</td></tr>'
+    +'<tr class="border-t"><td class="py-1.5 px-2">差异</td><td><b class="text-red-500">-35米</b>（2笔·已冻结）</td><td class="text-slate-400">02:30盘点</td></tr></tbody></table>';
+  }
+  return {h:'Agent · 报表草稿 '+draft+' · '+title,
+    b:'<div class="bg-violet-50 border border-violet-200 rounded-xl p-2.5">条件：客户恒达 · 09-01~09-12 · 按客户/仓库/单位分组 · 口径：账面可用量 · 状态：<b class="text-orange-600">草稿待确认</b></div><div class="mt-2">'+body+'</div>',
+    refs:'草稿 '+draft+' · 发布后进入报表中心列表顶部',
+    draft:draft};
+}
+/* 追溯模式回答：时间线卡（MB→SB→箱唛→人码时单） */
+function traceAnswer(q){
+  var m=q.match(/[A-Z]{2}\d{6,}|MB\d+|SB[-\d]+|BX\d+[-\d]*/);
+  var code=(m&&m[0])||'MB2026091003';
+  if(/DB/.test(q))code='DB2026091202';
+  else if(/TL/.test(q))code='TL2026091201';
+  else if(/PD/.test(q))code='PD2026091201';
+  function node(color,t,b,act){return '<div class="flex gap-2.5"><div class="flex flex-col items-center"><div class="tl-dot" style="background:'+color+'22;color:'+color+'">'+t+'</div><div class="tl-line"></div></div><div class="flex-1 border rounded-xl p-2.5 bg-white">'+b+(act||'')+'</div></div>';}
+  var tl='';
+  if(code==='DB2026091202'){
+    tl=node('#2563eb','1','<b>09-12 08:05 源仓出库</b> · 外仓WH-A · 拉链 2000件<br><span class="text-slate-400">张建国扫码SB-11~14 · 签名✓ · 单DB2026091202</span>')
+      +node('#f59e0b','2','<b>09-12 08:40 在途</b> · 运输中（已发2000/已收—）· 送货员刘强<br><span class="text-slate-400">预计10:30达内仓1 · 差异超±2件进异常</span>')
+      +node('#94a3b8','3','<b>待办：目标仓扫码接收</b> · 内仓1 WH-B<br><span class="text-slate-400">SB必扫/箱唛可选 · 双人复核</span>','<div class="mt-1"><button onclick="goPage(\'transfer\')" class="text-indigo-600 font-bold text-xs">去调拨执行 ›</button></div>');
+  }else if(code==='TL2026091201'){
+    tl=node('#2563eb','1','<b>09-11 16:20 领料</b> · LY2026091108 · 牛津布800米 · SB-03<br><span class="text-slate-400">李小明+王班长双签名</span>')
+      +node('#f59e0b','2','<b>09-12 08:10 车间提交退料</b> · 120米 · 自报可用·多领<br><span class="text-slate-400">扫码2箱·照片3张</span>')
+      +node('#94a3b8','3','<b>待办：外仓判定</b> · 可用回原仓 / 待检暂存 / 隔离<br><span class="text-slate-400">判定后库存联动</span>','<div class="mt-1"><button onclick="goPage(\'return\')" class="text-indigo-600 font-bold text-xs">去退料判定 ›</button></div>');
+  }else if(code==='PD2026091201'){
+    tl=node('#2563eb','1','<b>09-10 09:00 入库</b> · SL2026091209 · 牛津布1200米 · MB2026091003→SB-01~04<br><span class="text-slate-400">OCR120→人工1200 · 张建国签名</span>')
+      +node('#2563eb','2','<b>09-11 16:20 领料SB-03</b> · 800米 · 箱唛BX2026091003-02<br><span class="text-slate-400">李小明签名 · 账面4200米</span>')
+      +node('#dc2626','3','<b>09-12 02:30 自动盘点</b> · 实盘4165 · <b class="text-red-500">差异-35米·已冻结</b><br><span class="text-slate-400">布头剪裁损耗未登记（待确认）· 需复核审批</span>','<div class="mt-1"><button onclick="goPage(\'stocktake\')" class="text-indigo-600 font-bold text-xs">去盘点复核 ›</button></div>');
+  }else{
+    tl=node('#2563eb','1','<b>09-10 08:10 主批次生成</b> · '+code+' · 恒达牛津布 5000米<br><span class="text-slate-400">张建国 · 送料SL2026091209 · 签名✓</span>')
+      +node('#2563eb','2','<b>09-10 09:00 拆小批次</b> · SB-01~04（各1250米）→ 入库WH-A-05-02-03<br><span class="text-slate-400">SB必扫 · 库位双人确认</span>')
+      +node('#2563eb','3','<b>09-11 16:20 领料SB-03</b> · 800米 + 箱唛BX2026091003-02<br><span class="text-slate-400">李小明+王班长双签名 · LY2026091108</span>')
+      +node('#dc2626','4','<b>09-12 02:30 盘点差异-35米·已冻结</b><br><span class="text-slate-400">有错才溯源 · 待复核审批</span>','<div class="mt-1"><button onclick="goPage(\'stocktake\')" class="text-indigo-600 font-bold text-xs">去盘点复核 ›</button></div>');
+  }
+  return {h:'追溯 · '+code+' · 全链路（人·码·时·单）',b:'<div class="mt-1 space-y-0">'+tl+'</div><div class="mt-2 text-[11px] text-slate-400">仅差异才溯源 · 本链精确到谁、何时、扫何码、签何单</div>',refs:code+' 全链路'};
+}
+function toast(t){var d=document.getElementById('t');d.textContent=t;d.classList.remove('hidden');clearTimeout(d._t);d._t=setTimeout(function(){d.classList.add('hidden')},2300);try{if(window.Store)Store.toast(t);}catch(e){}}
+function switchSess(btn,t){document.querySelectorAll('.sess').forEach(function(x){x.classList.remove('on')});btn.classList.add('on');toast('已切换会话：'+t+'（上下文已载入）');}
+function newSession(){toast('新会话已创建，上下文已清空，可直接提问');document.getElementById('live').innerHTML='';document.getElementById('qi').focus();}
+function clearCtx(){toast('上下文已清空（含条件/引用/草稿）');}
+function degrade(){var b=document.getElementById('degBadge');b.innerHTML='<span class="text-red-300">●</span> 模型不可用 · 已降级';toast('模型不可用，已降级为全局搜索+报表筛选，不阻断业务');setTimeout(function(){b.innerHTML='<span class="text-emerald-300">●</span> 模型在线 · 大模型 v3.2';},4000);}
+function ask(q){document.getElementById('qi').value=q;send();}
+function answerFor(q){
+  if(MODE==='report')return reportAnswer(q);
+  if(MODE==='trace')return traceAnswer(q);
+  if(/余额|库位|库存|拉链|牛津布/.test(q)) return {h:'回答 · 口径：账面可用量（不含待检/隔离）',b:'恒达拉链 HD-ZP-011：外仓 <b>8,000件</b>（WH-A-03-01）· 内仓1 <b>2,400件</b> · 合计 <b>10,400件</b>（未跨单位相加）。<br>牛津布见上方卡片。',refs:'SL2026091209 · 库存WH-A-05'};
+  if(/领|退/.test(q)) return {h:'回答 · 昨日领退料汇总（09-11）',b:'领料 <b>2,400米 + 3,000件</b>（18单）· 退料 <b>195米</b>（可用150 / 待检30 / 隔离15，3单）。<br>最大退料：TL2026091201 牛津布120米（待判定）。',refs:'LY2026091108 · TL2026091201'};
+  if(/DB|调拨/.test(q)) return {h:'回答 · 调拨追踪 DB2026091202',b:'外仓→内仓1 · 拉链 <b>2000件</b> · 当前 <b class="text-blue-600">运输中</b>（已发2000/已收—）· 预计10:30达 · 送货员刘强。<br>目标仓扫码后差异进异常。',refs:'DB2026091202'};
+  if(/差异|PD|异常|35/.test(q)) return {h:'回答 · 差异 PD2026091201',b:'WH-A-05-02-03 · 账面4200 / 实盘4165 / <b class="text-red-500">差异-35米</b> · <b class="text-red-500">已冻结待复核</b> · 原因：布头剪裁损耗未及时登记（待确认）。',refs:'PD2026091201 · 02:30自动盘点'};
+  if(/追|MB|链路|SB/.test(q)) return {h:'回答 · 流转追溯 MB2026091003',b:'MB生成(09-10张建国) → 拆SB-01~04 → 入库WH-A-05 → 领料SB-03+箱唛（李小明签名）→ <b class="text-red-500">盘点-35米冻结</b>。精确到谁·何时·扫何码·签何单。',refs:'MB2026091003 全链路'};
+  if(/月报|报表|完工|周报|日报/.test(q)) return {h:'Agent · 报表草稿已生成',b:'草稿 <b>BB-AG-0912</b>（收发存月报口径，09-01~09-12，按客户/仓库/单位分组）待确认发布。<br>定期：日报06:00 · 周报周一06:00 · 月报次月1日06:00 · 完工触发。',refs:'报表中心列表顶部待确认'};
+  return {h:'回答 · 已按授权范围查询',b:'共命中 <b>4</b> 条相关单据（已按客户/仓库/单位分组，未跨单位相加）。<br>数据截至 08:40 · 范围：一监区 · 请用左侧技能或追问单号下钻。',refs:'business_document'};
+}
+function send(){
+  var inp=document.getElementById('qi');var q=(inp.value||'').trim();
+  if(!q){toast('请先在输入框输入问题，或点上方示例');inp.focus();return;}
+  if(!curSess){SESS.unshift({id:'s'+Date.now(),title:q.slice(0,12),desc:MODE==='report'?'报表生成':MODE==='trace'?'流转追溯':'库存查询',time:'刚刚',hits:'新会话'});curSess=SESS[0].id;QA[curSess]=[];renderSessions('');}
+  var live=document.getElementById('live');var chat=document.getElementById('chat');
+  var esc=q.replace(/</g,'&lt;');
+  var tip=MODE==='report'?'正在解析报表需求 → 抽取客户/周期/口径 → 汇总业务数据 → 生成草稿…':MODE==='trace'?'正在识别单号/批次/箱唛 → 权限校验 → 拉取全链路 → 组装时间线…':'正在理解意图 → 抽取条件 → 权限校验 → 查询业务数据…';
+  live.innerHTML='<div class="flex justify-end"><div class="msg-me px-4 py-2.5 text-[13px] max-w-[82%]">'+esc+'</div></div><div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="typing"><span></span> <span></span> <span></span></div><div class="text-[11px] text-slate-400 mt-1">'+tip+'</div></div>';
+  chat.scrollTop=chat.scrollHeight;inp.value='';
+  setTimeout(function(){
+    var a=answerFor(q);
+    var extra=a.draft?'<button onclick="toast(\'草稿 '+a.draft+' 已确认发布，进入报表中心列表顶部\');goPage(\'report\')" class="bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">确认发布</button><button onclick="toast(\'草稿 '+a.draft+' 已导出Excel\')" class="border px-3 py-1.5 rounded-lg text-xs">导出</button>':(MODE==='trace'?'<button onclick="toast(\'全链路已导出（含人·码·时·单）\')" class="border px-3 py-1.5 rounded-lg text-xs">导出链路</button>':'<button onclick="goPage(\'inventory\')" class="border px-3 py-1.5 rounded-lg text-xs">查看明细</button><button onclick="goPage(\'stocktake\')" class="border px-3 py-1.5 rounded-lg text-xs">打开追溯</button><button onclick="toast(\'筛选已应用\')" class="border px-3 py-1.5 rounded-lg text-xs">应用筛选</button><button onclick="toast(\'报表草稿已生成，待确认发布\')" class="bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">生成报表草稿</button>');
+    live.innerHTML='<div class="flex justify-end"><div class="msg-me px-4 py-2.5 text-[13px] max-w-[82%]">'+esc+'</div></div>'
+    +'<div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="font-bold">'+a.h+' <span class="text-[11px] font-normal text-slate-400">截至08:40 · 一监区</span></div><div class="mt-2 text-slate-700 leading-relaxed">'+a.b+'</div><div class="mt-2 text-[11px] text-slate-400">引用：'+a.refs+' · 数量按单位分组 · 须人工核对</div><div class="flex gap-2 mt-2 flex-wrap">'+extra+'</div></div>';
+    chat.scrollTop=chat.scrollHeight;
+    var now=new Date();var hm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+    var rec={sess:curSess,q:q,a:a.b,refs:a.refs,time:hm,ok:true,mode:MODE};
+    if(!QA[curSess])QA[curSess]=[];QA[curSess].push(rec);persistExtra(rec);renderSessions(document.getElementById('sessSearch')?document.getElementById('sessSearch').value:'');
+    try{if(window.Store)Store.addAudit('AI问数：'+q.slice(0,16));}catch(e){}
+  },900);
+}
+switchMode('ask');
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var labels=[['button[onclick="exportHistory()"]','导出问答历史'],['#qaDrawer button[onclick*="qaDrawer"]','关闭本会话问答记录'],['#qaDrawer button[onclick="exportHistory(true)"]','导出本会话问答记录'],['#histModal button[onclick="exportHistory(false)"]','导出全部问答历史']];
+  labels.forEach(function(pair){var el=document.querySelector(pair[0]);if(el&&!el.getAttribute('aria-label'))el.setAttribute('aria-label',pair[1]);});
+  document.querySelectorAll('button').forEach(function(el){if(!el.getAttribute('aria-label')&&!el.textContent.trim()){el.setAttribute('aria-label','操作');}});
+});
+</script></body></html>

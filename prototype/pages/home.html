@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>首页 · 工作台</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui}.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}.app-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px;border-radius:12px;font-size:12px;color:#334155}.app-btn:hover{background:#eff6ff;color:#1d4ed8}.app-btn .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}.todo-item{display:flex;gap:10px;padding:10px;border-radius:10px;cursor:pointer}.todo-item:hover{background:#eff6ff}.funnel-box{border:1.5px dashed #cbd5e1;border-radius:12px;padding:10px;text-align:center;background:#f8fafc}.funnel-arrow{text-align:center;font-size:11px;color:#64748b;padding:3px 0}.doc-tab{padding:6px 12px;border-radius:99px;font-size:12px;color:#64748b;border:1px solid #e2e8f0}.doc-tab.on{background:#ede9fe;color:#6d28d9;border-color:#c4b5fd;font-weight:700}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script></head>
+<body class="bg-[#f2f5fa]"><div class="flex"><aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+<div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400 flex items-center gap-3">工作台 / <b class="text-slate-700">首页 · 数据速览与快捷入口</b><span class="flex-1"></span><span>更新时间：2026-09-12 08:30 · 每5分钟同步</span><span class="text-emerald-600">● 在线</span></header>
+<div class="p-6 space-y-4 max-w-[1440px]">
+<!-- 问候条 -->
+<div class="card px-5 py-4 flex items-center gap-4 flex-wrap">
+<div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-sun"></i></div>
+<div><div class="font-extrabold text-[16px]" id="greet">上午好，张建国</div><div class="text-xs text-slate-400" id="todayLine">2026-09-12 星期六 · 一监区 · 外仓 / 内仓1 / 内仓2 · 多云 26°C</div></div>
+<div class="flex-1"></div>
+<div class="flex gap-2 text-xs"><span class="bg-orange-50 text-orange-600 border border-orange-100 px-3 py-1.5 rounded-full">待办 <b id="kTodo">5</b></span><span class="bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1.5 rounded-full">进行中 <b>3</b></span><span class="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-full">异常 <b>2</b></span><button onclick="goPage('ai')" class="bg-violet-600 text-white px-4 py-1.5 rounded-full font-bold"><i class="fa-solid fa-robot mr-1"></i>AI问数</button></div>
+</div>
+
+<!-- 第一排：三列等高 -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 items-stretch">
+<!-- 左：常见应用 -->
+<div class="flex flex-col">
+<div class="card p-4 flex-1 flex flex-col h-full"><div class="flex items-center justify-between"><b class="text-sm">常见应用</b><button onclick="toast('全部应用见左侧菜单')" class="text-xs text-slate-400">查看全部 ›</button></div>
+<div class="grid grid-cols-5 gap-1 mt-3 flex-1 content-center">
+<button class="app-btn" onclick="goPage('receipt')"><span class="ic bg-orange-400"><i class="fa-solid fa-box-open"></i></span>入库接收</button>
+<button class="app-btn" onclick="goPage('issue')"><span class="ic bg-blue-500"><i class="fa-solid fa-dolly"></i></span>出库直送</button>
+<button class="app-btn" onclick="goPage('transfer')"><span class="ic bg-indigo-500"><i class="fa-solid fa-shuffle"></i></span>调拨执行</button>
+<button class="app-btn" onclick="goPage('workshop')"><span class="ic bg-red-400"><i class="fa-solid fa-clipboard-list"></i></span>领料申请</button>
+<button class="app-btn" onclick="goPage('return')"><span class="ic bg-amber-500"><i class="fa-solid fa-rotate-left"></i></span>退料判定</button>
+<button class="app-btn" onclick="goPage('finished')"><span class="ic bg-emerald-500"><i class="fa-solid fa-flag-checkered"></i></span>成品输出</button>
+<button class="app-btn" onclick="goPage('stocktake')"><span class="ic bg-violet-500"><i class="fa-solid fa-clipboard-check"></i></span>盘点复核</button>
+<button class="app-btn" onclick="goPage('inventory')"><span class="ic bg-cyan-500"><i class="fa-solid fa-warehouse"></i></span>库存总览</button>
+<button class="app-btn" onclick="goPage('report')"><span class="ic bg-teal-500"><i class="fa-solid fa-chart-line"></i></span>报表中心</button>
+<button class="app-btn" onclick="goPage('docs')"><span class="ic bg-slate-500"><i class="fa-solid fa-file-lines"></i></span>单据查询</button>
+</div>
+<div class="mt-3 pt-3 border-t border-slate-100">
+<div class="flex items-center justify-between mb-2"><b class="text-xs text-slate-700"><i class="fa-solid fa-triangle-exclamation text-orange-400 mr-1" aria-hidden="true"></i>预警提示</b><span class="text-[11px] text-slate-400">2 项待关注</span></div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><button type="button" onclick="goPage('location')" class="text-left rounded-lg border border-orange-200 bg-orange-50/70 px-2.5 py-2 text-[11px] text-orange-700 hover:bg-orange-100"><b class="block">A-05 区容量 96%</b><span class="text-orange-600/80">建议分流至 A-06 区</span></button><button type="button" onclick="goPage('stocktake')" class="text-left rounded-lg border border-red-200 bg-red-50/70 px-2.5 py-2 text-[11px] text-red-700 hover:bg-red-100"><b class="block">WH-A-05 盘点差异</b><span class="text-red-600/80">短少 35 米，等待复核</span></button></div>
+</div>
+<div class="text-[11px] text-slate-400 mt-3 pt-3 border-t">10 个常用入口 · 点击直达办理页</div>
+</div>
+</div>
+<!-- 中：今日待办 -->
+<div class="flex flex-col">
+<div class="card p-4 flex-1 flex flex-col h-full"><div class="flex items-center justify-between"><b class="text-sm">今日待办</b><button onclick="goPage('docs')" class="text-xs text-slate-400">全部待办 ›</button></div>
+<div class="flex items-center justify-between text-xs text-slate-400 mt-1"><span id="todoDate">2026-09-12</span><button onclick="goToday()" class="text-blue-600">回到今日</button></div>
+<div class="flex items-center gap-1 mt-2 text-center text-xs" id="weekStrip"></div>
+<div class="mt-2 divide-y text-xs flex-1" id="todoList">
+<div class="todo-item" onclick="goPage('return')"><span class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0"></span><div><b>09:30 · TL2026091201 退料待判定</b><div class="text-slate-400">缝制一车间退牛津布120米 · 10:00截止 · 李小明</div></div></div>
+<div class="todo-item" onclick="goPage('transfer')"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></span><div><b>10:30 · DB2026091202 到货接收</b><div class="text-slate-400">外仓→内仓1 拉链2000件 · 刘强在途 · 陈芳接收</div></div></div>
+<div class="todo-item" onclick="goPage('stocktake')"><span class="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0"></span><div><b>14:00 · PD2026091201 差异复核</b><div class="text-slate-400">WH-A-05-02-03 差异-35米 · 已冻结 · 王芳</div></div></div>
+<div class="todo-item" onclick="goPage('receipt')"><span class="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0"></span><div><b>15:30 · SL2026091209 OCR确认</b><div class="text-slate-400">120米→1200米人工确认 · 签名后入账</div></div></div>
+</div>
+<div class="text-[11px] text-slate-400 mt-3 pt-3 border-t">4 条今日待办 · 超时单将标红置顶</div>
+</div>
+</div>
+<!-- 右：文档中心 -->
+<div class="flex flex-col">
+<div class="card p-4 flex-1 flex flex-col h-full"><div class="flex items-center justify-between"><b class="text-sm">文档中心</b><button onclick="toast('全部文档：见基础资料附录')" class="text-xs text-slate-400">查看全部 ›</button></div>
+<div class="flex gap-1.5 mt-3"><button class="doc-tab on" onclick="docTab(0,this)">操作手册</button><button class="doc-tab" onclick="docTab(1,this)">制度规范</button><button class="doc-tab" onclick="docTab(2,this)">常见问题</button></div>
+<div class="mt-3 space-y-2 text-xs flex-1" id="docList"></div>
+<div class="text-[11px] text-slate-400 mt-3 pt-3 border-t">12 份文档 · 覆盖收发存盘退全流程</div>
+</div>
+</div>
+</div>
+
+<!-- 第二排：实时数据 + 流转漏斗等高 -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 items-stretch">
+<div class="card p-4 xl:col-span-2 flex flex-col h-full"><div class="flex items-center gap-2 flex-wrap"><b class="text-sm">实时数据</b><span class="text-[11px] text-slate-400">最新动态 · 你必须知道的关键能力指标</span><span class="flex-1"></span><span class="text-[11px] text-slate-400">更新时间：2026-09-12 08:30:00</span><button onclick="toast('数据已刷新：截至 08:35')" class="text-[11px] text-blue-600">数据刷新</button></div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 flex-1">
+<div class="flex flex-col"><div class="flex items-center gap-2 text-xs"><span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-arrow-right-to-bracket"></i></span><div><div class="text-slate-400">今日入库（米/件）</div><b class="text-lg">6,300米 + 2,000件</b></div><span class="flex-1"></span><span class="text-[11px] text-slate-400">环比昨日：10% ↑<br>昨日全天：11,693</span></div>
+<svg viewBox="0 0 520 170" class="w-full mt-2 flex-1" role="img" aria-label="今日出入库趋势" preserveAspectRatio="none" style="min-height:150px"><defs><linearGradient id="hgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6" stop-opacity=".35"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
+<g stroke="#eef2f7" stroke-width="1"><line x1="30" y1="20" x2="510" y2="20"/><line x1="30" y1="60" x2="510" y2="60"/><line x1="30" y1="100" x2="510" y2="100"/><line x1="30" y1="140" x2="510" y2="140"/></g>
+<path d="M30,120 C80,110 100,40 150,55 C200,70 220,30 270,60 C320,90 340,50 390,70 C430,85 470,60 510,80 L510,150 L30,150 Z" fill="url(#hgA)"/>
+<polyline points="30,120 80,110 150,55 220,70 270,60 340,55 390,70 450,65 510,80" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+<polyline points="30,130 80,125 150,100 220,110 270,95 340,100 390,90 450,95 510,105" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="5 4"/>
+<g font-size="10" fill="#94a3b8"><text x="30" y="165">00</text><text x="130" y="165">04</text><text x="230" y="165">08</text><text x="330" y="165">12</text><text x="430" y="165">16</text><text x="500" y="165">20</text></g>
+<g font-size="10"><circle cx="150" cy="55" r="4" fill="#2563eb"/><text x="160" y="50" fill="#2563eb">入库峰值 08:00</text></g></svg>
+<div class="flex gap-4 text-[11px] text-slate-500 mt-1"><span><i class="fa-solid fa-minus text-blue-600 mr-1"></i>入库</span><span><i class="fa-solid fa-minus text-cyan-400 mr-1"></i>出库/直送</span></div></div>
+<div class="grid grid-cols-2 gap-2 text-xs content-center">
+<div class="border rounded-xl p-3"><div class="text-slate-400">外仓 WH-A</div><b class="text-[15px]" id="stWaiA">8,420米</b><div class="text-slate-400">可用 <span id="stKeYong">7,980</span>米 · 待检440</div></div>
+<div class="border rounded-xl p-3"><div class="text-slate-400">内仓1 WH-B</div><b class="text-[15px]" id="stNei1">3,160米</b><div class="text-slate-400">备料充足 · 容量72%</div></div>
+<div class="border rounded-xl p-3"><div class="text-slate-400">内仓2 WH-C</div><b class="text-[15px]" id="stNei2">1,900件</b><div class="text-slate-400">辅料为主 · 容量58%</div></div>
+<div class="border rounded-xl p-3"><div class="text-slate-400">在途直送</div><b class="text-[15px]">800米</b><div class="text-slate-400">ZS2026091204 · 预计09:00达</div></div>
+</div></div>
+</div>
+<div class="flex flex-col">
+<div class="card p-4 flex-1 flex flex-col h-full"><div class="flex items-center justify-between"><b class="text-sm">业务流转漏斗</b><div class="flex gap-1 text-[11px]"><button class="border rounded-full px-2.5 py-1 bg-blue-600 text-white" onclick="toast('近3天')">近3天</button><button class="border rounded-full px-2.5 py-1" onclick="toast('近7天')">近7天</button></div></div>
+<div class="text-[11px] text-slate-400 mt-1">发送单据：14单 · 入库总量：12单</div>
+<div class="mt-2 flex-1"><div class="funnel-box cursor-pointer hover:border-blue-400" onclick="goPage('receipt')"><b class="text-sm">送料 14单</b><div class="text-[11px] text-slate-400">客户送货 · 6,300米 + 2,000件</div></div>
+<div class="funnel-arrow">入库率 <b class="text-blue-600">86%</b> ↓</div>
+<div class="funnel-box cursor-pointer hover:border-blue-400" onclick="goPage('workshop')"><b class="text-sm">入库 12单 · 已上架</b><div class="text-[11px] text-slate-400">扫码入库 · SB必扫/箱唛可选</div></div>
+<div class="funnel-arrow">领发率 <b class="text-blue-600">75%</b> ↓</div>
+<div class="funnel-box cursor-pointer hover:border-blue-400" onclick="goPage('finished')"><b class="text-sm">领料 9单 · 6,200米</b><div class="text-[11px] text-slate-400">双签名 · 到人到工位</div></div>
+<div class="funnel-arrow">产出率 <b class="text-blue-600">88%</b> ↓</div>
+<div class="funnel-box cursor-pointer hover:border-blue-400" onclick="goPage('finished')"><b class="text-sm">成品 420件</b><div class="text-[11px] text-slate-400">已交接300 · 暂存120</div></div></div>
+<div class="text-[11px] text-slate-400 mt-2 pt-2 border-t">退料2单（195米）· 差异2单（-55米）已冻结，点击节点直达办理</div></div>
+</div>
+</div>
+</div></div></div><div id="t" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full z-[60]"></div>
+<script>
+function toast(t){var d=document.getElementById('t');d.textContent=t;d.classList.remove('hidden');clearTimeout(d._t);d._t=setTimeout(function(){d.classList.add('hidden')},2300)}
+var DOCS=[['送料接收操作手册','SL · 8步向导'],['退料判定标准（可用/待检/隔离）','TL · 外仓判定'],['盘点差异处理流程','PD · 复核关闭'],['成品交接签收规范','CP · 证据存证']];
+function docTab(i,b){document.querySelectorAll('.doc-tab').forEach(function(x){x.classList.remove('on')});b.classList.add('on');var groups=[DOCS,[['BOM版本管理规范','启用/停用'],['库区编码规则','WH-A/B/C'],['客户独立归属制度','不混账'],['数量单位规范','不跨单位相加']],[['OCR识别率低怎么办？','人工值为准'],['扫码重复怎么处理？','自动拦截'],['差异单谁来复核？','仓库负责人'],['车间只能看本车间？','数据范围隔离']]];document.getElementById('docList').innerHTML=groups[i].map(function(d){return '<button onclick="toast(\'文档：'+d[0]+'\')" class="w-full text-left flex gap-2 border rounded-lg px-2.5 py-2 hover:border-violet-300"><i class="fa-regular fa-file-lines text-violet-400 mt-0.5"></i><span class="flex-1">'+d[0]+'</span><span class="text-slate-400">'+d[1]+'</span></button>'}).join('')}
+docTab(0,document.querySelector('.doc-tab'));
+(function(){var h=new Date().getHours(),g=h<6?'凌晨好':h<9?'早上好':h<12?'上午好':h<14?'中午好':h<18?'下午好':'晚上好';document.getElementById('greet').textContent=g+'，张建国';var d=new Date(),w='日一二三四五六'[d.getDay()];document.getElementById('todoDate').textContent=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' 星期'+w;document.getElementById('todayLine').textContent=document.getElementById('todoDate').textContent+' · 一监区 · 外仓 / 内仓1 / 内仓2 · 多云 26°C';
+var mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));var ws='';for(var i=0;i<7;i++){var t=new Date(mon);t.setDate(mon.getDate()+i);var isT=t.toDateString()===d.toDateString();var iso=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);ws+='<button type="button" data-date="'+iso+'" class="flex-1 rounded-lg py-1.5 '+(isT?'bg-blue-600 text-white font-bold':'text-slate-500 hover:bg-blue-50')+'"><div>'+'一二三四五六日'[i]+'</div><div class="'+(isT?'':'text-slate-700')+'">'+t.getDate()+'</div></button>'}document.getElementById('weekStrip').innerHTML='<span class="text-slate-300 px-0.5">‹</span>'+ws+'<span class="text-slate-300 px-0.5">›</span>';
+try{if(window.Store){var s=Store.get();if(s&&s.stock){document.getElementById('stWaiA').textContent=s.stock.waiA_mi.toLocaleString()+'米';document.getElementById('stNei1').textContent=s.stock.nei1_mi.toLocaleString()+'米';document.getElementById('stNei2').textContent=s.stock.nei2_jian.toLocaleString()+'件';document.getElementById('stKeYong').textContent=s.stock.keYong_mi.toLocaleString()}if(s&&s.todos)document.getElementById('kTodo').textContent=s.todos.length+2}
+/* 物料管理新账套 jm_wms_core_v1：有待审批工单时以待办数与列表为准 */
+try{
+var core=JSON.parse(localStorage.getItem('jm_wms_core_v1')||'null');
+if(core&&core.doc){
+var pend=core.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'});
+if(window.goPage){
+document.getElementById('kTodo').textContent=pend.length;
+var TYPE={register:'物料登记',reject:'来料拒收',inbound:'物料入库',issue:'物料领用',return:'物料退库'};
+var DOT={register:'violet-500',reject:'red-500',inbound:'blue-500',issue:'orange-400',return:'emerald-500'};
+var tl=pend.slice(0,5).map(function(d){
+return '<div class="todo-item" onclick="goPage(\'materialInbound\')"><span class="w-1.5 h-1.5 rounded-full bg-'+(DOT[d.type]||'slate-400')+' mt-1.5 shrink-0"></span><div><b>'+(d.date||'').slice(5)+' · '+d.no+' '+TYPE[d.type]+'</b><div class="text-slate-400">'+(d.status==='已驳回'?'已驳回待修改':'待审批')+' · '+(d.party||d.dept||d.unit||'—')+'</div></div></div>'}).join('');
+if(tl)document.getElementById('todoList').innerHTML=tl;
+}
+}
+}catch(e2){}
+}catch(e){}})();
+var todoList=document.getElementById('todoList'),todayTodos=todoList?todoList.innerHTML:'';function goToday(){var b=document.querySelector('#weekStrip [data-date].bg-blue-600');if(b)b.click()}document.querySelectorAll('#weekStrip [data-date]').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#weekStrip [data-date]').forEach(function(x){x.classList.remove('bg-blue-600','text-white','font-bold');x.classList.add('text-slate-500')});btn.classList.add('bg-blue-600','text-white','font-bold');btn.classList.remove('text-slate-500');var selected=btn.dataset.date,now=new Date(),today=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);document.getElementById('todoDate').textContent=selected+' '+(selected===today?'今天':'历史记录');if(selected===today){todoList.innerHTML=todayTodos;return}todoList.innerHTML='<div class="todo-item" onclick="goPage(\'docs\')"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 shrink-0"></span><div><b>'+selected+' · 已完成入库记录</b><div class="text-slate-400">当日入库单据已归档，可查看详情</div></div></div><div class="todo-item" onclick="goPage(\'docs\')"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 shrink-0"></span><div><b>'+selected+' · 出库与调拨记录</b><div class="text-slate-400">历史业务记录已保留，点击查看</div></div></div>';});});
+window.goToday=function(){var n=new Date(),iso=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2),b=document.querySelector('#weekStrip [data-date="'+iso+'"]');if(b)b.click()};
+document.querySelectorAll('.text-slate-400').forEach(function(el){if(el.textContent.trim()==='今日入库（米/件）')el.textContent='今日入库（按物料/单位）';if(el.textContent.trim()==='环比昨日：10% ↑昨日全天：11,693')el.innerHTML='较昨日：各单位分别统计<br>不同单位不合并计算';});
+document.querySelectorAll('.text-lg').forEach(function(el){if(el.textContent.trim()==='6,300米 + 2,000件')el.textContent='牛津布 6,300米 · 拉链 2,000件';});
+document.querySelectorAll('.funnel-box .text-slate-400').forEach(function(el){if(el.textContent.indexOf('6,300米 + 2,000件')>-1)el.textContent='客户送货 · 牛津布 6,300米 · 拉链 2,000件';});
+</script></body></html>

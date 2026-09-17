@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物料管理系统 · 联通演示版 app.html</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link id="wms-shared-theme" rel="stylesheet" href="assets/theme.css">
+<script src="assets/store.js"></script>
+<script>window.__WMS_APP_SHELL=true;</script>
+<script src="assets/nav.js"></script>
+<script src="assets/app-router.js"></script>
+<style>
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef1f6}
+.side-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:13px;color:#c6d2e6;cursor:pointer;border:0;background:transparent;width:100%;text-align:left}
+.side-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.side-link.on{background:#2563eb;color:#fff;font-weight:700}
+.sub-link{display:flex;justify-content:space-between;align-items:center;padding:7px 12px 7px 34px;border-radius:8px;font-size:12px;color:#9fb0cc;cursor:pointer}
+.sub-link:hover{background:rgba(255,255,255,.06);color:#fff}
+.sub-link.on{background:rgba(37,99,235,.25);color:#fff}
+.wms-app-shell> .app-layout>aside{width:248px!important;background:linear-gradient(180deg,#eaf7ff 0%,#f5fbff 55%,#ffffff 100%)!important;border-right:1px solid #cde8f7!important;box-shadow:4px 0 18px rgba(15,23,42,.06);position:relative;transition:width 220ms ease}
+.wms-app-shell> .app-layout>aside:after{content:none}
+.wms-app-shell> .app-layout>aside>*{position:relative;z-index:1}
+.wms-app-shell> .app-layout>aside>.p-4{padding:20px 16px 14px!important;border-bottom:1px solid #d8effc!important}
+.wms-app-shell> .app-layout>aside>.p-4 .brand-mark{width:38px;height:38px!important;background:linear-gradient(145deg,#16b9f3,#0875d2)!important}
+.wms-app-shell> .app-layout>aside>.p-4>div:nth-child(2)>div:first-child{color:#16456f!important}
+.wms-app-shell> .app-layout>aside>.p-4>div:nth-child(2)>div:last-child{color:#648eaa!important}
+.wms-app-shell> .app-layout>aside>.mx-4{margin:12px 12px 10px!important;padding:10px 11px!important;border:1px solid #cde8f7!important;background:#ffffff!important;border-radius:8px!important;color:#16456f;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.wms-app-shell> .app-layout>aside>.mx-4 .text-slate-400{color:#648eaa!important}
+.wms-app-shell> .app-layout>aside>.mx-4 .text-emerald-400{color:#047857!important}
+.wms-app-shell #menu{padding:6px 10px 14px!important;scrollbar-width:thin;scrollbar-color:#9bcbe7 transparent}
+.wms-app-shell #menu::-webkit-scrollbar{width:6px}.wms-app-shell #menu::-webkit-scrollbar-thumb{background:#9bcbe7;border-radius:6px}
+.wms-app-shell #menu .nav-group{position:relative;margin-bottom:2px}
+.wms-app-shell #menu .nav-group-toggle{min-height:38px;margin:6px 0 2px;padding:7px 10px!important;border:0;border-radius:8px!important;color:#5b8bad!important;font-size:12.5px!important;line-height:20px;font-weight:700;letter-spacing:0}
+.wms-app-shell #menu .nav-group-toggle:first-child{margin-top:0}
+.wms-app-shell #menu .nav-group-toggle:hover{background:#d8effc!important;color:#16456f!important}
+.wms-app-shell #menu .nav-group.open .nav-group-toggle{background:#d8effc!important;color:#16456f!important}
+.wms-app-shell #menu .nav-group-toggle i:first-child{width:18px;text-align:center;color:#1689e8}
+.wms-app-shell #menu .nav-group-toggle>i:last-child{font-size:10px;opacity:.55}
+.wms-app-shell #menu .nav-group-panel{position:relative;display:grid;gap:1px;margin:1px 6px 6px 27px;padding:3px 2px 3px 9px!important;border-left:1px solid #cde8f7}
+.wms-app-shell #menu .sub-link{position:relative;display:flex;align-items:center;min-height:34px;padding:6px 12px!important;border-radius:7px!important;color:#3c6a8a!important;font-size:13px;line-height:20px;white-space:nowrap}
+.wms-app-shell #menu .sub-link span{overflow:hidden;text-overflow:ellipsis}
+.wms-app-shell #menu .sub-link:hover{background:#e3f3fd!important;color:#16456f!important}
+.wms-app-shell #menu .sub-link.on{background:linear-gradient(135deg,#1f9bf0,#0875d2)!important;color:#fff!important;font-weight:700;box-shadow:0 4px 12px rgba(22,137,232,.35)}
+.wms-app-shell #menu .sub-link i{display:none!important}
+.wms-app-shell> .app-layout>aside>.p-3{padding:12px!important;background:transparent;border-top:1px solid #d8effc!important}
+.wms-app-shell> .app-layout>aside>.p-3 button{min-height:36px;border:1px solid #cde8f7;background:#fff!important;border-radius:8px!important;color:#3c6a8a!important}
+.wms-app-shell> .app-layout>aside>.p-3 button:hover{background:#eaf7ff!important;color:#16456f!important}
+.wms-app-shell.nav-compact> .app-layout>aside{width:64px!important}
+.wms-app-shell.nav-compact> .app-layout>aside>.p-4{justify-content:center;padding:20px 8px 14px!important}
+.wms-app-shell.nav-compact> .app-layout>aside>.p-4>div:nth-child(2),.wms-app-shell.nav-compact> .app-layout>aside>.mx-4{display:none}
+.wms-app-shell.nav-compact #menu{padding-inline:8px!important}
+.wms-app-shell.nav-compact #menu .nav-group-toggle{justify-content:center;padding-inline:0!important}
+.wms-app-shell.nav-compact #menu .nav-group-toggle span{font-size:0}
+.wms-app-shell.nav-compact #menu .nav-group-toggle span i{font-size:16px;margin:0}
+.wms-app-shell.nav-compact #menu .nav-group-toggle>i:last-child{display:none}
+.wms-app-shell.nav-compact #menu .nav-group-panel{display:none!important;position:absolute;z-index:50;left:calc(100% + 8px);top:0;width:220px;padding:8px;background:#fff;border:1px solid #cde8f7;border-radius:8px;box-shadow:0 14px 30px rgba(15,23,42,.18)}
+.wms-app-shell.nav-compact #menu .nav-group:hover .nav-group-panel,.wms-app-shell.nav-compact #menu .nav-group:focus-within .nav-group-panel{display:grid!important}
+.wms-app-shell.nav-compact #menu .nav-group:hover .nav-group-panel .sub-link,.wms-app-shell.nav-compact #menu .nav-group:focus-within .nav-group-panel .sub-link{color:#3c6a8a!important}
+.wms-app-shell.nav-compact #menu .nav-group:hover .nav-group-panel .sub-link:hover,.wms-app-shell.nav-compact #menu .nav-group:focus-within .nav-group-panel .sub-link:hover{background:#eaf7ff!important;color:#16456f!important}
+.wms-app-shell.nav-compact #menu .nav-group:hover .nav-group-panel,.wms-app-shell.nav-compact #menu .nav-group:focus-within .nav-group-panel{display:grid!important}
+.wms-app-shell.nav-compact> .app-layout>aside>.p-3{padding:8px!important}
+.wms-app-shell.nav-compact> .app-layout>aside>.p-3 button{font-size:0;padding-inline:0}
+.wms-app-shell.nav-compact> .app-layout>aside>.p-3 button i{font-size:14px;margin:0}
+.step-dot{width:26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#e2e8f0;color:#64748b;flex-shrink:0}
+.step.on .step-dot{background:#2563eb;color:#fff}
+.step.done .step-dot{background:#10b981;color:#fff}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+body.dashboard-mode .app-layout>aside,
+body.dashboard-mode .shell-header,
+body.dashboard-mode .shell-footer{display:none!important}
+body.ai-route .shell-header{display:none!important}
+body.ai-route .shell-footer{display:none!important}
+body.dashboard-mode .app-layout>.flex-1{width:100%;min-width:0}
+body.dashboard-mode .workspace{height:100dvh}
+#view{display:block;width:100%;height:100%;overflow:auto;background:#fff;overscroll-behavior:contain}
+#view[aria-busy="true"]{cursor:progress}
+body.ai-route #view{padding-bottom:124px}
+body.ai-route .ai-inputbar{position:fixed;left:calc(272px + 24px);right:calc(300px + 40px);bottom:0;z-index:60;border:1px solid #e5e7eb;border-bottom:0;border-radius:14px 14px 0 0}
+.wms-page-loading,.wms-page-error{min-height:180px;display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;color:#64748b;font-size:13px}
+.wms-page-error{flex-direction:column;color:#b42318}
+.wms-page-error i{font-size:22px}
+.wms-page-layout{min-height:100%;background:transparent}
+@media(max-width:900px){
+body{overflow-x:hidden}
+.wms-app-shell> .app-layout>aside{width:min(84vw,300px)!important}
+body>div.flex{display:flex!important;flex-direction:column;height:100dvh;min-height:100vh}
+body>div.flex>aside{display:none;position:fixed;inset:0 auto 0 0;width:min(84vw,300px);z-index:80;box-shadow:12px 0 32px rgba(0,0,0,.25)}
+body.nav-open>div.flex>aside{display:flex}
+body.nav-open:after{content:"";position:fixed;inset:0;background:rgba(15,30,58,.48);z-index:70}
+body>div.flex>div.flex-1{width:100%;min-width:0;min-height:0;flex:1;display:flex;flex-direction:column}
+header{padding:.625rem .75rem!important;gap:.5rem!important;flex-wrap:wrap}
+#crumb{order:2;max-width:calc(100% - 52px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mobileMenu{display:inline-flex;order:1}
+header>div.flex-1{order:3;flex-basis:100%;justify-content:stretch!important}
+header>div.flex-1>div{width:100%!important}
+header>button:not(#mobileMenu),header>div:last-child{order:4}
+body>div.flex>div.flex-1>.relative{min-height:0;flex:1}
+.relative> .absolute.bottom-4{position:sticky;bottom:.75rem;right:auto;justify-content:flex-end;padding:0 .75rem}
+footer{padding:.5rem .75rem!important;flex-wrap:wrap;gap:.25rem!important}
+footer>span:last-child{display:none}
+}
+@media(min-width:901px){#mobileMenu{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body class="wms-app-shell">
+<a class="wms-skip-link" href="#view">跳到主要内容</a>
+<div class="app-layout flex h-dvh overflow-hidden">
+<!-- ===== 左侧：真实系统菜单（不是原型目录） ===== -->
+<aside class="w-[248px] shrink-0 flex flex-col">
+<div class="p-4 flex items-center gap-3">
+<div class="brand-mark w-10 h-10 flex items-center justify-center text-white"><i class="fa-solid fa-boxes-stacked"></i></div>
+<div><div class="font-bold text-sm">物料管理系统</div><div class="text-[11px]">联通演示版 · 一期闭环</div></div>
+</div>
+<div class="mx-4 mb-2 text-[11px] rounded-lg p-2.5 leading-relaxed">岗位：<b id="uRole">仓库负责人 · 张建国</b><br><span>范围：外仓/内仓1/内仓2 · 一监区</span><br><span>● 数据已连通（localStorage+实时同步）</span></div>
+<nav class="flex-1 overflow-y-auto px-3 pb-3" id="menu" aria-label="系统导航"></nav>
+<div class="p-3 border-t flex gap-2 text-[11px]">
+<button title="收起导航" aria-label="收起导航" id="navCollapse" onclick="toggleSidebar()" class="flex-none w-10 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-angles-left" aria-hidden="true"></i></button>
+<button title="操作" aria-label="切换角色验证权限" onclick="switchRole()" class="flex-1 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-user-switch mr-1"></i>切换角色验证权限</button>
+<button title="操作" aria-label="重置演示数据" onclick="resetDemo()" class="flex-1 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-rotate mr-1"></i>重置演示数据</button>
+</div>
+</aside>
+
+<!-- ===== 右侧 ===== -->
+<div class="flex-1 flex flex-col min-w-0">
+<!-- 顶栏 -->
+<header class="shell-header bg-white border-b px-5 py-2.5 flex items-center gap-4">
+<button title="操作" id="mobileMenu" type="button" aria-label="打开导航菜单" aria-controls="menu" aria-expanded="false" class="items-center justify-center w-10 h-10 rounded-lg border text-slate-600"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+<span class="text-xs text-slate-400">当前位置：<b id="crumb" class="text-slate-700">工作台 / 首页</b></span>
+<div class="flex-1 flex justify-center">
+<div class="global-search w-[440px] flex items-center bg-slate-100 px-3 py-1.5 text-sm">
+<i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
+<input id="q" placeholder="全局搜索：单据 / 客户 / 物料 / 批次，回车跨页跳转…" class="bg-transparent outline-none flex-1 text-sm" onkeydown="if(event.key==='Enter')globalSearch(this.value)">
+</div>
+</div>
+<button title="操作" aria-label="打开 AI 问数" onclick="go('ai')" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-full font-bold"><i class="fa-solid fa-robot mr-1"></i>AI问数</button>
+<button aria-label="查看待办通知" title="查看待办通知" onclick="openBellTodo()" class="relative text-slate-500 px-2"><i class="fa-regular fa-bell text-lg"></i><span id="bell" class="absolute -top-1 -right-0 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">5</span></button>
+<div class="flex items-center gap-2"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=60" alt="当前用户头像" class="w-8 h-8 rounded-full object-cover"><div class="text-xs"><b id="uName">张建国</b><br><span class="text-slate-400" id="uRole2">仓库负责人</span></div></div>
+</header>
+
+<!-- 主视图 -->
+<div class="workspace flex-1 min-h-0 relative">
+<main id="view" tabindex="-1" aria-live="polite" aria-busy="true" aria-label="物料管理业务工作区"></main>
+</div>
+
+<!-- 底栏：平铺总览入口 + 数据联动提示 -->
+<footer class="shell-footer text-[11px] px-5 py-2 flex items-center gap-3">
+<span>联动状态：<b id="syncTip">外仓 8,420米 · 待办 3 · 通知 5</b></span><span class="flex-1"></span>
+<a href="index.html">← 回平铺总览 index.html（评审用）</a>
+<span>本页 app.html 为可点击系统（交付/演示用）</span>
+</footer>
+</div>
+</div>
+
+<script src="assets/action-layer.js"></script>
+<script src="assets/action-layer-fix.js"></script>
+<script src="assets/field-splitter.js"></script>
+<script>
+/* ---------- 1. 路由表：菜单 -> 子页面文件 ---------- */
+var ROUTES={
+home:{file:'pages/home.html',title:'工作台 / 首页'},
+dashboard:{file:'pages/dashboard.html',title:'工作台 / 业务运营驾驶舱'},
+fieldApp:{file:'../mobile-app/index.html',title:'工作台 / 现场作业APP',iframe:1},
+ai:{file:'pages/ai.html',title:'工作台 / AI问数'},
+inventoryOnhand:{file:'pages/material-workbench.html',title:'仓储作业 / 仓库库存'},
+inventoryLedger:{file:'pages/material-workbench.html',title:'仓储作业 / 库存记录'},
+location:{file:'pages/location.html',title:'仓储作业 / 库区管理'},
+materialCode:{file:'pages/material-workbench.html',title:'物料管理 / 物料明细'},
+materialRequest:{file:'pages/material-workbench.html',title:'物料管理 / 申请领料'},
+materialRegister:{file:'pages/material-workbench.html',title:'物料管理 / 物料登记'},
+materialReject:{file:'pages/material-workbench.html',title:'物料管理 / 来料拒收'},
+materialInbound:{file:'pages/material-workbench.html',title:'物料管理 / 物料入库'},
+materialIssue:{file:'pages/material-workbench.html',title:'物料管理 / 物料领用'},
+materialWReturn:{file:'pages/material-workbench.html',title:'物料管理 / 车间退料'},
+materialReturn:{file:'pages/material-workbench.html',title:'物料管理 / 物料退库'},
+transfer:{file:'pages/transfer.html',title:'仓储作业 / 库存调仓'},
+finishedDetail:{file:'pages/finished.html',title:'成品管理 / 成品明细'},
+finishedRegister:{file:'pages/finished.html',title:'成品管理 / 成品登记'},
+finishedInbound:{file:'pages/finished.html',title:'成品管理 / 成品入库'},
+finishedReturn:{file:'pages/finished.html',title:'成品管理 / 成品退仓'},
+finishedDeliver:{file:'pages/finished.html',title:'成品管理 / 成品交付'},
+finishedOut:{file:'pages/finished.html',title:'成品管理 / 成品登记'},
+finishedSign:{file:'pages/finished.html',title:'成品管理 / 成品交付'},
+finished:{file:'pages/finished.html',title:'成品管理 / 成品登记'},
+base:{file:'pages/base.html',title:'基础资料 / 客户·物料·BOM·组织'},
+baseBom:{file:'pages/base.html',title:'基础资料 / BOM管理',baseTab:''},
+baseMat:{file:'pages/base.html',title:'基础资料 / 物料档案',baseTab:'2'},
+baseOrg:{file:'pages/base.html',title:'基础资料 / 组织架构·车间',baseTab:'3'},
+baseLoc:{file:'pages/base.html',title:'基础资料 / 库区·客户档案',baseTab:'4'},
+baseProd:{file:'pages/base.html',title:'基础资料 / 成品档案',baseTab:'5'},
+baseTpl:{file:'pages/base.html',title:'基础资料 / 单据模板·拍照/AI',baseTab:'6'},
+docs:{file:'pages/docs.html',title:'单据中心 / 单据查询'},
+qrcode:{file:'pages/qrcode.html',title:'单据中心 / 二维码中心'},
+ocr:{file:'pages/ocr.html',title:'单据中心 / OCR工作台'},
+ocrResult:{file:'pages/ocr-result.html',title:'单据中心 / OCR扫描结果'},
+stocktake:{file:'pages/stocktake.html',title:'仓储作业 / 库存盘点'},
+report:{file:'pages/report.html',title:'报表中心 / 报表列表'},
+audit:{file:'pages/audit.html',title:'异常与审计 / 操作审计'},
+processingFee:{file:'pages/processing-fee.html',title:'单据中心 / 加工费对账'},
+  users:{file:'pages/users.html',title:'系统管理 / 用户管理'},
+  equipment:{file:'pages/equipment.html',title:'系统管理 / 设备管理'},
+  approveFlow:{file:'pages/approve-flow.html',title:'系统管理 / 审批流配置'},
+  login:{file:'pages/login.html',title:'登录与安全'},
+  receipt:{file:'pages/receipt.html',title:'仓储作业 / 送料接收'},
+  issue:{file:'pages/issue.html',title:'仓储作业 / 出库直送'},
+  transferFlow:{file:'pages/transfer.html',title:'仓储作业 / 调拨执行'},
+  workshop:{file:'pages/workshop.html',title:'车间管理 / 申请领料'},
+  workshopReceive:{file:'pages/workshop-receive.html',title:'车间管理 / 车间接收'},
+  return:{file:'pages/return.html',title:'车间管理 / 退料判定'},
+  inventory:{file:'pages/inventory.html',title:'仓储作业 / 库存总览'},
+  finished:{file:'pages/finished.html',title:'成品管理 / 成品登记'}
+  };
+var GROUPS=[
+{id:'g0',label:'工作台',icon:'fa-gauge',children:[['home','首页'],['dashboard','业务运营驾驶舱'],['fieldApp','现场作业APP'],['ai','AI问数']]},
+{id:'g1',label:'仓储作业',icon:'fa-warehouse',children:[['inventoryOnhand','仓库库存','stock:onhand'],['inventoryLedger','库存记录','stock:ledger'],['location','库区管理'],['transfer','库存调仓'],['stocktake','库存盘点']]},
+{id:'g2',label:'物料管理',icon:'fa-boxes-stacked',children:[['materialCode','物料明细','detail'],['materialRequest','申请领料','request'],['materialRegister','物料登记','register'],['materialReject','来料拒收','reject'],['materialInbound','物料入库','inbound'],['materialIssue','物料领用','issue'],['materialWReturn','车间退料','wreturn'],['materialReturn','物料退库','return']]},
+{id:'g4',label:'成品管理',icon:'fa-flag-checkered',children:[['finishedDetail','成品明细','detail'],['finishedRegister','成品登记','register'],['finishedInbound','成品入库','inbound'],['finishedReturn','成品退仓','wreturn'],['finishedDeliver','成品交付','deliver']]},
+{id:'g5',label:'基础资料',icon:'fa-cubes',children:[['baseBom','BOM管理',''],['baseMat','物料档案','2'],['baseOrg','组织架构·车间','3'],['baseLoc','库区·客户档案','4'],['baseProd','成品档案','5'],['baseTpl','单据模板·拍照/AI','6']]},
+{id:'g6',label:'单据中心',icon:'fa-file-lines',children:[['docs','业务记录查询'],['qrcode','二维码中心'],['ocr','OCR工作台'],['processingFee','加工费对账']]},
+{id:'g7',label:'异常与审计',icon:'fa-triangle-exclamation',children:[['audit','操作审计']]},
+{id:'g8',label:'报表中心',icon:'fa-chart-line',children:[['report','报表中心'],['reportConfig','报表配置']]},
+{id:'g9',label:'系统管理',icon:'fa-gear',children:[['users','用户管理'],['equipment','设备管理'],['approveFlow','审批流配置']]}
+];
+function navCollapsed(){ try{ return JSON.parse(localStorage.getItem('jm_wms_nav_collapsed')||'{}'); }catch(e){ return {}; } }
+function navOpenGroup(){ try{ return localStorage.getItem('jm_wms_nav_open')||''; }catch(e){ return ''; } }
+function navSetOpen(gid){ try{ localStorage.setItem('jm_wms_nav_open',gid||''); }catch(e){} }
+function sidebarCompact(){try{return localStorage.getItem('jm_wms_nav_compact')==='1';}catch(e){return false;}}
+function syncSidebar(){var compact=sidebarCompact();document.body.classList.toggle('nav-compact',compact);var button=document.getElementById('navCollapse');if(button){button.setAttribute('aria-label',compact?'展开导航':'收起导航');button.title=compact?'展开导航':'收起导航';button.innerHTML='<i class="fa-solid '+(compact?'fa-angles-right':'fa-angles-left')+'" aria-hidden="true"></i>';}}
+function toggleSidebar(){try{localStorage.setItem('jm_wms_nav_compact',sidebarCompact()?'0':'1');}catch(e){}syncSidebar()}
+function toggleGroup(gid){
+  var willOpen = navOpenGroup()!==gid;
+  window.navUserSelected=willOpen?gid:'';
+  navSetOpen(willOpen?gid:'');
+  try{ localStorage.setItem('jm_wms_nav_collapsed', JSON.stringify(willOpen?{}:JSON.parse('{"x":0}'))); }catch(e){}
+  renderMenu();
+}
+window.toggleGroup=toggleGroup;
+/* 验收链路（9步主线 + 1条侧线）：SQ可选 → DJ建码 →（JS分支）→ RK入库 → DB调仓 → LY领用 → TL退料 → CP输出（可入仓）→ JJ签收；TK为侧线减账 */
+var CHAIN=[
+{id:'materialRequest',label:'1申请领料SQ·可选'},{id:'materialRegister',label:'2物料登记DJ·建码'},{id:'materialInbound',label:'3物料入库RK·加库存'},{id:'transfer',label:'4库存调仓DB'},
+{id:'materialIssue',label:'5物料领用LY·出账'},{id:'materialWReturn',label:'6车间退料TL·回仓'},{id:'finishedRegister',label:'7成品登记CP'},{id:'finishedDeliver',label:'8成品交付JJ'},{id:'materialReturn',label:'9侧线·物料退库TK'}];
+var cur='home', curTab='', chainIdx=-1;
+function menuActive(id, tab){ return id===cur && ((tab||'')===curTab || (id==='docs' && !!curTab && !/^onhand|ledger|detail|request|register|reject|inbound|issue|wreturn|return|sign|deliver$/.test(curTab))); }
+
+/* ---------- 2. 渲染菜单（一级可收缩展开） + 链路 ---------- */
+function renderMenu(){
+var activeGroup='';
+GROUPS.forEach(function(g){if(g.children.some(function(c){return menuActive(c[0],c[2]||'');})) activeGroup=g.id;});
+// 手风琴：只展开当前选中/当前路由的一级，其它全部收缩
+var stored = navOpenGroup();
+var openGroup = window.navUserSelected || stored || activeGroup || GROUPS[0].id;
+var h='';
+GROUPS.forEach(function(g){
+  var shut = g.id!==openGroup;
+  var rot = shut ? 'rotate(-90deg)' : 'rotate(0deg)';
+  h+='<div class="nav-group'+(shut?'':' open')+'" data-menu-group="'+g.id+'"><button id="nav-group-'+g.id+'" title="'+g.label+'" aria-controls="nav-group-'+g.id+'-panel" aria-expanded="'+(!shut)+'" onclick="toggleGroup(\''+g.id+'\')" class="nav-group-toggle w-full flex items-center justify-between"><span><i class="fa-solid '+g.icon+' mr-1" aria-hidden="true"></i>'+g.label+'</span><i class="fa-solid fa-chevron-down transition" aria-hidden="true" style="transform:'+rot+'"></i></button>';
+  h+='<div id="nav-group-'+g.id+'-panel" class="nav-group-panel" style="display:'+(shut?'none':'grid')+'">';
+  g.children.forEach(function(c){
+    var tab = c[2]||'';
+    var on = menuActive(c[0],tab);
+    h+='<button type="button" class="sub-link '+(on?'on':'')+'" data-menu-key="'+c[0]+'" data-id="'+c[0]+'" data-tab="'+tab+'" aria-current="'+(on?'page':'false')+'" onclick="go(\''+c[0]+'\',\''+tab+'\')"><span>'+c[1]+'</span></button>';
+  });
+  h+='</div></div>';
+});
+document.getElementById('menu').innerHTML=h;
+}
+function markMenu(){
+document.querySelectorAll('#menu [data-id]').forEach(function(el){
+  var on=menuActive(el.getAttribute('data-id'),el.getAttribute('data-tab')||'');
+  el.classList.toggle('on',on); el.setAttribute('aria-current',on?'page':'false');
+});
+}
+
+/* ---------- 3. 路由（同一文档挂载页面，tab 只做深链定位） ---------- */
+var WB_DEFAULT_TAB={inventoryOnhand:'stock:onhand',inventoryLedger:'stock:ledger',materialCode:'materialCode',materialRequest:'request',materialRegister:'register',materialReject:'reject',materialInbound:'inbound',materialIssue:'issue',materialWReturn:'wreturn',materialReturn:'return'};
+var WB_FILE={inventoryOnhand:'pages/material-workbench.html',inventoryLedger:'pages/material-workbench.html',materialCode:'pages/material-workbench.html',materialRequest:'pages/material-workbench.html',materialRegister:'pages/material-workbench.html',materialReject:'pages/material-workbench.html',materialInbound:'pages/material-workbench.html',materialIssue:'pages/material-workbench.html',materialWReturn:'pages/material-workbench.html',materialReturn:'pages/material-workbench.html'};
+function buildRouteUrl(id, tab, view, subParam, extra){
+  var params=new URLSearchParams();
+  params.set('page',id);params.set('from','app');
+  if(view)params.set('view',view);
+  if(subParam)params.set('sub',subParam);
+  if(!view&&tab)params.set('tab',tab);
+  Object.keys(extra||{}).forEach(function(key){if(extra[key]!==undefined&&extra[key]!==null)params.set(key,extra[key]);});
+  return location.pathname+'?'+params.toString();
+}
+function go(id, tab, options){
+  options=options||{};
+  if(!ROUTES[id])return;
+  var BASE_BY_TAB={'':'baseBom','1':'baseBom','2':'baseMat','3':'baseOrg','4':'baseLoc','5':'baseProd','6':'baseTpl'};
+  if(id==='base'&&BASE_BY_TAB[tab||'']){id=BASE_BY_TAB[tab||''];tab='';}
+  var r0=ROUTES[id];
+  if(r0&&r0.baseTab!==undefined){var bt=r0.baseTab;tab=bt;contextTab=bt;cur=id;curTab=bt;v='';
+    window.navUserSelected='g5';navSetOpen('g5');
+    document.body.classList.toggle('ai-route',false);document.body.classList.toggle('dashboard-mode',false);
+    if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen().catch(function(){});}
+    document.getElementById('crumb').textContent=r0.title;document.title=r0.title+' · 物料管理系统';
+    try{localStorage.setItem('jm_wms_last',id);}catch(e){}
+    var nextUrl0=buildRouteUrl(id,bt,'','',options.extra);
+    if(options.history!==false){if(options.replace)history.replaceState({page:id,tab:bt},'',nextUrl0);else if(location.href!==new URL(nextUrl0,location.href).href)history.pushState({page:id,tab:bt},'',nextUrl0);}
+    renderMenu();markMenu();
+    if(window.WMSView)window.WMSView.load({file:r0.file,id:id,contextTab:bt,extra:options.extra||{},iframe:0});return;}
+  var r=ROUTES[id],file=r.file,v='',subParam='',fullTab='',contextTab=tab||'';
+  if(WB_FILE[id]){
+    fullTab=WB_DEFAULT_TAB[id]||tab||'request';
+    v=fullTab; 
+    if(fullTab.indexOf(':')>=0){var _p=fullTab.split(':');v=_p[0];subParam=_p[1]||'';}
+    else if(fullTab==='onhand'||fullTab==='ledger'){v='stock';subParam=fullTab;}
+    r.title=id==='inventoryOnhand'?'仓储作业 / 仓库库存':id==='inventoryLedger'?'仓储作业 / 库存记录':r.title;
+    contextTab=v;
+    curTab=id==='materialCode'?'detail':(fullTab.indexOf(':')>=0?fullTab:(v==='stock'&&subParam?(v+':'+subParam):v));
+  }else{
+    var FINISHED_TAB={finishedSign:'deliver',finishedOut:'register',finishedDetail:'detail',finishedRegister:'register',finishedInbound:'inbound',finishedReturn:'wreturn',finishedDeliver:'deliver',finished:'register'};
+    if(FINISHED_TAB[id])tab=FINISHED_TAB[id];
+    if(id==='location'&&!tab)tab='';
+    contextTab=tab||'';
+    v=id==='finished'||id.indexOf('finished')===0?(tab||'register'):'';
+    curTab=tab||'';
+  }
+  window.navUserSelected='';
+  cur=id;
+  (function(){var gid='';GROUPS.forEach(function(g){if(g.children.some(function(c){return c[0]===id;}))gid=g.id;});if(gid){window.navUserSelected=gid;navSetOpen(gid);}})();
+  var dashboardMode=id==='dashboard';
+  document.body.classList.toggle('ai-route',id==='ai');
+  document.body.classList.toggle('dashboard-mode',dashboardMode);
+  if(dashboardMode&&!document.fullscreenElement&&document.documentElement.requestFullscreen){
+    document.documentElement.requestFullscreen().catch(function(){});
+  }else if(!dashboardMode&&document.fullscreenElement&&document.exitFullscreen){
+    document.exitFullscreen().catch(function(){});
+  }
+  document.getElementById('crumb').textContent=r.title;
+  document.title=r.title+' · 物料管理系统';
+  try{localStorage.setItem('jm_wms_last',id);}catch(e){}
+  var nextUrl=buildRouteUrl(id,tab,v,subParam,options.extra);
+  if(options.history!==false){
+    if(options.replace)history.replaceState({page:id,tab:tab||''},'',nextUrl);
+    else if(location.href!==new URL(nextUrl,location.href).href)history.pushState({page:id,tab:tab||''},'',nextUrl);
+  }
+  renderMenu();
+  markMenu();
+  if(window.WMSView)window.WMSView.load({file:file,id:id,contextTab:contextTab,extra:options.extra||{},iframe:r.iframe?1:0});
+}
+window.__WMS_APP_GO=go;
+window.__WMS_GO=go;
+function syncPageRoute(id, tab){
+  if(!ROUTES[id])return;
+  var menuTabs={inventoryOnhand:'stock:onhand',inventoryLedger:'stock:ledger',materialCode:'detail',baseBom:'',baseMat:'2',baseOrg:'3',baseLoc:'4',baseProd:'5',baseTpl:'6'};
+  cur=id;curTab=menuTabs[id]||tab||'';window.navUserSelected='';
+  document.getElementById('crumb').textContent=ROUTES[id].title;
+  try{localStorage.setItem('jm_wms_last',id)}catch(e){}
+  markMenu();
+}
+var syncFrameRoute=syncPageRoute;
+/* 链路演示 */
+function jumpChain(i){ if(!CHAIN[i]) return; chainIdx=i; go(CHAIN[i].id); markMenu();
+var tips=['申请领料SQ：可选，车间提需求，进仓前不动账（不是每次都有）','物料登记DJ：建码建账，一物一码逐件生成条码，审批后入账','物料入库RK：加库存，可关联登记单带入清单；来料拒收JS只留凭证不动账','库存调仓DB：仓之间移动，总量不变','物料领用LY：进仓后仓库发料+车间签收，扣可用','车间退料TL：余料回仓进项，按可用/待检/隔离回增目标仓库','成品登记CP：数量+去向，OCR可识别成品单填入','成品交付JJ：接收人+时间+签收证据，关单','侧线物料退库TK：只做减账，入库冲红/退供应商/待检隔离互转'];
+Store.toast('第'+(i+1)+'步：'+tips[i]);
+}
+/* 铃铛：优先定位到物料管理真实待审批工单 */
+function openBellTodo(){
+try{
+var core=JSON.parse(localStorage.getItem('jm_wms_core_v1')||'null');
+if(core&&core.doc){
+var pend=core.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'});
+if(pend.length){go('materialRegister');Store.toast('最早待办：'+pend[0].no+'（物料登记/工单 '+pend[0].status+'）');return;}
+}
+}catch(e){}
+go('dashboard');Store.toast('最早待办：TL2026091201 退料待判定 10:00截止');
+}
+function stepMove(d){ chainIdx=Math.min(CHAIN.length-1,Math.max(0,chainIdx+d)); jumpChain(chainIdx); }
+/* 全局搜索跨页 */
+function globalSearch(kw){
+if(!kw)return;
+if(/SQ|申请领料|领料申请|需求/.test(kw)) go('materialRequest');
+else if(/TL|车间退料|车间自报|外仓判定/.test(kw)) go('materialWReturn');
+else if(/退库|冲红|损坏退还/.test(kw)) go('materialReturn');
+else if(/CP|成品输出|成品暂存|成品登记/.test(kw)) go('finishedRegister');
+else if(/JJ|签收|交接|成品交付/.test(kw)) go('finishedDeliver');
+else if(/成品退仓|成品不合格|退仓/.test(kw)) go('finishedReturn');
+else if(/成品入库|成品入仓|入成品仓/.test(kw)) go('finishedInbound');
+else if(/成品明细|成品库存|成品台账/.test(kw)) go('finishedDetail');
+else if(/DJ|JS|RK|LY|TK|MB|WL|拒收|领用人|来料|工单|条码|批次|物料明细/.test(kw)) go('materialCode');
+else if(/DB|库存调仓|调仓|调拨/.test(kw)) go('transfer');
+else if(/ZS|直送|出库|领用|车间/.test(kw)) go('materialIssue');
+else if(/SL|送料|入库|OCR/.test(kw)) go('materialInbound');
+else if(/成品/.test(kw)) go('finishedDetail');
+else if(/PD|库存盘点|盘点|差异|异常/.test(kw)) go('stocktake');
+else if(/仓库库存|仓库库存|余额/.test(kw)) go('inventoryOnhand');
+else if(/库存记录|流水|库存记录/.test(kw)) go('inventoryLedger');
+else if(/仓库管理|库存/.test(kw)) go('inventoryOnhand');
+else if(/库区/.test(kw)) go('location');
+else go('docs');
+Store.toast('全局搜索“'+kw+'”：已跨页定位到 '+ROUTES[cur].title);
+}
+/* 角色切换（权限验证） */
+function switchRole(){
+var s=Store.get();
+var toChejian = s.user.name==='张建国';
+if(toChejian){ Store.set(function(x){x.user={name:'李小明',role:'车间领料员',scope:'缝制一车间'};}); }
+else{ Store.set(function(x){x.user={name:'张建国',role:'仓库负责人',scope:'外仓WH-A · 内仓1/2 · 一监区'};}); }
+refreshUser(); Store.toast(toChejian?'已切换为车间账号：子页面将仅见本车间数据':'已切回仓库负责人：可见三仓');
+go('report');
+}
+function refreshUser(){
+var s=Store.get();
+var pend=0,docs=0;
+try{var core=JSON.parse(localStorage.getItem('jm_wms_core_v1')||'null');if(core&&core.doc){docs=core.doc.length;pend=core.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length;}}catch(e){}
+var bellN=s.bell+pend;
+var values={uName:s.user.name,uRole:s.user.role+' · '+s.user.name,uRole2:s.user.role,bell:bellN,syncTip:'外仓 '+s.stock.waiA_mi.toLocaleString()+'米 · 待办 '+pend+' · 通知 '+bellN+' · 物料工单 '+docs};
+if(document.getElementById('bell'))document.getElementById('bell').textContent=bellN;
+Object.keys(values).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=values[id];});
+}
+function resetDemo(){ localStorage.removeItem('jm_wms_demo_v1'); localStorage.removeItem('jm_wms_core_v1'); localStorage.removeItem('jm_material_demo_v1'); localStorage.removeItem('jm_wms_last'); refreshUser(); Store.toast('演示数据已重置（含物料管理新账套）'); go('home'); }
+/* 子页面发来的同步/通知 */
+window.addEventListener('message',function(e){
+if(e.data&&e.data.from==='wms-nav'&&e.data.page){syncFrameRoute(e.data.page,e.data.view||e.data.tab||'');}
+if(e.data&&e.data.from==='wms-store'&&e.data.type==='toast'){ refreshUser(); }
+if(e.data&&e.data.from==='wms-core'&&e.data.type==='core-updated'){
+  refreshUser();
+  if(e.data.pending>0)Store.toast('物料管理：'+e.data.pending+' 张工单待审批');
+}
+});
+var coreChannel=null;try{coreChannel=new BroadcastChannel('jm_wms_core');coreChannel.onmessage=function(){refreshUser();}}catch(e){}
+document.addEventListener('wms:sync',refreshUser);
+/* 启动：记住上次页面 + 支持 ?page= 深链接 */
+renderMenu(); syncSidebar(); refreshUser();
+var mobileMenu=document.getElementById('mobileMenu');
+function closeMobileNav(){if(!document.body.classList.contains('nav-open'))return;document.body.classList.remove('nav-open');if(mobileMenu){mobileMenu.setAttribute('aria-expanded','false');mobileMenu.setAttribute('aria-label','打开导航菜单');mobileMenu.querySelector('i').className='fa-solid fa-bars';mobileMenu.focus();}}
+if(mobileMenu){mobileMenu.addEventListener('click',function(){var open=document.body.classList.toggle('nav-open');mobileMenu.setAttribute('aria-expanded',open?'true':'false');mobileMenu.setAttribute('aria-label',open?'关闭导航菜单':'打开导航菜单');mobileMenu.querySelector('i').className=open?'fa-solid fa-xmark':'fa-solid fa-bars';if(open){var first=document.querySelector('#menu button,#menu a');if(first)first.focus();}});}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMobileNav();});
+document.addEventListener('click',function(e){if(document.body.classList.contains('nav-open')&&e.target.closest('#menu [data-id]')){document.body.classList.remove('nav-open');if(mobileMenu){mobileMenu.setAttribute('aria-expanded','false');mobileMenu.setAttribute('aria-label','打开导航菜单');mobileMenu.querySelector('i').className='fa-solid fa-bars';}}});
+var appParams=new URLSearchParams(location.search),q=appParams.get('page'),qTab=appParams.get('tab')||'';
+try{if(!q&&localStorage.getItem('jm_wms_last')==='dashboard')localStorage.removeItem('jm_wms_last');}catch(e){}
+window.addEventListener('popstate',function(){
+  var params=new URLSearchParams(location.search),page=params.get('page')||'home',tab=params.get('tab')||'';
+  go(page,tab,{history:false});
+});
+go(q||'home',qTab,{replace:true});
+</script>
+<script>
+/* 兜底块：只补缺失的 ROUTES / GROUPS，不覆盖顶部已定义的菜单（杜绝第二个物料管理） */
+document.addEventListener('DOMContentLoaded',function(){
+ROUTES.scanlog=ROUTES.scanlog||{file:'pages/scanlog.html',title:'单据中心 / 设备扫码记录'};
+ROUTES.reportConfig={file:'pages/report-config.html',title:'报表中心 / 报表配置'};
+ROUTES.audit={file:'pages/audit.html',title:'异常与审计 / 操作审计'};
+ROUTES.processingFee={file:'pages/processing-fee.html',title:'单据中心 / 加工费对账'};
+ROUTES.warehouseArchive={file:'pages/warehouse-archive.html',title:'基础资料 / 仓库档案'};
+ROUTES.locationArchive={file:'pages/location-archive.html',title:'基础资料 / 库区档案'};
+ROUTES.customerArchive={file:'pages/customer-archive.html',title:'基础资料 / 客户档案'};
+var groups={};GROUPS.forEach(function(group){groups[group.id]=group;});
+/* g1 即仓储作业（仓库库存/库存记录/库区管理/库存调仓/库存盘点）；旧 g3 如残留则合并回 g1 后移除 */
+if(groups.g3){(groups.g3.children||[]).forEach(function(c){if(!groups.g1.children.some(function(x){return x[0]===c[0]}))groups.g1.children.push(c);});GROUPS=GROUPS.filter(function(g){return g.id!=='g3';});groups={};GROUPS.forEach(function(group){groups[group.id]=group;});}
+if(groups.g6)groups.g6.children=[['docs','业务记录查询'],['ocr','OCR工作台'],['scanlog','设备扫码记录'],['processingFee','加工费对账']];
+if(groups.g7)groups.g7.children=[['audit','操作审计']];
+if(groups.g8)groups.g8.children=[['report','报表中心'],['reportConfig','报表配置']];
+if(groups.g5)groups.g5.children=[['baseBom','BOM管理',''],['baseMat','物料档案','2'],['baseOrg','组织架构·车间','3'],['warehouseArchive','仓库档案'],['locationArchive','库区档案'],['customerArchive','客户档案'],['baseProd','成品档案','5'],['baseTpl','单据模板','6']];
+renderMenu();markMenu();
+var requested=new URLSearchParams(location.search).get('page'),requestedTab=new URLSearchParams(location.search).get('tab')||'';
+if(requested&&ROUTES[requested]&&(cur!==requested||curTab!==requestedTab))go(requested,requestedTab);
+});</script>
+</body>
+<script>/* 页尾 a11y 补丁（无菜单逻辑） */
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([alt])').forEach(function(i){i.alt='物料管理系统用户头像';});document.querySelectorAll('button').forEach(function(b){if(!b.getAttribute('aria-label')&&!b.textContent.trim()){b.setAttribute('aria-label','操作');}});});</script>

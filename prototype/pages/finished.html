@@ -1,0 +1,607 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>成品管理 · 明细/登记/入库/退仓/交付</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>
+:root{--ink:#13293f;--muted:#6b7d8f;--line:#dbe5ef;--blue:#1677c8;--navy:#0b4770}
+*{box-sizing:border-box}
+body{margin:0;background:#f2f6fa;color:var(--ink);font:13px/1.55 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+.wrap{padding:24px 24px 32px;max-width:1680px;margin:0 auto}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:10px}
+.h1{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.h1 h2{margin:0;font-size:19px;font-weight:800}
+.h1 p{margin:2px 0 0;font-size:12px;color:var(--muted);max-width:1080px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(30,70,100,.035);overflow:hidden}
+.pad{padding:12px 14px}
+.mut{color:var(--muted)}.sm{font-size:11px}
+.tblwrap{overflow:auto}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+.t th{background:#f8fafc;color:#5f7488;font-weight:700;text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.t td{padding:10px;border-bottom:1px solid #eef3f8;white-space:nowrap;vertical-align:middle}
+.t tr:hover td{background:#f7fbff}
+.t .num{text-align:right}
+.f{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:12px;min-height:40px}
+.f[readonly]{background:#f4f7fa;color:#5f7488}
+.b{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:9px;font-weight:700;font-size:12px;color:#31506b;min-height:36px}
+.b:hover:not(:disabled){background:#eef6fd}
+.b.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.b.danger{color:#b42318;border-color:#f0c8c4}
+.b:disabled{opacity:.45;cursor:not-allowed}
+.b.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid transparent}
+.g1{background:#eef2f6;color:#5b6f82;border-color:#dde5ec}
+.g2{background:#e8f2fc;color:#125d97;border-color:#cbe2f6}
+.g4{background:#e7f6ee;color:#116d4b;border-color:#c6e9d7}
+.g5{background:#fdeceb;color:#a9271f;border-color:#f5cfcb}
+.hd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#42586c}.fl.wide{grid-column:1/-1}
+.fl i{color:#c0392b;font-style:normal;margin-left:2px}
+.split{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:16px;align-items:start}
+.sum{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#42586c;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.note{background:#f4f9fd;border:1px solid #d7e9f7;border-radius:10px;padding:11px 12px;font-size:12px;color:#3c5a72}
+.link{color:var(--blue);font-weight:700;cursor:pointer}.link:hover{text-decoration:underline}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{min-height:82px;background:#fff;border:1px solid var(--line);border-left:4px solid #3b82f6;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
+.kpi:nth-child(2){border-left-color:#f59e0b}.kpi:nth-child(3){border-left-color:#ef4444}.kpi:nth-child(4){border-left-color:#10b981}
+.kpi small{display:block;color:var(--muted);font-size:11px}.kpi b{display:block;font-size:20px;margin-top:3px;color:#0f4f82}
+.subtab{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;color:#4d6479}
+.subtab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.batch-row td{background:#eef6fd!important;border-top:1px solid #cfe4f5;border-bottom:1px solid #cfe4f5;color:#125d97;font-weight:800;padding:9px 10px}
+.region-row td{background:#fafcff!important;color:#5f7488;font-weight:700;padding:7px 10px;border-bottom:1px solid #e8f0f6}
+.batch-mark,.region-mark{display:inline-flex;align-items:center;gap:6px}.batch-mark i{color:#1677c8}
+.hide{display:none!important}
+.red{color:#b42318}.org{color:#96590a}.grn{color:#116d4b}
+.mask{position:fixed;inset:0;background:rgba(11,45,72,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.dlg{background:#fff;border-radius:8px;width:min(860px,100%);max-height:90vh;overflow:auto}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+.df{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.x{border:0;background:transparent;font-size:20px;color:var(--muted)}
+.errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
+@media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/nav.js" defer></script></head>
+<body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+<div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
+<div class="wrap space-y-4">
+<div id="finPlace" class="text-[11px] text-slate-400"></div>
+<div id="main"></div>
+</div></div></div>
+<div id="dlgRoot" class="mask hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><div class="dlg"><div class="dh"><h3 id="dlgTitle">提示</h3><button class="x" id="dlgX" aria-label="关闭">×</button></div><div class="pad" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div></div>
+<div id="t" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full"></div>
+<script>
+(function(){
+/* ===== 成品账套（localStorage 全站唯一，key 保持兼容） ===== */
+var FKEY='jm_finished_core_v1';
+function fseed(){return {seq:{CP:208,RK:105,TC:11,JJ:104},
+ stock:[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',spec:'藏青',unit:'件',wh:'成品仓A',loc:'F01',batch:'CP2026091201',on:600,avail:600,qua:0,pending:0,src:'RK2026091201',at:'2026-09-12 09:00'},
+ {code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',spec:'藏青',unit:'件',wh:'成品仓B',loc:'F02',batch:'CP2026091205',on:300,avail:300,qua:0,pending:0,src:'RK2026091202',at:'2026-09-12 09:45'}],
+ doc:[{no:'CP2026091208',type:'register',status:'已审批',date:'2026-09-12',customer:'恒达服饰',dept:'缝制一车间',wh:'成品仓A',loc:'F01',handler:'张建国',remark:'',files:2,lines:[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',batch:'CP2026091201',qty:400,unit:'件',loc:'F01',region:'F01',price:0,barcode:'CP-CP2026091208-01'}],batchRegions:{CP2026091201:'F01'},activeBatch:'CP2026091201'},
+ {no:'RK2026091201',type:'inbound',status:'已审批',date:'2026-09-12',customer:'恒达服饰',wh:'成品仓A',handler:'张建国',acceptor:'王芳',remark:'',src:'CP2026091208',files:0,lines:[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',batch:'CP2026091201',qty_src:600,qty:600,unit:'件',loc:'F01',qc:'合格',price:0,barcode:'批次码 CP2026091201'}]},
+ {no:'JJ2026091203',type:'deliver',status:'已审批',date:'2026-09-12',customer:'恒达服饰',handler:'张建国',recv:'恒达物流 · 陈司机',stime:'2026-09-12T10:30',sender:'刘强',remark:'',files:2,lines:[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',batch:'CP2026091201',wh:'成品仓A',loc:'F01',qty:400,unit:'件'}]}],
+ ledger:[{t:'2026-09-12 09:00',doc:'RK2026091201',biz:'成品入库',code:'CP-JK-001',batch:'CP2026091201',wh:'成品仓A',loc:'F01',qty:600,unit:'件',dir:'入',by:'张建国'}],
+ audit:[],seq2:{BAR:2}};}
+var FDB;try{FDB=JSON.parse(localStorage.getItem(FKEY)||'null')||fseed()}catch(e){FDB=fseed()}
+if(!FDB.stock||!FDB.doc)FDB=fseed();
+function fsave(){try{localStorage.setItem(FKEY,JSON.stringify(FDB))}catch(e){}}
+/* ---- 老数据迁移：单行单据 -> lines[]，库存补 pending ---- */
+function migrate(){
+ var changed=false;
+ FDB.stock.forEach(function(s){if(s.pending==null){s.pending=0;changed=true}if(s.qua==null){s.qua=0;changed=true}});
+ FDB.doc.forEach(function(d){
+  if(!d.lines){
+   var base={code:d.code||'CP-JK-001',name:d.name||'HD-JK-24秋 工装夹克',batch:d.batch||'',qty:num(d.qty),unit:d.unit||'件',loc:d.loc||'F01',region:d.loc||'F01',price:0};
+   if(d.type==='inbound'){base.qty_src=num(d.qty);base.qc='合格';base.barcode=''}
+   if(d.type==='deliver'){base.wh=d.wh||'成品仓A'}
+   if(d.type==='wreturn'){base.reason=d.reason||'质量问题'}
+   d.lines=[base];changed=true;
+  }
+  if(d.type==='register'&&!d.batchRegions){d.batchRegions={};(d.lines||[]).forEach(function(l){if(l.batch)d.batchRegions[l.batch]=l.region||l.loc||d.loc||''});d.activeBatch=(d.lines[0]||{}).batch||'';changed=true}
+  if(d.files==null){d.files=0;changed=true}
+  if(!d.flow){d.flow={S1:0,S2:0,S3:0,S4:0,S5:0,S6:0,submitted:0,cur:'S1',done:0,hist:[]};changed=true}
+ });
+ if(changed)fsave();
+}
+/* ===== 工具 ===== */
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
+function fmt(n){var x=Number(n)||0;return x.toLocaleString('zh-CN',{maximumFractionDigits:3})}
+function num(v){var x=Number(v);return isFinite(x)?x:0}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function now(){var d=new Date();return today()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function toast(m,bad){var t=document.getElementById('t');t.textContent=m;t.style.background=bad?'#b42318':'#0f172a';t.classList.remove('hide');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hide')},2600);try{if(window.Store)Store.toast(m)}catch(e){}}
+function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide')}
+document.getElementById('dlgX').onclick=function(){document.getElementById('dlgRoot').classList.add('hide')};
+document.getElementById('dlgRoot').addEventListener('click',function(e){if(e.target===this||e.target.closest('[data-close]'))this.classList.add('hide')});
+function finTag(s){var m={'草稿':'g1','已保存':'g2','已审批':'g4','已作废':'g1'};return '<span class="tag '+(m[s]||'g1')+'">'+esc(s)+'</span>'}
+function faudit(d,act,note){FDB.audit.unshift({t:now(),doc:d.no,act:act,by:d.handler||'—',note:note||''})}
+/* ===== 库存/单据基础 ===== */
+var FINISHED_CATALOG=[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',spec:'藏青',unit:'件'}];
+function fmat(code){var c=FINISHED_CATALOG.filter(function(x){return x.code===code})[0];return c||{code:code,name:code,spec:'',unit:'件'}}
+function fstock(code,batch,wh,loc){return FDB.stock.filter(function(s){return s.code===code&&s.batch===batch&&s.wh===wh&&(!loc||s.loc===loc)})[0]}
+function fstockOrNew(code,wh,loc,batch){var m=fmat(code),s=fstock(code,batch,wh,loc);if(!s){s={code:code,name:m.name,spec:m.spec||'',unit:m.unit||'件',wh:wh,loc:loc||'F01',batch:batch,on:0,avail:0,qua:0,pending:0,src:'',at:now()};FDB.stock.push(s)}if(loc)s.loc=loc;return s}
+function nextFinBatch(code,wh){var base='CP'+today().replace(/-/g,'');var n=1,b;do{b=base+String(n++).padStart(3,'0')}while(FDB.stock.some(function(s){return s.code===code&&s.wh===wh&&s.batch===b}));return b}
+function fnext(p){FDB.seq[p]=(FDB.seq[p]||100)+1;return p+today().replace(/-/g,'')+String(FDB.seq[p]).slice(-4)}
+function docBy(no){return FDB.doc.filter(function(d){return d.no===no})[0]}
+function finDocs(t){return FDB.doc.filter(function(d){return d.type===t})}
+function pendingFin(){return FDB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'}).length}
+function lineSum(lines){var q=0;(lines||[]).forEach(function(l){q+=num(l.qty)});return q}
+function finAlert(s){if(num(s.qua)>0)return '隔离待处理';if(num(s.avail)<=0)return '无可用';return '正常'}
+function finAlertTag(s){var a=finAlert(s);return '<span class="tag '+(a==='正常'?'g4':a==='隔离待处理'?'g5':'g2')+'">'+a+'</span>'}
+/* 来源单：已审批入库/登记中同成品同批次的入账记录 */
+function finSources(code,batch,wh,loc){
+ var found=[];
+ FDB.doc.forEach(function(d){
+  if(d.status!=='已审批')return;
+  if(d.type!=='inbound'&&d.type!=='register')return;
+  (d.lines||[]).forEach(function(l){
+   if(l.code!==code)return;
+   if(batch&&String(l.batch||'')!==String(batch))return;
+   if(wh&&d.wh&&d.wh!==wh&&!(d.type==='register'))return;
+   found.push({no:d.no,type:d.type==='inbound'?'成品入库':'成品登记',date:d.date,qty:num(l.qty),batch:l.batch||'',loc:l.loc||d.loc||''});
+  });
+ });
+ var g={};found.forEach(function(s){var k=s.no+'|'+s.batch;if(!g[k])g[k]=s;else g[k].qty+=s.qty});
+ return Object.keys(g).map(function(k){return g[k]}).sort(function(a,b){return String(b.date).localeCompare(String(a.date))});
+}
+/* ===== 路由 ===== */
+var NAMES={detail:'成品管理 / 成品明细',register:'成品管理 / 成品登记',inbound:'成品管理 / 成品入库',wreturn:'成品管理 / 成品退仓',deliver:'成品管理 / 成品交付'};
+function routeFin(){var v='';try{var u=new URLSearchParams(location.search);v=u.get('view')||u.get('tab')||''}catch(e){}
+ if(v==='detail'||v==='register'||v==='inbound'||v==='wreturn'||v==='deliver')return v;
+ if(v==='sign')return 'deliver';if(v===''||v==='finished')return 'register';if(v==='stock'||v==='onhand'||v==='ledger')return 'detail';
+ var n=parseInt(v,10);if(!isNaN(n)){var m={1:'register',2:'detail',3:'inbound',4:'wreturn',5:'deliver'};if(m[n])return m[n]}
+ return 'register'}
+var VIEW=routeFin();
+var queue='待办',kw='',curNo='';
+window.finSetKw=function(v){kw=String(v||'')};
+try{var _p=new URLSearchParams(location.search);if(_p.get('doc'))curNo=_p.get('doc')||''}catch(e){}
+var deliverMode='list';
+try{var _m=new URLSearchParams(location.search);if(_m.get('mode')==='new'||_m.get('mode')==='edit')deliverMode='edit'}catch(e){}
+function notifyParent(){
+ if(!/from=app/.test(location.search))return;
+ var id={detail:'finishedDetail',register:'finishedRegister',inbound:'finishedInbound',wreturn:'finishedReturn',deliver:'finishedDeliver'}[VIEW];
+ try{parent.postMessage({from:'wms-nav',page:id,view:VIEW,tab:VIEW},'*')}catch(e){}
+}
+/* ===== 成品明细（参考物料明细：按成品聚合 + 批次明细 + 来源单） ===== */
+function renderDetail(){
+ var q=(kw||'').toLowerCase();
+ var rows=FDB.stock.slice().sort(function(a,b){return String(a.code).localeCompare(String(b.code))});
+ if(q)rows=rows.filter(function(s){return (s.code+' '+(s.name||'')+' '+(s.batch||'')+' '+(s.wh||'')+' '+(s.loc||'')).toLowerCase().indexOf(q)>=0});
+ var grouped={};rows.forEach(function(s){(grouped[s.code]||(grouped[s.code]=[])).push(s)});
+ function uniq(a,k){var r=[];a.forEach(function(s){if(s[k]&&r.indexOf(s[k])<0)r.push(s[k])});return r}
+ function tot(a,k){return a.reduce(function(x,s){return x+num(s[k])},0)}
+ var body=Object.keys(grouped).map(function(code){
+  var ss=grouped[code],m=fmat(code),first=ss[0];
+  var batches=uniq(ss,'batch');
+  var srcs=[];ss.forEach(function(s){finSources(s.code,s.batch,s.wh,s.loc).forEach(function(x){if(!srcs.some(function(y){return y.no===x.no&&y.batch===x.batch}))srcs.push(x)})});
+  var ledn=FDB.ledger.filter(function(x){return x.code===code}).length;
+  var last=uniq(ss,'at').sort().reverse()[0]||'—';
+  var alert=ss.some(function(s){return num(s.qua)>0})?'隔离待处理':ss.some(function(s){return num(s.avail)<=0})?'无可用':'正常';
+  return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||first.spec||'—')+'</td>'
+  +'<td><span class="link" onclick="finBatches(\''+esc(code)+'\')">共 '+batches.length+' 条 · 点击查看</span></td>'
+  +'<td class="num"><b>'+ss.length+(first.unit==='个'?'袋':'箱')+'</b></td>'
+  +'<td class="num"><b>'+fmt(tot(ss,'on'))+esc(first.unit||'件')+'</b></td><td class="num grn"><b>'+fmt(tot(ss,'avail'))+esc(first.unit||'件')+'</b></td>'
+  +'<td class="num '+(tot(ss,'qua')?'red':'')+'"><b>'+fmt(tot(ss,'qua'))+esc(first.unit||'件')+'</b></td><td class="num org">'+fmt(tot(ss,'pending'))+esc(first.unit||'件')+'</td>'
+  +'<td>'+finAlertTag({qua:tot(ss,'qua'),avail:tot(ss,'avail')})+'</td><td class="num">'+ledn+'</td>'
+  +'<td class="sm">'+(srcs.length?'<span class="link" onclick="finSourcesDlg(\''+esc(code)+'\')">共 '+srcs.length+' 张 · 查看来源</span>':'<span class="mut">—</span>')+'</td>'
+  +'<td class="sm mut">'+esc(last)+'</td>'
+  +'<td><span class="link" onclick="finFlowDlg(\''+esc(code)+'\',\'\')">流水</span> <span class="link" onclick="goDeliverByCode(\''+esc(code)+'\')">交付</span></td></tr>';
+ }).join('');
+ var kpiKinds=Object.keys(grouped).length;
+ var kpiQua=rows.reduce(function(a,s){return a+num(s.qua)},0);
+ var kpiPend=rows.reduce(function(a,s){return a+num(s.pending)},0);
+ document.getElementById('main').innerHTML=
+ '<div class="kpis mb-3"><div class="kpi"><small>成品种类</small><b>'+kpiKinds+'</b><span class="sm mut">成品编码一行一条</span></div>'
+ +'<div class="kpi"><small>隔离待处理</small><b class="red">'+fmt(kpiQua)+'</b><span class="sm mut">退仓产生，需处置</span></div>'
+ +'<div class="kpi"><small>待检分量</small><b class="org">'+fmt(kpiPend)+'</b><span class="sm mut">不计可用</span></div>'
+ +'<div class="kpi"><small>待审批单据</small><b style="color:#125d97">'+pendingFin()+'</b><span class="sm mut">审批后才动账</span></div></div>'
+ +'<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>成品明细（按成品聚合，只读）</b><span class="sm mut">批次显示全部关联记录；数量为包装件数。改数请走登记/入库/退仓/交付。</span><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="成品 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
+ +'<div class="tblwrap"><table class="t"><thead><tr><th>成品编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>库存量</th><th>可用</th><th>隔离</th><th>待检</th><th>预警</th><th>流水数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(body||'<tr><td colspan="14" class="mut" style="text-align:center;padding:28px">暂无成品库存</td></tr>')+'</tbody></table></div>'
+ +'<div class="pad sum"><span>账面合计：<b>'+fmt(rows.reduce(function(a,s){return a+num(s.on)},0))+'件</b></span><span>可用合计：<b>'+fmt(rows.reduce(function(a,s){return a+num(s.avail)},0))+'件</b></span><span class="mut">不同单位永不相加 · 口径：成品+仓库+库区+批次</span></div></div>';
+}
+window.finBatches=function(code){
+ var ss=FDB.stock.filter(function(s){return s.code===code});
+ var body='<div class="note">展示该成品关联的全部库存批次及其所在位置。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>仓库</th><th>库区</th><th>批次</th><th>数量</th><th>库存量</th><th>可用</th><th>隔离</th><th>待检</th><th>来源单</th><th>最后变动</th></tr></thead><tbody>'
+ +ss.map(function(s){var pu=(s.unit==='个'?'袋':'箱');return '<tr><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td class="num"><b>1'+pu+'</b></td><td class="num"><b>'+fmt(s.on)+esc(s.unit||'件')+'</b></td><td class="num grn">'+fmt(s.avail)+esc(s.unit||'件')+'</td><td class="num">'+fmt(s.qua)+esc(s.unit||'件')+'</td><td class="num org">'+fmt(s.pending)+esc(s.unit||'件')+'</td><td class="sm mut">'+esc(s.src||'—')+'</td><td class="sm mut">'+esc(s.at)+'</td></tr>'}).join('')+'</tbody></table></div>';
+ dialog('批次明细 · '+fmat(code).name+' · '+code,body);
+};
+window.finSourcesDlg=function(code){
+ var ss=FDB.stock.filter(function(s){return s.code===code}),all=[];
+ ss.forEach(function(s){finSources(s.code,s.batch,s.wh,s.loc).forEach(function(x){if(!all.some(function(y){return y.no===x.no&&y.batch===x.batch}))all.push(x)})});
+ var body='<div class="note">汇总该成品在全部仓库、库区和批次中的已审批入账来源（登记/入库）。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>单号</th><th>类型</th><th>日期</th><th>数量</th><th>批次 / 库区</th></tr></thead><tbody>'
+ +(all.map(function(s){return '<tr><td><span class="link" onclick="finOpenDoc(\''+esc(s.no)+'\')">'+esc(s.no)+'</span></td><td>'+esc(s.type)+'</td><td>'+esc(s.date)+'</td><td class="num">'+fmt(s.qty)+'件</td><td class="sm">'+esc(s.batch)+' / '+esc(s.loc)+'</td></tr>'}).join('')||'<tr><td colspan="5" class="mut" style="text-align:center;padding:24px">暂无已审批来源单</td></tr>')+'</tbody></table></div>';
+ dialog('来源单 · '+fmat(code).name+' · '+code,body);
+};
+window.finFlowDlg=function(code,batch){
+ var ls=FDB.ledger.filter(function(x){return x.code===code&&(!batch||x.batch===batch)});
+ dialog('库存流水 · '+code+(batch?' · '+batch:''),ls.length?'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>方向</th><th>数量</th><th>操作人</th></tr></thead><tbody>'+ls.map(function(x){return '<tr><td>'+esc(x.t)+'</td><td>'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc(x.dir)+'</td><td class="num">'+fmt(x.qty)+esc(x.unit||'件')+'</td><td>'+esc(x.by)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="mut">暂无流水：只有已审批单据才会写账</div>');
+};
+window.finOpenDoc=function(no){var d=docBy(no);if(!d){toast('未找到单据 '+no,1);return}VIEW=d.type==='wreturn'?'wreturn':d.type;curNo=no;if(VIEW==='deliver')deliverMode='edit';render();};
+window.goDeliverByCode=function(code){VIEW='deliver';deliverMode='edit';var d=blankFinDoc('deliver');d.lines=[newFinLine(d,code,'','')];FDB.doc.unshift(d);fsave();curNo=d.no;render();toast('已按 '+code+' 预填交付单，请选择批次并填写数量');};
+/* ===== 工单引擎（登记/入库/退仓/交付统一参考物料工单） ===== */
+var FIN_HEAD={
+ register:[['customer','登记单位','text',1],['dept','登记部门','text',1],['wh','存放位置','sel:WH',1],['loc','存放库区','text',1],['source','来源/送货单据号','text',0],['date','工单日期','date',1],['handler','经办人','text',1],['remark','便签备注','area',0]],
+ inbound:[['src','关联成品登记单','sel:REG',0],['customer','入库单位','text',0],['dept','验收部门','text',0],['wh','存放位置','sel:WH',1],['loc','存放库区','text',0],['source','来源/送货单据号','text',0],['date','工单日期','date',1],['handler','经办人','text',1],['acceptor','验收人','text',1],['remark','便签备注','area',0]],
+ wreturn:[['ret_type','退仓类型','sel:RETTYPE',1],['src','原入库单号','sel:SRCIN',1],['judge_by','判定人','text',1],['judge_note','判定说明','text',0],['date','工单日期','date',1],['handler','经办人','text',1],['remark','便签备注','area',1]],
+ deliver:[['customer','客户','text',1],['recv','接收人','text',1],['stime','签收时间','datetime',1],['sender','送货人','text',0],['dept','交付车间/部门','text',0],['date','工单日期','date',1],['handler','经办人','text',1],['remark','便签备注','area',0]]
+};
+var FIN_WH=['成品仓A','成品仓B'];
+var FIN_RETTYPE=['可用转隔离','隔离转可用','隔离报废'];
+var FIN_QC=['合格','待检','不合格（转退仓）'];
+function blankFinDoc(t){
+ var p={register:'CP',inbound:'RK',wreturn:'TC',deliver:'JJ'}[t];
+ var d={no:fnext(p),type:t,status:'草稿',date:today(),lines:[],files:0,customer:'恒达服饰',dept:'缝制一车间',wh:'成品仓A',loc:'F01',handler:'张建国',remark:'',flow:{S1:0,S2:0,S3:0,S4:0,S5:0,S6:0,submitted:0,cur:'S1',done:0,hist:[]}};
+ if(t==='register'){d.batchRegions={};d.activeBatch=''}
+ if(t==='inbound'){d.acceptor='王芳';d.src=''}
+ if(t==='wreturn'){d.ret_type='可用转隔离';d.src='';d.judge_by='张建国';d.judge_note=''}
+ if(t==='deliver'){d.recv='恒达物流 · 陈司机';d.stime='2026-09-12T10:30';d.sender='刘强'}
+ return d;
+}
+function newFinLine(d,code,batch,qty){
+ var m=fmat(code||'CP-JK-001');
+ var l={code:m.code,name:m.name,unit:m.unit||'件',batch:batch||'',qty:qty==null?'':qty,qty_src:qty==null?'':qty,loc:d.loc||'F01',region:d.loc||'F01',price:0,barcode:''};
+ if(d.type==='register'){
+  if(d.activeBatch){l.batch=d.activeBatch;l.region=finBatchRegion(d,d.activeBatch);l.loc=l.region||l.loc}
+  if(!l.qty)l.qty='';
+ }
+ if(d.type==='inbound'){l.qc='合格'}
+ if(d.type==='wreturn'){l.reason='质量问题'}
+ if(d.type==='deliver'){var bs=FDB.stock.filter(function(s){return s.code===l.code&&num(s.avail)>0});if(!l.batch)l.batch=bs[0]?bs[0].batch:'';var s0=bs.filter(function(s){return s.batch===l.batch})[0];l.wh=s0?s0.wh:(d.wh||'成品仓A');l.loc=s0?s0.loc:l.loc}
+ return l;
+}
+function finBatchRegion(d,batch){
+ if(d.batchRegions&&d.batchRegions[batch])return d.batchRegions[batch];
+ var f=(d.lines||[]).filter(function(l){return String(l.batch||'待分配批次')===String(batch)})[0];
+ return f?(f.region||f.loc||d.loc||''):(d.loc||'');
+}
+function normalizeFinBatches(d){
+ if(!d||d.type!=='register')return;
+ if(!d.batchRegions||typeof d.batchRegions!=='object')d.batchRegions={};
+ (d.lines||[]).forEach(function(l){
+  if(l.batch&&!d.batchRegions[l.batch])d.batchRegions[l.batch]=l.region||l.loc||d.loc||'';
+  if(!l.region)l.region=l.loc||d.batchRegions[l.batch]||d.loc||'';
+ });
+ if(!d.activeBatch){var f=(d.lines||[]).filter(function(l){return l.batch})[0];d.activeBatch=f?f.batch:''}
+}
+function finValidate(d){
+ var e=[];
+ if(!d.lines||!d.lines.length)e.push('清单为空：请点击“添加清单”加入成品');
+ (d.lines||[]).forEach(function(l,i){
+  var n='第'+(i+1)+'行';
+  if(!l.code)e.push(n+'：未选择成品');
+  if(!(num(l.qty)>0))e.push(n+'：数量必须大于 0');
+  if(d.type==='inbound'){
+   if(!l.qc)e.push(n+'：请选择质检结论');
+   if(l.qc==='不合格（转退仓）')e.push(n+'：不合格行不得入库，请到《成品退仓》建单');
+   if(num(l.qty_src)>0&&num(l.qty)>num(l.qty_src))e.push(n+'：验收数量不能大于来料数量');
+  }
+  if(d.type==='wreturn'){
+   if(!l.batch)e.push(n+'：批次号必填');
+   var s=fstock(l.code,l.batch,d.wh||'成品仓A',null)||FDB.stock.filter(function(x){return x.code===l.code&&x.batch===l.batch})[0];
+   if(!s)e.push(n+'：未找到该批次库存');
+   else{
+    if(d.ret_type==='可用转隔离'&&num(s.avail)<num(l.qty))e.push(n+'：可用 '+fmt(s.avail)+' 不足以退仓 '+fmt(l.qty));
+    if((d.ret_type==='隔离报废'||d.ret_type==='隔离转可用')&&num(s.qua)<num(l.qty))e.push(n+'：隔离 '+fmt(s.qua)+' 不足以处置 '+fmt(l.qty));
+   }
+  }
+  if(d.type==='deliver'){
+   if(!l.batch)e.push(n+'：请选择有可用量的批次');
+   var s3=FDB.stock.filter(function(x){return x.code===l.code&&x.batch===l.batch})[0];
+   if(!s3)e.push(n+'：未找到该批次库存，请重新选择');
+   else if(num(s3.avail)<num(l.qty))e.push(n+'：可用 '+fmt(s3.avail)+' 不足，本次 '+fmt(l.qty));
+  }
+ });
+ if(d.type==='register'){if(!d.customer)e.push('单头「客户」必填');if(!d.date)e.push('单头「工单日期」必填')}
+ if(d.type==='inbound'){
+  if(num(d.lines.reduce(function(a,l){return a+(num(l.qty)!==num(l.qty_src)?1:0)},0))>0&&!String(d.remark||'').trim())e.push('验收数与来料数不一致，必须在便签备注填写差异原因');
+ }
+ if(d.type==='wreturn'){
+  if(!d.src)e.push('必须选择原入库单号');
+  else{
+   var src=docBy(d.src);
+   if(!src||src.type!=='inbound')e.push('原入库单 '+d.src+' 不存在或不是入库单');
+   else if(src.status!=='已审批')e.push('原入库单未审批，不能退仓');
+   else{
+    (d.lines||[]).forEach(function(l,i){
+     var acc=0;(src.lines||[]).forEach(function(x){if(x.code===l.code&&(!l.batch||x.batch===l.batch))acc+=num(x.qty)});
+     var back=0;FDB.doc.forEach(function(o){if(o.type==='wreturn'&&o.status==='已审批'&&o.src===d.src&&o.no!==d.no)(o.lines||[]).forEach(function(x){if(x.code===l.code&&(!l.batch||x.batch===l.batch))back+=num(x.qty)})});
+     if(num(l.qty)>acc-back)e.push('第'+(i+1)+'行超退拦截 · 原入库 '+fmt(acc)+'，已退 '+fmt(back)+'，本次最多可退 '+fmt(Math.max(0,acc-back)));
+    });
+   }
+  }
+  if(!d.remark||!String(d.remark).trim())e.push('单头「原因说明」必填');
+ }
+ if(d.type==='deliver'){
+  if(!String(d.recv||'').trim()||!d.stime)e.push('外部客户交付需填写接收人和签收时间');
+ }
+ return e;
+}
+function finPost(d){
+ var e=finValidate(d);
+ if(e.length)return {ok:false,errors:e};
+ (d.lines||[]).forEach(function(l){
+  if(d.type==='register'){
+   if(!l.batch)l.batch=nextFinBatch(l.code,d.wh);
+   if(!l.barcode)l.barcode='CP-'+d.no+'-'+String(d.lines.indexOf(l)+1).padStart(2,'0');
+  }
+  if(d.type==='inbound'){
+   if(!l.batch)l.batch=nextFinBatch(l.code,d.wh);
+   var s=fstockOrNew(l.code,d.wh,l.loc||'F01',l.batch);
+   s.on+=num(l.qty);s.at=now();s.src=d.no;
+   if(l.qc==='待检'){s.pending+=num(l.qty);FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品入库·待检',code:l.code,batch:l.batch,wh:d.wh,loc:s.loc,qty:num(l.qty),unit:l.unit,dir:'入',by:d.handler||'—'})}
+   else{s.avail+=num(l.qty);FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品入库',code:l.code,batch:l.batch,wh:d.wh,loc:s.loc,qty:num(l.qty),unit:l.unit,dir:'入',by:d.handler||'—'})}
+   l.barcode='批次码 '+l.batch;
+  }
+  if(d.type==='wreturn'){
+   var s2=FDB.stock.filter(function(x){return x.code===l.code&&x.batch===l.batch})[0];
+   if(d.ret_type==='可用转隔离'){s2.avail-=num(l.qty);s2.qua+=num(l.qty);FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品退仓·可用转隔离',code:l.code,batch:l.batch,wh:s2.wh,loc:s2.loc,qty:num(l.qty),unit:l.unit,dir:'转',by:d.handler||'—'})}
+   if(d.ret_type==='隔离转可用'){s2.qua-=num(l.qty);s2.avail+=num(l.qty);FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品退仓·隔离转可用',code:l.code,batch:l.batch,wh:s2.wh,loc:s2.loc,qty:num(l.qty),unit:l.unit,dir:'转',by:d.handler||'—'})}
+   if(d.ret_type==='隔离报废'){s2.qua-=num(l.qty);s2.on-=num(l.qty);FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品退仓·隔离报废',code:l.code,batch:l.batch,wh:s2.wh,loc:s2.loc,qty:num(l.qty),unit:l.unit,dir:'出',by:d.handler||'—'})}
+   s2.at=now();
+  }
+  if(d.type==='deliver'){
+   var s3=FDB.stock.filter(function(x){return x.code===l.code&&x.batch===l.batch})[0];
+   s3.on-=num(l.qty);s3.avail-=num(l.qty);s3.at=now();
+   FDB.ledger.unshift({t:now(),doc:d.no,biz:'成品交付',code:l.code,batch:l.batch,wh:s3.wh,loc:s3.loc,qty:num(l.qty),unit:l.unit,dir:'出',by:d.handler||'—'});
+  }
+ });
+ if(d.type==='register')faudit(d,'登记确认（不加库存）',lineSum(d.lines)+'件 · 条码已生成');
+ else faudit(d,'审批过账',lineSum(d.lines)+'件');
+ return {ok:true};
+}
+/* ---- 列表 ---- */
+function finListHTML(t){
+ var titles={register:['成品登记','建档建码：数量+去向意向 · 审批只确认档案与条码，不加库存；入库后才加库存'],inbound:['成品入库','凭已登记单入成品仓 · 审批后加库存（可用/待检）'],wreturn:['成品退仓','进了仓库、不合格的成品 · 可用转隔离（账面不变）/隔离报废/隔离转可用'],deliver:['成品交付','出仓给客户 · 需接收人+签收时间+签收证据 · 审批后减库存']}[t];
+ var list=finDocs(t).filter(function(d){return queue==='待办'?(d.status==='草稿'||d.status==='已保存'||d.status==='已驳回'):(d.status==='已审批'||d.status==='已作废')});
+ if(kw)list=list.filter(function(d){return (d.no+' '+(d.customer||'')+' '+(d.lines||[]).map(function(l){return l.name+l.code+(l.batch||'')}).join(' ')).toLowerCase().indexOf(kw.toLowerCase())>=0});
+ var rows=list.map(function(d){
+  var brief=(d.lines||[]).map(function(l){return l.name+' '+fmt(num(l.qty))+(l.unit||'件')+(l.batch?'（'+l.batch+'）':'')}).join('；')||'—';
+  var extra=t==='inbound'?esc(d.wh||'—')+' · '+(d.src||'无关联登记'):t==='wreturn'?esc(d.ret_type||'')+' · '+(d.src||'—'):t==='deliver'?esc(d.recv||'—')+' / '+esc(d.stime||'—'):esc(d.customer||'—')+' · '+esc(d.dept||'—');
+  return '<tr><td><b class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+esc(d.no)+'</b></td><td>'+esc(d.date)+'</td><td>'+extra+'</td><td>'+esc(brief)+'</td><td><b>'+fmt(lineSum(d.lines))+'件</b></td><td>'+finTag(d.status)+'</td><td><span class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+(d.status==='已审批'?'查看':'继续办理')+'</span></td></tr>';
+ }).join('');
+ var newBtn=t==='deliver'
+  ?'<button class="b pri" onclick="deliverNew()">新建工单</button><button class="b" onclick="deliverNewWindow()">新窗口打开</button>'
+  :'<button class="b pri" onclick="newFinDoc(\''+t+'\')">新建工单</button>';
+ return '<div class="flex justify-between items-center flex-wrap gap-2"><div><h1 class="text-xl font-extrabold">'+titles[0]+'</h1><p class="text-xs text-slate-500">'+titles[1]+'</p></div><div class="flex gap-2">'+newBtn+'</div></div>'
+ +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索单号 / 客户 / 成品 / 批次" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button><span style="flex:1"></span><button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办</button></div>'
+ +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div><div class="pad sm mut">共 '+list.length+' 条 · 状态机：草稿 → 已保存 → 已审批（过账）；已过账不可修改</div></div>';
+}
+window.finQueue=function(q){queue=q;curNo='';render()};
+/* ---- 编辑器（参考物料登记/入库/退库：左清单 + 右单头） ---- */
+function finHeadControl(d,f){
+ var k=f[0],lab=f[1],ctl=f[2],req=f[3],v=d[k]==null?'':d[k],inner;
+ if(ctl==='date')inner='<input class="f" type="date" value="'+esc(v)+'" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">';
+ else if(ctl==='datetime')inner='<input class="f" type="datetime-local" value="'+esc(v)+'" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">';
+ else if(ctl==='area')inner='<textarea class="f" rows="2" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">'+esc(v)+'</textarea>';
+ else if(ctl==='sel:WH')inner='<select class="f" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">'+FIN_WH.map(function(x){return '<option '+(x===v?'selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+ else if(ctl==='sel:RETTYPE')inner='<select class="f" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">'+FIN_RETTYPE.map(function(x){return '<option '+(x===v?'selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+ else if(ctl==='sel:QC')inner='<select class="f" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">'+FIN_QC.map(function(x){return '<option '+(x===v?'selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+ else if(ctl==='sel:REG'){var regs=finDocs('register');inner='<select class="f" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)"><option value="">不关联，直接入库</option>'+regs.map(function(x){return '<option value="'+esc(x.no)+'"'+(x.no===v?' selected':'')+'>'+esc(x.no)+' · '+esc(x.status)+' · '+fmt(lineSum(x.lines))+'件</option>'}).join('')+'</select>'}
+ else if(ctl==='sel:SRCIN'){var ins=finDocs('inbound').filter(function(x){return x.status==='已审批'});inner='<select class="f" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)"><option value="">请选择原入库单</option>'+ins.map(function(x){return '<option value="'+esc(x.no)+'"'+(x.no===v?' selected':'')+'>'+esc(x.no)+' · '+fmt(lineSum(x.lines))+'件</option>'}).join('')+'</select>'}
+ else inner='<input class="f" value="'+esc(v)+'" onchange="finHead(\''+esc(d.no)+'\',\''+k+'\',this.value)">';
+ return '<label class="fl'+(ctl==='area'?' wide':'')+'"><span>'+esc(lab)+(req?'<i>*</i>':'')+'</span>'+inner+'</label>';
+}
+function finLineCell(d,l,i){
+ var no=esc(d.no),locked=(d.status==='已审批'||d.status==='已作废');
+ var dis=locked?' disabled':'';
+ var codeOpts=FINISHED_CATALOG.map(function(c){return '<option value="'+c.code+'" '+(c.code===l.code?'selected':'')+'>'+c.code+' '+c.name+'</option>'}).join('');
+ var h='<td><select class="f" style="min-width:200px"'+dis+' onchange="finLine(\''+no+'\','+i+',\'code\',this.value)"><option value="">请选择成品</option>'+codeOpts+'</select></td>';
+ if(d.type==='deliver'){
+  var bs=FDB.stock.filter(function(s){return s.code===l.code&&num(s.avail)>0});
+  h+='<td><select class="f"'+dis+' onchange="finLine(\''+no+'\','+i+',\'batch\',this.value)">'+(bs.length?bs.map(function(s){return '<option value="'+esc(s.batch)+'" '+(s.batch===l.batch?'selected':'')+'>'+esc(s.batch)+'（可用 '+fmt(s.avail)+' · '+esc(s.wh)+'）</option>'}).join(''):'<option value="">无可用批次</option>')+'</select></td>';
+  var s0=FDB.stock.filter(function(s){return s.code===l.code&&s.batch===l.batch})[0];
+  h+='<td class="mut">'+esc(s0?(s0.wh+'/'+s0.loc):'—')+'</td><td>'+(s0?fmt(s0.avail):'—')+'</td>';
+ }else{
+  h+='<td><input class="f" style="width:130px" value="'+esc(l.batch||'')+'" placeholder="空则审批生成"'+dis+' onchange="finLine(\''+no+'\','+i+',\'batch\',this.value)"></td>';
+ }
+ if(d.type==='inbound'){
+  h+='<td><input class="f num" style="width:90px" type="number" min="0" value="'+esc(l.qty_src==null?'':l.qty_src)+'"'+dis+' onchange="finLine(\''+no+'\','+i+',\'qty_src\',this.value)"></td>';
+ }
+ h+='<td><input class="f num" style="width:90px" type="number" min="0" value="'+esc(l.qty==null?'':l.qty)+'"'+dis+' onchange="finLine(\''+no+'\','+i+',\'qty\',this.value)"></td><td><input class="f" readonly style="width:60px" value="'+esc(l.unit||'件')+'"></td>';
+ if(d.type==='register'){
+  h+='<td><input class="f" style="width:110px" value="'+esc(l.loc||'')+'"'+dis+' onchange="finLine(\''+no+'\','+i+',\'loc\',this.value)"></td>';
+  h+='<td class="mut sm">'+esc(l.barcode||'登记时生成')+'</td>';
+ }
+ if(d.type==='inbound'){
+  var df=num(l.qty)-num(l.qty_src);
+  h+='<td class="'+(df?'red':'mut')+'"><b>'+(df>0?'+':'')+fmt(df)+'</b></td><td><input class="f" style="width:110px" value="'+esc(l.loc||'')+'"'+dis+' onchange="finLine(\''+no+'\','+i+',\'loc\',this.value)"></td>';
+  h+='<td><select class="f"'+dis+' onchange="finLine(\''+no+'\','+i+',\'qc\',this.value)">'+FIN_QC.map(function(x){return '<option '+(x===(l.qc||'')?'selected':'')+'>'+x+'</option>'}).join('')+'</select></td><td class="mut sm">'+esc(l.barcode||'审批生成')+'</td>';
+ }
+ if(d.type==='wreturn'){
+  var s2=FDB.stock.filter(function(x){return x.code===l.code&&x.batch===l.batch})[0];
+  h+='<td>'+(s2?fmt(s2.on):'—')+'</td><td>'+(s2?fmt(s2.avail):'—')+'</td><td><input class="f" style="width:130px" value="'+esc(l.reason||'')+'"'+dis+' onchange="finLine(\''+no+'\','+i+',\'reason\',this.value)"></td>';
+ }
+ return h+'<td>'+(locked?'': '<button class="b danger" onclick="finDrop(\''+no+'\','+i+')">✕</button>')+'</td>';
+}
+function finGroupedLines(d){
+ var cols=d.type==='register'?6:d.type==='inbound'?9:d.type==='wreturn'?7:6;
+ var indexed=(d.lines||[]).map(function(l,i){return {l:l,i:i}});
+ indexed.sort(function(a,b){
+  var ba=String(a.l.batch||'待分配批次'),bb=String(b.l.batch||'待分配批次');
+  if(ba!==bb)return ba<bb?-1:1;
+  var ra=a.l.region||a.l.loc||d.loc||'',rb=b.l.region||b.l.loc||d.loc||'';
+  return String(ra).localeCompare(String(rb));
+ });
+ if(!indexed.length)return '';
+ var out='',lastB='__n__',lastR='__n__';
+ indexed.forEach(function(it){
+  var l=it.l,i=it.i,b=String(l.batch||'待分配批次'),r=String(l.region||l.loc||d.loc||'未分配区域');
+  if(b!==lastB){out+='<tr class="batch-row"><td colspan="'+(cols+2)+'"><span class="batch-mark"><i class="fa-solid fa-layer-group"></i>批次：'+esc(b)+'</span>'+((d.status==='已审批'||d.status==='已作废')?'':'<span style="float:right"><span class="link" onclick="finAddToBatch(\''+esc(d.no)+'\',\''+esc(b!=='待分配批次'?b:'')+'\')">+ 加成品到本批次</span></span>')+'</td></tr>';lastB=b;lastR='__n__'}
+  if(r!==lastR){out+='<tr class="region-row"><td colspan="'+(cols+2)+'"><span class="region-mark"><i class="fa-solid fa-location-dot"></i>区域：'+esc(r)+'</span></td></tr>';lastR=r}
+  out+='<tr><td>'+(i+1)+'</td>'+finLineCell(d,l,i)+'</tr>';
+ });
+ return out;
+}
+function finBatchBar(d){
+ if(d.type!=='register')return '';
+ normalizeFinBatches(d);
+ var order=[],seen={};
+ function push(b){b=String(b||'待分配批次');if(!seen[b]){seen[b]=1;order.push(b)}}
+ if(d.activeBatch)push(d.activeBatch);
+ Object.keys(d.batchRegions||{}).forEach(push);
+ (d.lines||[]).forEach(function(l){push(l.batch||'待分配批次')});
+ var locked=(d.status==='已审批'||d.status==='已作废');
+ var chips=order.map(function(b){
+  var n=(d.lines||[]).filter(function(l){return String(l.batch||'待分配批次')===b}).length;
+  return '<span class="subtab'+(d.activeBatch===b?' on':'')+'" style="cursor:pointer" onclick="finPickBatch(\''+esc(d.no)+'\',\''+esc(b)+'\')">批次 '+esc(b)+' · '+n+'行</span>';
+ }).join('');
+ return '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b class="sm">批次视角：</b>'+(chips||'<span class="sm mut">暂无批次，请点“新建批次”</span>')+'<span style="flex:1"></span>'+(locked?'':'<button class="b pri" onclick="finNewBatch(\''+esc(d.no)+'\')">新建批次</button>')+'</div>';
+}
+function finEditorHTML(d){
+ var locked=(d.status==='已审批'||d.status==='已作废');
+ var head=FIN_HEAD[d.type].map(function(f){return finHeadControl(d,f)}).join('');
+ var batchBar=finBatchBar(d);
+ var srcBar='';
+ if(d.type==='inbound'&&!locked)srcBar='<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sm mut">已选登记单：<b>'+esc(d.src||'未关联')+'</b></span><button class="b" onclick="finPullReg(\''+esc(d.no)+'\')">从登记单带入清单</button><span class="sm mut">带入后可改验收数量与质检结论</span></div>';
+ var heads={register:'成品编码/名称,批次号,登记数量,单位,存放库区,条码',inbound:'成品编码/名称,批次号,来料数量,验收数量,单位,差异,存放库区,质检结论,条码',wreturn:'成品编码/名称,批次号,退仓数量,单位,当前账面,当前可用,原因',deliver:'成品编码/名称,批次（仅可用）,库区,可用量,交付数量,单位'}[d.type].split(',');
+ var backBtn=d.type==='deliver'?'<button class="b" onclick="finBackDeliver()">← 返回交付列表</button>':'<button class="b" onclick="finBack()">← 返回列表</button>';
+ var tip={register:'登记＝建档建码：审批只确认档案与条码，不加库存；入库后才加库存。',inbound:'入库＝加库存：可关联登记单带入；待检只加账面不计可用；验收≠来料必须填备注；不合格请走退仓。',wreturn:'退仓＝可用转隔离（账面不变）/隔离转可用/隔离报废：必须关联已审批入库单并校验超退。',deliver:'交付＝减库存：只能交付可用量；需接收人+签收时间；审批后扣账面与可用。'}[d.type];
+ return '<div style="margin-bottom:10px">'+backBtn+' <span class="sm mut">当前独立编辑页（交付新建不在列表下方）</span></div>'
+ +'<div class="split"><section class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>工单清单 · '+esc(d.no)+' '+finTag(d.status)+'</b><span class="sm mut">'+(locked?'已过账不可修改':'按批次核对：批次下按区域分割显示')+'</span></div>'+batchBar+srcBar
+ +'<div class="tblwrap"><table class="t"><thead><tr><th>序号</th>'+heads.map(function(h){return '<th>'+h+'</th>'}).join('')+'<th>操作</th></tr></thead><tbody>'+(finGroupedLines(d)||'<tr><td colspan="12" class="mut" style="text-align:center;padding:26px">请点击“添加清单”加入成品</td></tr>')+'</tbody></table></div>'
+ +'<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+fmt(lineSum(d.lines))+'件</b></span>'+(d.type==='register'?'<span class="grn"><b>本单审批不加库存</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签按验收数量生成批次码</span>':'')+(d.type==='wreturn'?'<span class="org"><b>回仓方向以退仓类型为准</b></span>':'')+(d.type==='deliver'?'<span class="red"><b>交付方向：审批后减库存</b></span>':'')+'</div>'
+ +(locked?'':'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="b" onclick="finAddLine(\''+esc(d.no)+'\')">添加清单</button>'+(d.type==='register'?'<button class="b pri" onclick="finNewBatch(\''+esc(d.no)+'\')">新建批次</button>':'')+'</div>')+'</div></section>'
+ +'<aside class="card pad"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>工单信息'+(d.status==='草稿'?'（新工单）':'')+'</b><button class="b" onclick="finPrint(\''+esc(d.no)+'\')">打印</button></div><div class="hd">'+head+'</div><div class="note" style="margin-top:12px">'+tip+'</div>'
+ +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" onclick="finSave(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>保存</button><button class="b pri" onclick="finSubmit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>提交</button><button class="b" onclick="finAudit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>审核</button><button class="b pri" onclick="finConfirm(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>仓管确认</button><button class="b danger" onclick="finVoid(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>作废</button></div>'
+ +'<div class="sm mut" style="margin-top:8px">审批流：<b>'+esc(finFlowText(d))+'</b> · <span class="link" onclick="location.href=\'approve-flow.html\'">去审批流配置</span></div>'
+ +'<div class="sm mut" style="margin-top:10px">附件：'+(d.files||0)+' <span class="link" onclick="finFile(\''+esc(d.no)+'\')">上传照片</span></div>'
+ +'<div class="sm mut" style="margin-top:6px">审批日志 <span class="link" onclick="finLog(\''+esc(d.no)+'\')">查看</span> · 流水 <span class="link" onclick="finFlowDlg(\''+esc(((d.lines[0]||{}).code)||'')+'\',\'\')">查看</span></div></aside></div>';
+}
+/* ---- 全局动作 ---- */
+window.render=function(){
+ document.getElementById('crumb').textContent=NAMES[VIEW]||NAMES.register;
+ document.getElementById('finPlace').textContent='当前页：'+(NAMES[VIEW]||NAMES.register)+'（从左侧二级菜单进入）';
+ notifyParent();
+ if(VIEW==='detail'){curNo='';renderDetail();return}
+ var t=VIEW==='return'?'wreturn':VIEW;
+ var d=curNo?docBy(curNo):null;
+ if(d&&(d.type!==t)){d=null;curNo=''}
+ if(t==='deliver'){
+  if(deliverMode==='edit'&&d){document.getElementById('main').innerHTML=finEditorHTML(d);return}
+  if(deliverMode==='edit'&&!d){var nd=blankFinDoc('deliver');FDB.doc.unshift(nd);fsave();curNo=nd.no;document.getElementById('main').innerHTML=finEditorHTML(nd);return}
+  document.getElementById('main').innerHTML=finListHTML('deliver');return;
+ }
+ if(d){document.getElementById('main').innerHTML=finEditorHTML(d);return}
+ document.getElementById('main').innerHTML=finListHTML(t);
+};
+window.newFinDoc=function(t){var d=blankFinDoc(t);FDB.doc.unshift(d);fsave();curNo=d.no;if(t==='deliver')deliverMode='edit';render();toast('已创建 '+d.no+'（草稿）')};
+window.deliverNew=function(){var d=blankFinDoc('deliver');FDB.doc.unshift(d);fsave();curNo=d.no;deliverMode='edit';render();toast('已创建 '+d.no+'（独立新建页）')};
+window.deliverNewWindow=function(){
+ var url;
+ try{
+  var u=new URL(location.href);
+  if(/app\.html/.test(u.pathname)){u.searchParams.set('page','finishedDeliver');u.searchParams.set('from','app');u.searchParams.set('view','deliver');u.searchParams.set('mode','new');}
+  else{u.searchParams.set('view','deliver');u.searchParams.set('mode','new');}
+  url=u.toString();
+ }catch(e){url=location.pathname+'?view=deliver&mode=new'}
+ window.open(url,'_blank');
+};
+window.finOpen=function(no){curNo=no;var d=docBy(no);if(d&&d.type==='deliver')deliverMode='edit';render()};
+window.finBack=function(){curNo='';render()};
+window.finBackDeliver=function(){deliverMode='list';curNo='';render()};
+window.finAddLine=function(no){var d=docBy(no);if(!d||d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能增行',1);return}if(d.type==='register')normalizeFinBatches(d);d.lines.push(newFinLine(d,'','',''));fsave();render()};
+window.finAddToBatch=function(no,b){var d=docBy(no);if(!d)return;if(d.type==='register'){normalizeFinBatches(d);d.activeBatch=b||d.activeBatch}var l=newFinLine(d,'','', '');if(d.type==='register'&&d.activeBatch){l.batch=d.activeBatch;l.region=finBatchRegion(d,d.activeBatch);l.loc=l.region||l.loc}if(d.type!=='register'&&b)l.batch=b;d.lines.push(l);fsave();render()};
+window.finDrop=function(no,i){var d=docBy(no);if(!d||d.status==='已审批'){toast('已过账不能删行',1);return}d.lines.splice(i,1);fsave();render()};
+window.finHead=function(no,k,v){var d=docBy(no);if(!d)return;d[k]=v;
+ if(k==='src'&&d.type==='inbound'&&v){
+  var src=docBy(v);
+  if(src&&src.type==='register'){
+   if(src.customer&&(!String(d.customer||'').trim()||d.customer==='恒达服饰'))d.customer=src.customer;
+   if(src.dept&&(!String(d.dept||'').trim()||d.dept==='缝制一车间'))d.dept=src.dept;
+   if(src.handler)d.handler=d.handler||src.handler;
+   if(src.date&&d.date===today())d.date=src.date;
+   if(src.wh&&d.wh==='成品仓A')d.wh=src.wh;
+   if(src.source&&!String(d.source||'').trim())d.source=src.source;
+   if(src.remark&&!String(d.remark||'').trim())d.remark=src.remark;
+   if(src.lines&&src.lines.length&&(!d.lines||!d.lines.length||!d.lines.some(function(l){return l.code}))){
+    d.lines=src.lines.map(function(x){var m=fmat(x.code);return {code:x.code,name:m.name||x.name,unit:m.unit||'件',batch:'',qty_src:num(x.qty),qty:num(x.qty),loc:x.loc||d.loc||'F01',region:x.region||x.loc||d.loc||'F01',price:0,qc:'合格',barcode:''}});
+    toast('已关联 '+src.no+' · 自动带入 '+d.lines.length+' 行');
+   }else toast('已关联 '+src.no+'，单头信息已自动填写');
+  }
+ }
+ if(k==='src'&&d.type==='wreturn'&&v){
+  var win=docBy(v);
+  if(win&&win.type==='inbound'){
+   if(win.wh)d.wh=d.wh||win.wh;
+   if(win.lines&&win.lines.length&&(!d.lines||!d.lines.some(function(l){return l.code}))){
+    d.lines=win.lines.map(function(x){var m=fmat(x.code);return {code:x.code,name:m.name||x.name,unit:m.unit||'件',batch:x.batch||'',qty:'',qty_src:num(x.qty),loc:x.loc||d.loc||'F01',region:x.region||x.loc||d.loc||'F01',reason:'质量问题'}});
+    toast('已关联 '+win.no+' · 预填 '+d.lines.length+' 行，请填本次退仓数量');
+   }
+  }
+ }
+ fsave();if(k==='wh'||k==='loc'||k==='src')render()};
+window.finLine=function(no,i,k,v){var d=docBy(no);if(!d)return;var l=d.lines[i];if(!l)return;
+ if(k==='qty'||k==='qty_src')l[k]=num(v);
+ else l[k]=v;
+ if(k==='code'){var m=fmat(v);l.name=m.name;l.unit=m.unit||'件';
+  if(d.type==='deliver'){var bs=FDB.stock.filter(function(s){return s.code===v&&num(s.avail)>0});l.batch=bs[0]?bs[0].batch:'';var s0=bs.filter(function(s){return s.batch===l.batch})[0];l.wh=s0?s0.wh:l.wh;l.loc=s0?s0.loc:l.loc}
+  if(d.type==='register'&&d.activeBatch){l.batch=d.activeBatch;l.region=finBatchRegion(d,d.activeBatch);l.loc=l.region||l.loc}
+ }
+ if(k==='batch'&&d.type==='deliver'){var s1=FDB.stock.filter(function(s){return s.code===l.code&&s.batch===v})[0];if(s1){l.wh=s1.wh;l.loc=s1.loc}}
+ if(k==='loc'&&d.type==='register'&&l.batch){l.region=v;if(d.batchRegions)d.batchRegions[l.batch]=v}
+ fsave();render();
+};
+window.finPickBatch=function(no,b){var d=docBy(no);if(!d)return;d.activeBatch=b;fsave();render();toast('当前批次：'+b)};
+window.finNewBatch=function(no){
+ var d=docBy(no);if(!d||d.type!=='register')return;
+ if(d.status==='已审批'||d.status==='已作废'){toast('已过账不能新增批次',1);return}
+ normalizeFinBatches(d);
+ var sug=nextFinBatch('CP-JK-001',d.wh);
+ dialog('新建批次 · '+d.no,'<label class="fl"><span>批次号<i>*</i></span><input class="f" id="nb_no" value="'+esc(sug)+'"></label><label class="fl" style="margin-top:8px"><span>批次区域（库区/分区）<i>*</i></span><input class="f" id="nb_region" value="'+esc(d.loc||'F01')+'"></label><div class="note" style="margin-top:8px">批次=本次核对单元：清单按批次分组，批次下按区域分割。</div>','<button class="b" data-close>取消</button><button class="b pri" id="nbSave">创建批次</button>');
+ document.getElementById('nbSave').onclick=function(){
+  var b=String(document.getElementById('nb_no').value||'').trim(),r=String(document.getElementById('nb_region').value||'').trim();
+  if(!b){toast('批次号必填',1);return}if(!r){toast('批次区域必填',1);return}
+  if(!d.batchRegions)d.batchRegions={};
+  if(d.batchRegions[b]||(d.lines||[]).some(function(l){return String(l.batch||'')===b})){toast('本单已存在批次 '+b,1);return}
+  d.batchRegions[b]=r;d.activeBatch=b;
+  var l=newFinLine(d,'','','');l.batch=b;l.region=r;l.loc=r;d.lines.push(l);
+  faudit(d,'新建批次',b+' / '+r);fsave();document.getElementById('dlgRoot').classList.add('hide');render();toast('已新建批次 '+b);
+ };
+};
+window.finPullReg=function(no){
+ var d=docBy(no);if(!d||d.type!=='inbound')return;
+ if(!d.src){toast('请先在单头选择关联登记单',1);return}
+ var src=docBy(d.src);if(!src||src.type!=='register'){toast('登记单不存在：'+d.src,1);return}
+ var n=0;(src.lines||[]).forEach(function(x){if(!x.code)return;d.lines.push({code:x.code,name:x.name||fmat(x.code).name,unit:x.unit||'件',batch:'',qty_src:num(x.qty),qty:num(x.qty),loc:x.loc||d.loc||'F01',region:x.region||x.loc||d.loc||'F01',price:0,qc:'合格',barcode:''});n++});
+ if(!n){toast('登记单没有可带入的行',1);return}
+ fsave();render();toast('已从 '+src.no+' 带入 '+n+' 行');
+};
+function finFlowKey(d){return d.type==='register'?'fin_register':d.type==='inbound'?'fin_inbound':d.type==='wreturn'?'fin_wreturn':'fin_deliver'}
+function finFlowText(d){try{if(!window.ApproveFlow)return 'S1=1→S2=1→S6=1';ApproveFlow.ensureFlow(d,finFlowKey(d));return ApproveFlow.flowText(finFlowKey(d),d.flow)}catch(e){return ''}}
+window.finSubmit=function(no){var d=docBy(no);if(!d)return;if(d.status==='已审批'){toast('已过账无需提交',1);return}
+ if(d.status==='草稿')d.status='已保存';
+ var r=ApproveFlow.submit(d,finFlowKey(d),d.handler||'经办人');if(!r.ok){toast(r.msg,1);return}
+ faudit(d,'提交(S1=1)','');fsave();render();toast(d.no+' '+r.msg)};
+window.finAudit=function(no){var d=docBy(no);if(!d)return;ApproveFlow.ensureFlow(d,finFlowKey(d));
+ if(!d.flow.submitted){toast('请先点“提交”(S1=1) 后再审核',1);return}
+ if(ApproveFlow.needPost(d,finFlowKey(d))){toast('各节点已通过，请点“仓管确认”完成过账');return}
+ var nx=ApproveFlow.nextPending(finFlowKey(d),d.flow);if(!nx){toast('审批流已走完，请仓管确认',1);return}
+ dialog('审核 · '+nx.k+'（'+nx.role+'）','<div class="note">当前进度：'+esc(ApproveFlow.flowText(finFlowKey(d),d.flow))+'</div><div class="hd" style="margin-top:10px"><label class="fl"><span>审批结论</span><select class="f" id="af_pass"><option value="1">通过</option><option value="0">驳回</option></select></label><label class="fl"><span>审批人/意见</span><input class="f" id="af_note" placeholder="如：张建国 · 同意"></label></div>','<button class="b" data-close>取消</button><button class="b pri" id="afDo">确定</button>');
+ document.getElementById('afDo').onclick=function(){
+  var ps=document.getElementById('af_pass').value==='1',nt=document.getElementById('af_note').value.trim();
+  if(ps){var r=ApproveFlow.approve(d,finFlowKey(d),d.handler||'审批人',nx.role,true,nt);faudit(d,'审核通过('+nx.k+')',nt||nx.role);fsave();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' '+r.msg);return}
+  ApproveFlow.approve(d,finFlowKey(d),d.handler||'审批人',nx.role,false,nt);faudit(d,'审核驳回('+nx.k+')',nt);fsave();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' 已驳回，退回经办人',1);
+ };};
+window.finConfirm=function(no){var d=docBy(no);if(!d)return;ApproveFlow.ensureFlow(d,finFlowKey(d));
+ if(!d.flow.submitted){toast('请先点“提交”(S1=1)',1);return}
+ var left=ApproveFlow.nextPending(finFlowKey(d),d.flow);
+ if(left&&left.k!=='S6'){toast('还有未审核节点：'+left.k+'('+left.role+')',1);return}
+ if(d.status==='已审批'){toast('重复审批被拒绝（幂等保护）',1);return}
+ var r=finPost(d);
+ if(!r.ok){dialog('校验未通过：本单未过账','<ul class="errs">'+r.errors.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>');return}
+ d.flow.S6=1;d.flow.done=1;d.flow.cur='DONE';(d.flow.hist=d.flow.hist||[]).push({t:now(),act:'仓管确认(S6=1)',by:d.handler||'仓管员'});
+ d.status='已审批';faudit(d,'仓管确认·过账(S6=1)','工单完成');fsave();render();
+ toast(d.no+(d.type==='register'?' 登记完成(S6=1)：条码已生成，未加库存':d.type==='inbound'?' 仓管确认完成(S6=1)：库存已增加':d.type==='wreturn'?' 退仓完成(S6=1)':' 交付完成(S6=1，含签收存证)'))};
+window.finSave=function(no){var d=docBy(no);if(!d)return;if(d.status==='已审批'){toast('已过账无需保存');return}d.status='已保存';faudit(d,'保存待审批','');fsave();render();toast(d.no+' 已保存为待审批（登记单不加库存）')};
+window.finApprove=function(no){
+ var d=docBy(no);if(!d)return;
+ if(d.status==='已审批'){toast('重复审批被拒绝（幂等保护）',1);return}
+ var r=finPost(d);
+ if(!r.ok){dialog('校验未通过：本单未过账','<ul class="errs">'+r.errors.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul><div class="note" style="margin-top:12px">过账是原子操作：任何一行不通过，整单不写流水、不改库存。</div>');return}
+ d.status='已审批';fsave();render();
+ toast(d.no+(d.type==='register'?' 登记完成：条码已生成，未加库存，下一步请到成品入库':d.type==='inbound'?' 审批入账：库存已增加':d.type==='wreturn'?' 退仓完成':' 交付完成（含签收存证）'));
+};
+window.finVoid=function(no){var d=docBy(no);if(!d||d.status==='已审批'){toast('已审批单据不可作废',1);return}d.status='已作废';faudit(d,'作废','');fsave();if(d.type==='deliver'){deliverMode='list';curNo=''}else curNo='';render();toast('已作废：'+no)};
+window.finPrint=function(no){toast('已推送成品单 '+no+' 到打印队列')};
+window.finFile=function(no){var d=docBy(no);if(!d)return;d.files=(d.files||0)+1;faudit(d,'上传附件','');fsave();render();toast('附件已上传，计入单据附件数量')};
+window.finLog=function(no){var ls=FDB.audit.filter(function(a){return a.doc===no});dialog('审批日志 · '+no,'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>动作</th><th>操作人</th><th>说明</th></tr></thead><tbody>'+(ls.map(function(a){return '<tr><td>'+esc(a.t)+'</td><td>'+esc(a.act)+'</td><td>'+esc(a.by)+'</td><td>'+esc(a.note)+'</td></tr>'}).join('')||'<tr><td colspan="4" class="mut">暂无日志</td></tr>')+'</tbody></table></div>')};
+/* ===== 启动 ===== */
+migrate();
+if(deliverMode==='edit'&&!curNo&&VIEW==='deliver'){var _nd=blankFinDoc('deliver');FDB.doc.unshift(_nd);fsave();curNo=_nd.no}
+render();
+})();
+</script></body></html>

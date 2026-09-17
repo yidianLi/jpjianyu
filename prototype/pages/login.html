@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登录 · 物料管理系统</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei"}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script></head>
+<body class="bg-[#0b1428] min-h-screen flex items-center justify-center p-6">
+<div class="w-[1080px] max-w-full bg-white rounded-2xl overflow-hidden grid grid-cols-2 shadow-2xl">
+<div class="relative bg-gradient-to-br from-[#123a8f] via-[#1a56c9] to-[#0aa7c2] p-10 text-white flex flex-col justify-between overflow-hidden">
+<img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=60" alt="仓库作业照片" class="absolute inset-0 w-full h-full object-cover opacity-20"><div class="relative"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-xl"><i class="fa-solid fa-boxes-stacked"></i></div><div><div class="font-extrabold text-lg">监狱公司物料管理系统</div><div class="text-xs text-blue-100">来料加工 · 外仓 / 内仓1 / 内仓2 · 一期</div></div></div>
+<div class="mt-10"><div class="text-3xl font-extrabold leading-tight">账卡物一致<br>纸电双轨留痕</div><p class="text-sm text-blue-100 mt-3">客户独立归属 · 数量必带单位 · OCR人工值为准<br>主批次 MB → 小批次 SB → 箱唛可选 → 签名生效</p>
+<div class="grid grid-cols-3 gap-3 mt-6 text-center"><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">3</div><div class="text-[11px]">独立仓库账</div></div><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">16</div><div class="text-[11px]">流程节点</div></div><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">02:30</div><div class="text-[11px]">凌晨自动盘点</div></div></div></div></div>
+<div class="relative text-[11px] text-blue-100 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> 内网环境 · 操作全程审计 · 涉密数据不出域</div></div>
+<div class="p-10">
+<h2 class="font-extrabold text-xl text-slate-800">安全登录</h2><p class="text-xs text-slate-500 mt-1">识别账号岗位与数据范围 · 失败不暴露账号是否存在</p>
+<div class="flex gap-2 mt-4 text-[11px] flex-wrap"><button onclick="setState('default')" class="px-2.5 py-1 rounded-full bg-blue-600 text-white">默认</button><button onclick="setState('err')" class="px-2.5 py-1 rounded-full bg-slate-100">密码错误</button><button onclick="setState('lock')" class="px-2.5 py-1 rounded-full bg-slate-100">账号锁定</button><button onclick="setState('net')" class="px-2.5 py-1 rounded-full bg-slate-100">网络不可用</button><button onclick="setState('first')" class="px-2.5 py-1 rounded-full bg-slate-100">首次确认</button></div>
+<label class="text-xs text-slate-600 font-bold mt-5 block">账号</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-regular fa-user text-slate-400"></i><input id="acc" value="wai_cang_zhang" class="flex-1 px-2 py-2.5 text-sm outline-none"></div>
+<label class="text-xs text-slate-600 font-bold mt-3 block">密码</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-solid fa-lock text-slate-400"></i><input id="pwd" type="password" value="12345678" class="flex-1 px-2 py-2.5 text-sm outline-none"><i class="fa-regular fa-eye text-slate-400"></i></div>
+<label class="text-xs text-slate-600 font-bold mt-3 block">安全口令 / 验证码</label><div class="flex gap-2 mt-1"><input value="8 4 2 9" class="flex-1 border rounded-lg px-3 py-2.5 text-sm tracking-[.4em] font-bold"><div class="w-28 h-[42px] rounded-lg bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center font-black text-blue-800 tracking-widest select-none">8·4·2·9</div></div>
+<div id="msg" class="text-xs mt-3 hidden rounded-lg p-2.5"></div>
+<button title="操作" onclick="login()" class="w-full mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-3 rounded-xl hover:opacity-90"><i class="fa-solid fa-right-to-bracket mr-1"></i> 登录并进入驾驶舱</button>
+<div class="text-[11px] text-slate-500 mt-3 flex justify-between"><span><i class="fa-solid fa-laptop mr-1"></i>最近：办公电脑-PC07 · 09-11 17:42</span><span class="text-emerald-600"><i class="fa-solid fa-circle text-[8px]"></i> 内网正常 12ms</span></div>
+<div id="firstBox" class="hidden mt-4 border-2 border-blue-200 bg-blue-50 rounded-xl p-4"><div class="font-bold text-sm text-blue-900"><i class="fa-solid fa-circle-check mr-1"></i>首次登录 · 请确认岗位与数据范围</div><div class="text-xs text-slate-600 mt-2 leading-relaxed">岗位：<b>外仓管理员</b> · 范围：<b>外仓WH-A</b> · 客户：恒达服饰/宏远纺织<br>组织：一监区 · 可见车间：1栋2层缝制一车间</div><div class="flex gap-2 mt-3"><button onclick="loginFirstConfirm()" class="flex-1 bg-blue-600 text-white text-sm font-bold py-2 rounded-lg">确认进入</button><button onclick="showToast('已上报管理员')" class="flex-1 bg-white border text-sm py-2 rounded-lg">范围有误</button></div></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 hidden bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-xl"></div>
+</div></div>
+<script>
+function showToast(t,err){var d=document.getElementById('toast');d.textContent=t;d.style.background=err?'#dc2626':'#0f172a';d.classList.remove('hidden');setTimeout(function(){d.classList.add('hidden')},2200)}
+function toast(t){showToast(t)}
+function setState(s){var m=document.getElementById('msg');m.classList.remove('hidden');document.getElementById('firstBox').classList.add('hidden');if(s==='default'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-slate-50 text-slate-500 border';m.innerHTML='已填入演示账号 wai_cang_zhang · 点击登录进入驾驶舱';}if(s==='err'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号或密码不正确（剩余尝试 3 次），请重试。';}if(s==='lock'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号已锁定，请联系系统管理员解锁（10 分钟后可重试）。';}if(s==='net'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-orange-50 text-orange-600 border border-orange-200';m.innerHTML='内网连接不可用，已保留草稿，请检查网络后重试。';}if(s==='first'){m.classList.add('hidden');document.getElementById('firstBox').classList.remove('hidden');}}
+function enterDashboard(){
+  var inFrame = false;
+  try{ inFrame = (window.parent !== window); }catch(e){ inFrame = true; }
+  var inApp = /from=app/.test(location.search);
+  // app.html 壳里：让壳切换主视图到驾驶舱
+  if(inApp){
+    try{ if(typeof goPage==='function'){ goPage('dashboard'); return; } }catch(e){}
+  }
+  // index.html 平铺总览里：不要把自己变成驾驶舱，只让父页面滚动到 01
+  if(inFrame && !inApp){
+    try{ window.parent.postMessage({from:'wms-nav', go:'dashboard', page:'dashboard', tab:''}, '*'); }catch(e){}
+    showToast('登录成功 · 已进入 01 业务运营驾驶舱（已滚动定位）');
+    return;
+  }
+  // 单独打开：直接跳转文件
+  try{ if(typeof goPage==='function'){ goPage('dashboard'); return; } }catch(e){}
+  location.href='dashboard.html';
+}
+function login(){
+  showToast('登录成功 · 欢迎回来，张建国');
+  setTimeout(function(){
+    showToast('岗位已加载，正在进入 01 业务运营驾驶舱…');
+    setTimeout(enterDashboard, 650);
+  }, 650);
+}
+function loginFirstConfirm(){
+  showToast('已确认，进入驾驶舱');
+  setTimeout(enterDashboard, 500);
+}
+</script></body></html>

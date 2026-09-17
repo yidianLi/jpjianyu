@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>APP↔后端 API契约 · 独立开发用</title><script src="https://cdn.tailwindcss.com"></script><style>body{font-family:"PingFang SC","Microsoft YaHei";background:#f2f5fa}code{font-family:Consolas,monospace}.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}</style></head>
+<body class="p-6 text-slate-800 max-w-[1080px] mx-auto">
+<h1 class="text-xl font-extrabold">移动APP ↔ 后端 API契约 <span class="text-xs font-normal text-slate-500">APP独立开发 · 与PC解耦 · 共用业务库</span></h1>
+<p class="text-xs text-slate-500 mt-1">BaseUrl: <code>http://10.8.0.12:8080/api/v1</code> · 认证 <code>Authorization: Bearer &lt;token&gt; + X-Device-Id</code> · 全部数量必带 <code>qty+unit</code> · 错误码：<code>SIGN_REQUIRED / DUP_SCAN / OVER_ISSUE / SCOPE_DENIED</code></p>
+<div class="grid grid-cols-2 gap-4 mt-4 text-xs">
+<div class="card p-4"><b>1. POST /auth/app-login</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">req: {username, password, deviceId}
+res: {token, expiresIn:28800, user:{name,role,scope}}</pre><p class="text-slate-500 mt-1">车间账号登录后 scope 仅本车间，服务端按 user_data_scope 过滤。</p></div>
+<div class="card p-4"><b>2. GET /app/todos?mine=1</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">res: [{id,type,title,desc,deadline}]
+TL退料 / ZS直送 / DB调拨 / LY领料</pre></div>
+<div class="card p-4"><b>3. POST /app/scan（SB必扫/箱唛可选）</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">req: {code, orderId}
+res: {result:OK|DUPLICATE|INVALID|MISMATCH,
+ material, qty, unit}</pre><p class="text-slate-500 mt-1">重复/超领/非本单/客户不一致由服务端拦截，对应 scan_record。</p></div>
+<div class="card p-4"><b>4. POST /app/ocr（拍照→候选值）</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">req: {images:[base64…]} // APP端压缩
+res: {candidates:{customer,qty_ocr,conf},
+ ocrId:OCR2026091201}</pre><p class="text-slate-500 mt-1">只返回候选，人工值覆盖，对应 ocr_document + ocr_field_result。</p></div>
+<div class="card p-4"><b>5. GET /app/checklists + POST /app/checklists/confirm（清单验收）</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">GET  req: ?orderId=SL2026091209
+res: {orderId, status, items:[{code,batch,unit,deliveryQty,receivedQty,checked}]}
+POST req: {orderId, items[], operator, deviceId}
+res: {status:ACCEPTED|PENDING_SYNC}</pre><p class="text-slate-500 mt-1">逐项核对编码/批次/单位/数量；数量有差异必须带 reason，移动端与PC验收写同一业务单据。</p></div>
+<div class="card p-4"><b>6. POST /app/submit（签名必填）</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">req: {orderId, codes[], qty, unit, sign}
+res: {orderId} / {code:SIGN_REQUIRED}
+离线: 写 mobile_sync_queue, 联网补传</pre></div>
+<div class="card p-4"><b>7. GET /app/orders?mine=1 · 数据查看</b><pre class="bg-slate-900 text-green-300 rounded-xl p-3 mt-2 overflow-auto">服务端按仓库/客户/监区楼层车间过滤
+PC报表/审计读同一张表：material_transaction, audit_log</pre><p class="text-slate-500 mt-1">APP永不调 /web/*，PC永不调 /app/*，联调以单号为准。</p></div>
+</div>
+<div class="card p-4 mt-4 text-xs"><b>联调验收（APP独立走完）</b><div class="mt-1">待办→打开送货单清单→逐项勾选3/3→确认验收→PC端第4步查看同一清单→扫码SB-01成功→重复码拦截→签名→提交→离线草稿进mobile_sync_queue→联网flush清空。</div></div>
+</body></html>

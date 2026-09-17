@@ -1,0 +1,33 @@
+# 构建/测试/工具产物
+.playwright-cli/
+.playwright-mcp/
+output/
+prototype/output/
+prototype/_qa*/
+prototype/ref_preview/
+prototype/__pycache__/
+_qa_material_chrome*/
+*.log
+__pycache__/
+*.pyc
+
+# 大文件与截图（不进仓库）
+*.rar
+*.psd
+*.png
+*.jpg
+*.jpeg
+*.webp
+参考/
+prototype.rar
+dashboard-flow-panel.png
+prototype_qa4-*.png
+prototype_receipt_*.png
+_qa_shot_detail.png
+({href
+({width
+_backup_before_21restore_20260917_213000/
+
+# 系统文件
+.DS_Store
+Thumbs.db

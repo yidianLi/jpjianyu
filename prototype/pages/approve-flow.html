@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>审批流配置 · 系统管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="../assets/store.js"></script>
+<script src="../assets/flow.js"></script>
+<script src="../assets/nav.js" defer></script>
+<style>
+:root{--ink:#13293f;--muted:#6b7d8f;--line:#dbe5ef;--blue:#1677c8;--navy:#0b4770}
+body{margin:0;background:#f2f6fa;color:var(--ink);font:13px/1.55 "Microsoft YaHei","PingFang SC",system-ui}
+button,input,select{font:inherit}button{cursor:pointer}
+.wrap{padding:20px 24px;max-width:1600px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(30,70,100,.035)}
+.pad{padding:12px 14px}.mut{color:var(--muted)}.sm{font-size:11px}
+.tblwrap{overflow:auto;max-height:calc(100vh - 320px)}
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;min-width:1180px}
+.t thead th{position:sticky;top:0;z-index:2;background:#f8fafc;color:#5f7488;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}
+.t thead th .sub{display:block;font-weight:400;font-size:11px;color:#94a3b8}
+.t tbody th,.t tbody td{padding:8px 10px;border-bottom:1px solid #eef3f8;white-space:nowrap;vertical-align:top}
+.t tbody tr:hover td{background:#f8fcff}
+.t td:first-child,.t th:first-child{position:sticky;left:0;z-index:1;background:#fff;min-width:150px}
+.t thead th:first-child{background:#f8fafc;z-index:3}
+.f{border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-height:30px;background:#fff;font-size:12px}
+select.f{width:134px;max-width:134px}
+.b{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:9px;font-weight:700;font-size:12px;color:#31506b;min-height:32px;white-space:nowrap}
+.b.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.b.danger{color:#b42318;border-color:#f0c8c4}
+.b:disabled{opacity:.45}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;background:#e8f2fc;color:#125d97;border:1px solid #cbe2f6;white-space:nowrap}
+.tag.custom{background:#f1eafe;color:#6b3fa0;border-color:#e0d2f6}
+.note{background:#f4f9fd;border:1px solid #d7e9f7;border-radius:10px;padding:10px 12px;font-size:12px;color:#3c5a72}
+/* 小开关：30x17，紧凑不抢眼 */
+.sw{width:30px;height:17px;border-radius:99px;background:#cbd5e1;position:relative;display:inline-block;vertical-align:middle;cursor:pointer;border:0;flex:none;padding:0}
+.sw.on{background:#16a34a}.sw:after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on:after{left:15px}
+.sw:disabled{opacity:.45;cursor:not-allowed}
+.sw-row{display:flex;align-items:center;gap:6px}
+.sw-st{font-size:11px;color:#94a3b8}
+.sw-st.on{color:#15803d;font-weight:700}
+.cell-sub{margin-top:4px}
+.chain{display:flex;align-items:center;gap:3px;flex-wrap:wrap;max-width:340px}
+.nd{border:1.5px solid var(--line);border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;background:#f8fafc;white-space:nowrap}
+.nd.on{border-color:#16a34a;background:#f0fdf4;color:#15803d}
+.nd.skip{opacity:.45;text-decoration:line-through}
+.arr{color:#94a3b8;font-weight:800;font-size:11px}
+.q{border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-height:32px;font-size:12px;width:220px;background:#fff}
+</style></head>
+<body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+<div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">系统管理 / <b class="text-slate-700">审批流配置 · S1提交→S2~S5审核→S6仓管确认</b></header>
+<div class="wrap space-y-4">
+<div><h1 class="text-xl font-extrabold" style="margin:0">审批流配置</h1>
+<p class="sm mut" style="margin:4px 0 0">覆盖：物料管理 7 种工单 + 成品管理 4 种 + 仓储作业 库存调仓(DB)/库存盘点(PD)，另可新建自定义工单类型。提交后写 S1=1；S2~S5 按绑定角色审核，不绑定则跳过；S6 由仓库管理员确认后工单完成并过账。</p></div>
+<div class="note">规则：<b>提交</b> → S1=1 → S2(角色1)通过写 S2=1 → S3/S4/S5 依次(未绑定自动跳过) → <b>S6 仓管员入库/出库确认</b>写 S6=1 = 工单完成。驳回退回经办人，S 值保留、可重新提交。工单页按钮顺序：<b>保存 → 提交 → 审核(通过/驳回) → 仓管确认(过账)</b>。</div>
+<div class="card"><div class="pad" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+<b>工单类型</b><input id="q" class="q" placeholder="搜索工单名称 / 编码" oninput="render()"><span style="flex:1"></span><span id="upd" class="sm mut"></span>
+<button class="b" onclick="addType()">+ 新建</button><button class="b" onclick="resetAll()">恢复默认</button><button class="b pri" onclick="saveAll()">保存全部配置</button></div>
+<div class="tblwrap"><table class="t"><thead><tr><th>工单</th><th>S1 提交<span class="sub">固定·经办人</span></th><th>S2 角色1<span class="sub">一级审批</span></th><th>S3<span class="sub">二级审批</span></th><th>S4<span class="sub">三级审批</span></th><th>S5<span class="sub">四级审批</span></th><th>S6 仓管确认<span class="sub">完成过账</span></th><th>启用链</th><th>操作</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="pad sm mut">S1 固定为经办人提交(不可改)；S6 固定为仓库管理员确认(不可改角色，可开关)。S2~S5 可开关 + 绑定角色；选“不绑定(跳过)”等同关闭该节点。内置 13 种不可删除，自建类型可删除。</div></div>
+<div class="card"><div class="pad"><b>字段说明(给开发/建表)</b>
+<div class="sm mut" style="margin-top:6px;line-height:1.9">单据主表新增：<b>S1,S2,S3,S4,S5,S6</b> tinyint(0/1，默认0)；<b>S1_BY/S2_BY… / S1_AT…</b> 记录审批人+时间；<b>FLOW_CUR</b> 当前节点；<b>FLOW_DONE</b> 是否走完。提交：S1=1；S2通过→S2=1…；S6 确认→S6=1=完成并过账。未绑定节点提交时自动记 1(跳过)并写日志“跳过”。</div></div></div>
+</div></div></div>
+<div id="t" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full"></div>
+<script>
+var CFG=ApproveFlow.load();
+function toast(m,bad){var t=document.getElementById('t');t.textContent=m;t.style.background=bad?'#b42318':'#0f172a';t.classList.remove('hide');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hide')},2400);}
+function isBuiltin(k){return ApproveFlow.BUILTIN_KEYS ? ApproveFlow.BUILTIN_KEYS.indexOf(k)>=0 : !/^custom_/.test(k);}
+function typeName(t){if(t.n)return t.n;var c=CFG[t.k];return (c&&c.name)||t.k;}
+function roleSel(type,idx,v,dis){return '<select class="f" data-type="'+type+'" data-idx="'+idx+'" '+(dis?'disabled':'')+' onchange="setRole(this)">'+ApproveFlow.ROLES.map(function(r){return '<option '+(r===v?'selected':'')+'>'+r+'</option>'}).join('')+'</select>';}
+function swBtn(type,idx,on,lock){return '<span class="sw-row"><button class="sw '+(on?'on':'')+'" data-type="'+type+'" data-idx="'+idx+'" '+(lock?'disabled':'')+' onclick="tog(this)" aria-label="开关" role="switch" aria-checked="'+(!!on)+'"></button><span class="sw-st '+(on?'on':'')+'">'+(on?'开':'关')+'</span></span>';}
+function render(){
+ var tb=document.getElementById('tb');var html='';
+ var q='';try{q=(document.getElementById('q').value||'').trim().toLowerCase();}catch(e){}
+ var list=ApproveFlow.allTypes().filter(function(t){if(!q)return true;var nm=typeName(t);return (nm+' '+t.k).toLowerCase().indexOf(q)>=0;});
+ list.forEach(function(t){
+  var c=CFG[t.k]||{steps:[]};var s=c.steps;
+  var chain=s.map(function(x){var skip=!x.on||x.role==='不绑定(跳过)';if(x.auto)return '<span class="nd on">S1·提交</span>';if(x.last)return '<span class="nd '+(x.on?'on':'skip')+'">S6·仓管确认</span>';return '<span class="nd '+(skip?'skip':'on')+'">'+x.k+'·'+x.role+'</span>';}).join('<span class="arr">→</span>');
+  html+='<tr><td><b>'+typeName(t)+'</b>'+(isBuiltin(t.k)?'':' <span class="tag custom">自建</span>')+'<br><span class="sm mut">'+t.k+'</span></td>'
+  +'<td><span class="tag">S1·经办人提交</span></td>'
+  +[1,2,3,4].map(function(i){var x=s[i];return '<td>'+swBtn(t.k,i,x.on,false)+'<div class="cell-sub">'+roleSel(t.k,i,x.role,false)+'</div><div class="sm mut">'+x.label+'</div></td>';}).join('')
+  +'<td>'+swBtn(t.k,5,s[5].on,false)+'<div class="sm mut cell-sub">S6·仓库管理员<br>确认=完成过账</div></td>'
+  +'<td><div class="chain">'+chain+'</div></td>'
+  +'<td>'+(isBuiltin(t.k)?'<span class="sm mut">内置</span>':'<button class="b danger" onclick="delType(\''+t.k+'\')">删除</button>')+'</td></tr>';
+ });
+ tb.innerHTML=html||'<tr><td colspan="9" class="sm mut" style="text-align:center;padding:24px">无匹配工单类型</td></tr>';
+ document.getElementById('upd').textContent='共 '+ApproveFlow.allTypes().length+' 种工单 · 改完点“保存全部配置”';
+}
+window.tog=function(b){var c=CFG[b.dataset.type];if(!c)return;var s=c.steps[Number(b.dataset.idx)];s.on=!s.on;if(!s.on)s.role='不绑定(跳过)';else if(s.role==='不绑定(跳过)')s.role='仓库负责人';ApproveFlow.save(CFG);render();};
+window.setRole=function(sel){var c=CFG[sel.dataset.type];if(!c)return;var s=c.steps[Number(sel.dataset.idx)];s.role=sel.value;if(sel.value==='不绑定(跳过)')s.on=false;else s.on=true;ApproveFlow.save(CFG);render();};
+window.saveAll=function(){ApproveFlow.save(CFG);toast('审批流配置已保存：'+ApproveFlow.allTypes().length+' 种工单 · S1~S6 即时生效');};
+window.resetAll=function(){try{localStorage.removeItem(ApproveFlow.KEY)}catch(e){}CFG=ApproveFlow.load();render();toast('已恢复默认审批流（自建类型保留、可单独删除）');};
+window.addType=function(){var name=window.prompt('新建工单类型名称，例如：物料·其他出库 / 成品·样品出库');if(name===null)return;var r=ApproveFlow.addCustom(name);if(!r.ok){toast(r.msg,true);return;}CFG=ApproveFlow.load();try{document.getElementById('q').value='';}catch(e){}render();toast('已新建：'+name);};
+window.delType=function(key){var c=CFG[key];var nm=c&&c.name?c.name:key;if(!window.confirm('确定删除自建类型「'+nm+'」？该类型的审批流配置将一并删除。'))return;var r=ApproveFlow.removeCustom(key);if(!r.ok){toast(r.msg,true);return;}CFG=ApproveFlow.load();render();toast('已删除：'+nm);};
+render();
+</script></body></html>

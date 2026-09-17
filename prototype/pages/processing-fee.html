@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>单据中心 · 加工费对账</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+.card{background:#fff;border:1px solid #dbeafe;border-radius:8px;box-shadow:0 8px 24px rgba(30,117,171,.06)}
+.fee-status{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.fee-pending{background:#fef3c7;color:#92400e}.fee-done{background:#dcfce7;color:#166534}.fee-diff{background:#fee2e2;color:#b91c1c}
+.fee-table th{font-size:11px;color:#4e7da1;font-weight:600;background:#eaf7ff;text-align:left;white-space:nowrap}
+.fee-table th,.fee-table td{padding:10px 9px;vertical-align:top;border-bottom:1px solid #e8f0f7}
+.fee-table tr:last-child td{border-bottom:0}.fee-table td{font-size:12px;color:#334155}.fee-action{color:#0875d2;font-weight:700;white-space:nowrap}
+.fee-modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(15,30,58,.42)}
+.fee-modal[hidden]{display:none}.fee-modal-panel{width:min(680px,100%);max-height:min(82vh,720px);overflow:auto;background:#fff;border:1px solid #dbeafe;border-radius:12px;box-shadow:0 18px 48px rgba(15,30,58,.24)}
+.fee-modal-header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid #e8f0f7}.fee-modal-header h2{margin:0;font-size:14px;color:#1e293b}.fee-modal-body{padding:18px}.fee-modal-close{border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:12px;background:#fff;color:#334155}.fee-modal-close:focus-visible,.fee-modal-panel button:focus-visible,.fee-modal-panel input:focus-visible,.fee-modal-panel select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
+@media(max-width:520px){.fee-modal{padding:10px}.fee-modal-panel{max-height:90vh;border-radius:10px}.fee-modal-body{padding:14px}.fee-modal-body form{grid-template-columns:1fr!important}.fee-modal-body form .col-span-2{grid-column:span 1 / span 1}}
+</style>
+<script src="../assets/store.js"></script>
+<script src="../assets/link.js"></script>
+<script src="../assets/nav.js"></script>
+</head>
+<body class="bg-[#f2f5fa]">
+<div class="flex min-h-screen">
+  <aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+  <div class="flex-1 min-w-0">
+    <header class="bg-white border-b px-6 py-3 text-xs text-slate-400">单据中心 / <b class="text-slate-700">加工费对账</b><span class="ml-2 bg-blue-50 text-blue-700 px-2 py-1 rounded">业务对账 · 金额为参考</span></header>
+    <main id="fee-main" class="p-6 space-y-4">
+      <div class="flex justify-between items-start flex-wrap gap-3">
+        <div><h1 class="text-xl font-extrabold">加工费对账</h1><p class="text-xs text-slate-500 mt-1">按客户、工单和车间核对加工数量与参考金额，不处理发票、收款或核销。</p></div>
+        <button type="button" class="px-3 py-2 bg-white border rounded-lg text-xs font-bold" onclick="exportFees()"><i class="fa-solid fa-download mr-1" aria-hidden="true"></i>导出对账记录</button>
+      </div>
+
+      <section class="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-label="对账摘要">
+        <div class="card p-3"><div class="text-xs text-slate-400">待核对</div><div id="pending-count" class="text-xl font-extrabold mt-1 text-amber-600">2</div><div class="text-[11px] text-slate-400 mt-1">需回到单据确认</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">已核对</div><div id="done-count" class="text-xl font-extrabold mt-1 text-emerald-600">18</div><div class="text-[11px] text-slate-400 mt-1">本期已归档</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">本期确认量</div><div class="text-xl font-extrabold mt-1 text-blue-700">4,840 件</div><div class="text-[11px] text-slate-400 mt-1">按客户确认量统计</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">参考金额</div><div class="text-xl font-extrabold mt-1 text-slate-800">¥12,800</div><div class="text-[11px] text-slate-400 mt-1">不作为财务凭证</div></div>
+      </section>
+
+      <section class="card p-4" aria-labelledby="fee-list-title">
+        <div class="flex justify-between items-center gap-3 flex-wrap">
+          <div><h2 id="fee-list-title" class="text-sm font-bold">加工费对账记录</h2><p class="text-[11px] text-slate-400 mt-1">一张对账单对应一个业务目的，详情可查看关联送料、领料和成品记录。</p></div>
+          <span id="fee-count" class="text-xs text-slate-400" role="status" aria-live="polite"></span>
+        </div>
+        <div class="flex items-end gap-2 flex-wrap mt-4" role="search" aria-label="筛选加工费对账记录">
+          <label class="grid gap-1 text-[11px] text-slate-500">关键词<input id="fee-q" type="search" class="border rounded-lg px-3 py-2 w-56" placeholder="对账单 / 客户 / 工单" aria-label="搜索对账单、客户或工单"></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">客户<select id="fee-customer" class="border rounded-lg px-2 py-2" aria-label="按客户筛选"><option value="">全部客户</option><option>恒达服饰</option><option>宏远纺织</option><option>雅致制衣</option></select></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">车间<select id="fee-workshop" class="border rounded-lg px-2 py-2" aria-label="按车间筛选"><option value="">全部车间</option><option>缝制一车间</option><option>裁剪车间</option><option>缝制二车间</option></select></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">状态<select id="fee-status" class="border rounded-lg px-2 py-2" aria-label="按对账状态筛选"><option value="">全部状态</option><option>待核对</option><option>已核对</option><option>有差异</option></select></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">开始日期<input id="fee-from" type="date" value="2026-09-01" class="border rounded-lg px-2 py-2" aria-label="对账开始日期"></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">结束日期<input id="fee-to" type="date" value="2026-09-12" class="border rounded-lg px-2 py-2" aria-label="对账结束日期"></label>
+          <button type="button" class="border bg-white rounded-lg px-3 py-2 text-xs" onclick="resetFees()">重置</button>
+        </div>
+        <div class="overflow-x-auto mt-3">
+          <table class="fee-table w-full min-w-[980px]"><thead><tr><th>对账单号</th><th>客户 / 工单</th><th>车间</th><th>确认量</th><th>单价</th><th>参考金额</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="fee-body"></tbody></table>
+        </div>
+        <div id="fee-empty" hidden class="text-center text-slate-400 text-xs py-8">暂无匹配的加工费对账记录，请调整筛选条件。</div>
+      </section>
+    </main>
+  </div>
+</div>
+<div id="fee-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="fee-modal" class="fee-modal" hidden role="dialog" aria-modal="true" aria-labelledby="fee-modal-title"><div class="fee-modal-panel" role="document"><div class="fee-modal-header"><h2 id="fee-modal-title">对账详情</h2><button type="button" class="fee-modal-close" aria-label="关闭对账详情" onclick="closeFeeDetail()">关闭</button></div><div id="fee-modal-body" class="fee-modal-body"></div></div></div>
+<script>
+var FEES=[
+ {id:'DZ2026091201',customer:'恒达服饰',order:'HD20260908-03',workshop:'缝制一车间',qty:'1,480 件',price:'¥2.50/件',amount:'¥3,700',status:'待核对',date:'2026-09-12',time:'09:10',note:'送料 5,000 米 · 领料 3,200 米 · 成品 1,500 件',dirty:false},
+ {id:'DZ2026091202',customer:'宏远纺织',order:'HY20260905-01',workshop:'裁剪车间',qty:'1,280 米',price:'¥2.50/米',amount:'¥3,200',status:'已核对',date:'2026-09-11',time:'17:20',note:'送料 2,000 米 · 领料 1,350 米 · 成品折标 1,280 米',dirty:false},
+ {id:'DZ2026091103',customer:'雅致制衣',order:'YZ20260910-02',workshop:'缝制二车间',qty:'160 件',price:'¥2.50/件',amount:'¥400',status:'有差异',date:'2026-09-11',time:'15:40',note:'客户确认量比成品记录少 20 件，待回单据复核',dirty:false},
+ {id:'DZ2026091004',customer:'恒达服饰',order:'HD20260907-01',workshop:'缝制一车间',qty:'600 件',price:'¥2.50/件',amount:'¥1,500',status:'已核对',date:'2026-09-10',time:'18:05',note:'关联成品输出记录 CP2026091008',dirty:false}
+];
+function toast(message){var el=document.getElementById('fee-toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(el._timer);el._timer=setTimeout(function(){el.classList.add('hidden');},2200);}
+function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+function statusClass(status){return status==='已核对'?'fee-done':status==='有差异'?'fee-diff':'fee-pending';}
+function renderFees(){var q=(document.getElementById('fee-q').value||'').trim().toLowerCase(),customer=document.getElementById('fee-customer').value,workshop=document.getElementById('fee-workshop').value,status=document.getElementById('fee-status').value,from=document.getElementById('fee-from').value,to=document.getElementById('fee-to').value,rows=FEES.filter(function(f){var hay=[f.id,f.customer,f.order,f.workshop,f.qty,f.amount,f.status].join(' ').toLowerCase();return(!q||hay.indexOf(q)>-1)&&(!customer||f.customer===customer)&&(!workshop||f.workshop===workshop)&&(!status||f.status===status)&&(!from||f.date>=from)&&(!to||f.date<=to);});document.getElementById('fee-body').innerHTML=rows.map(function(f){return '<tr><td><b class="text-blue-700">'+esc(f.id)+'</b></td><td><b>'+esc(f.customer)+'</b><br><span class="text-slate-400">'+esc(f.order)+'</span></td><td>'+esc(f.workshop)+'</td><td>'+esc(f.qty)+'</td><td>'+esc(f.price)+'</td><td><b>'+esc(f.amount)+'</b></td><td><span class="fee-status '+statusClass(f.status)+'">'+esc(f.status)+'</span></td><td class="text-slate-400">'+esc(f.date.slice(5))+' '+esc(f.time)+'</td><td><button type="button" class="fee-action" onclick="viewFee(\''+esc(f.id)+'\')">查看</button> <button type="button" class="fee-action ml-2" onclick="editFee(\''+esc(f.id)+'\')">编辑</button> '+(f.status==='待核对'||f.status==='有差异'?'<button type="button" class="fee-action ml-2" onclick="confirmFee(\''+esc(f.id)+'\')">核对</button>':'')+'</td></tr>';}).join('');document.getElementById('fee-count').textContent='当前显示 '+rows.length+' 条';document.getElementById('fee-empty').hidden=rows.length>0;}
+function openFeeModal(){var modal=document.getElementById('fee-modal');modal.hidden=false;document.body.style.overflow='hidden';modal._returnFocus=document.activeElement;modal.querySelector('.fee-modal-close').focus();}
+function viewFee(id){var f=FEES.find(function(x){return x.id===id;});if(!f)return;document.getElementById('fee-modal-title').textContent=f.id+' · 对账详情（只读）';document.getElementById('fee-modal-body').innerHTML='<div class="grid grid-cols-2 gap-3 text-xs"><div><span class="text-slate-400">客户 / 工单</span><div class="font-bold mt-1">'+esc(f.customer)+' · '+esc(f.order)+'</div></div><div><span class="text-slate-400">车间</span><div class="font-bold mt-1">'+esc(f.workshop)+'</div></div><div><span class="text-slate-400">确认量 / 参考金额</span><div class="font-bold mt-1">'+esc(f.qty)+' · '+esc(f.amount)+'</div></div><div><span class="text-slate-400">状态</span><div class="mt-1"><span class="fee-status '+statusClass(f.status)+'">'+esc(f.status)+'</span></div></div></div><div class="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs">'+esc(f.note)+'</div>'+(f.financeNote?'<div class="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-xs"><b class="text-emerald-700">财务核对备注</b><div class="mt-1">'+esc(f.financeNote)+'</div></div>':'');openFeeModal();}
+function editFee(id){var f=FEES.find(function(x){return x.id===id;});if(!f)return;document.getElementById('fee-modal-title').textContent=f.id+' · 编辑工单对账数据';document.getElementById('fee-modal-body').innerHTML='<form id="fee-edit-form" class="grid grid-cols-2 gap-3" onsubmit="saveFeeEdit(event,\''+esc(f.id)+'\')"><label class="grid gap-1 text-[11px] text-slate-500">客户<input name="customer" required class="border rounded-lg px-3 py-2" value="'+esc(f.customer)+'"></label><label class="grid gap-1 text-[11px] text-slate-500">关联工单<input name="order" required class="border rounded-lg px-3 py-2" value="'+esc(f.order)+'"></label><label class="grid gap-1 text-[11px] text-slate-500">车间<select name="workshop" class="border rounded-lg px-2 py-2"><option'+(f.workshop==='缝制一车间'?' selected':'')+'>缝制一车间</option><option'+(f.workshop==='裁剪车间'?' selected':'')+'>裁剪车间</option><option'+(f.workshop==='缝制二车间'?' selected':'')+'>缝制二车间</option></select></label><label class="grid gap-1 text-[11px] text-slate-500">确认量<input name="qty" required type="number" min="0" step="0.001" class="border rounded-lg px-3 py-2" value="'+esc(f.qty.replace(/[^0-9.]/g,''))+'"></label><label class="grid gap-1 text-[11px] text-slate-500">单价<input name="price" required type="number" min="0" step="0.01" class="border rounded-lg px-3 py-2" value="'+esc(f.price.replace(/[^0-9.]/g,''))+'"></label><div class="text-[11px] text-slate-500 self-end">当前状态：<span class="fee-status '+statusClass(f.status)+'">'+esc(f.status)+'</span></div><div class="col-span-2 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs">'+esc(f.note)+'</div><div class="col-span-2 flex justify-end gap-2"><button type="button" class="border rounded-lg px-3 py-2" onclick="closeFeeDetail()">取消</button><button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 font-bold">保存修改</button></div></form>';document.querySelectorAll('#fee-edit-form input,#fee-edit-form select').forEach(function(control){control.addEventListener('input',function(){f.dirty=true;});control.addEventListener('change',function(){f.dirty=true;});});openFeeModal();document.querySelector('#fee-edit-form input, #fee-edit-form select').focus();}
+function saveFeeEdit(event,id){event.preventDefault();var f=FEES.find(function(x){return x.id===id;}),form=event.target,qty=Number(form.qty.value),price=Number(form.price.value);if(!f||!form.customer.value.trim()||!form.order.value.trim()||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0){toast('请填写完整工单数据',true);return;}f.customer=form.customer.value.trim();f.order=form.order.value.trim();f.workshop=form.workshop.value;f.qty=qty.toLocaleString()+' '+(f.qty.indexOf('米')>-1?'米':'件');f.price='¥'+price.toFixed(2)+'/'+(f.qty.indexOf('米')>-1?'米':'件');f.amount='¥'+(qty*price).toLocaleString(undefined,{maximumFractionDigits:2});f.status='待核对';f.dirty=false;renderFees();closeFeeDetail();toast(f.id+' 修改已保存，请进行最终核对');}
+function closeFeeDetail(){var modal=document.getElementById('fee-modal');modal.hidden=true;document.body.style.overflow='';if(modal._returnFocus&&modal._returnFocus.focus)modal._returnFocus.focus();}
+function confirmFee(id){var f=FEES.find(function(x){return x.id===id;});if(!f)return;if(f.dirty){toast('存在未保存的工单修改，请先保存后再核对',true);viewFee(id);return;}document.getElementById('fee-modal-title').textContent=f.id+' · 财务核对';document.getElementById('fee-modal-body').innerHTML='<form id="fee-confirm-form" class="grid gap-3" onsubmit="submitFeeConfirmation(event,\''+esc(f.id)+'\')"><div class="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-slate-600">请核对客户、工单、确认量和参考金额。填写财务备注并确认无误后，状态才会变为“已核对”。</div><div class="grid grid-cols-2 gap-3 text-xs"><div><span class="text-slate-400">客户 / 工单</span><div class="font-bold mt-1">'+esc(f.customer)+' · '+esc(f.order)+'</div></div><div><span class="text-slate-400">确认量 / 参考金额</span><div class="font-bold mt-1">'+esc(f.qty)+' · '+esc(f.amount)+'</div></div></div><label class="grid gap-1 text-[11px] text-slate-500">财务核对备注<textarea name="financeNote" required rows="3" class="border rounded-lg px-3 py-2" placeholder="请填写核对依据、差异说明或付款备注"></textarea></label><label class="flex items-start gap-2 text-xs text-slate-700"><input name="confirmed" type="checkbox" required class="mt-0.5">我确认以上数据无误，可以完成核对</label><div class="flex justify-end gap-2"><button type="button" class="border rounded-lg px-3 py-2" onclick="closeFeeDetail()">取消</button><button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 font-bold">确认无误并完成核对</button></div></form>';openFeeModal();document.querySelector('#fee-confirm-form textarea').focus();}
+function submitFeeConfirmation(event,id){event.preventDefault();var f=FEES.find(function(x){return x.id===id;}),form=event.target;if(!f||!form.financeNote.value.trim()||!form.confirmed.checked){toast('请填写财务备注并勾选确认无误',true);return;}f.financeNote=form.financeNote.value.trim();f.status='已核对';f.dirty=false;renderFees();closeFeeDetail();toast(f.id+' 已完成财务核对并留痕');}
+function resetFees(){['fee-q','fee-customer','fee-workshop','fee-status'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('fee-from').value='2026-09-01';document.getElementById('fee-to').value='2026-09-12';renderFees();toast('筛选条件已重置');}
+function exportFees(){toast('对账记录已导出（当前筛选结果）');}
+document.getElementById('fee-modal').addEventListener('click',function(event){if(event.target===this)closeFeeDetail();});
+document.addEventListener('keydown',function(event){var modal=document.getElementById('fee-modal');if(modal.hidden)return;if(event.key==='Escape'){event.preventDefault();closeFeeDetail();return;}if(event.key==='Tab'){var focusables=modal.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])');if(!focusables.length)return;var first=focusables[0],last=focusables[focusables.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
+['fee-q','fee-customer','fee-workshop','fee-status','fee-from','fee-to'].forEach(function(id){document.getElementById(id).addEventListener('input',renderFees);document.getElementById(id).addEventListener('change',renderFees);});
+renderFees();
+</script>
+</body>
+</html>
