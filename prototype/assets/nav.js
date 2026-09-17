@@ -6,9 +6,9 @@
     var theme=document.createElement('link'); theme.id='wms-shared-theme'; theme.rel='stylesheet'; theme.href=SPA_SHELL?'assets/theme.css':'../assets/theme.css'; document.head.appendChild(theme);
   }
   var FILE = {
-    login:'login.html', home:'home.html', dashboard:'dashboard.html', inventory:'inventory.html', location:'location.html', materialCode:'material-workbench.html',
-    receipt:'receipt.html', issue:'issue.html', transfer:'transfer.html', approveFlow:'approve-flow.html',
-    workshop:'material-workbench.html', workshopReceive:'material-workbench.html', return:'material-workbench.html', finished:'finished.html',
+    login:'login.html', home:'home.html', dashboard:'dashboard.html', location:'location.html', materialCode:'material-workbench.html',
+    transfer:'transfer.html', approveFlow:'approve-flow.html',
+    finished:'finished.html',
     base:'base.html', warehouseArchive:'warehouse-archive.html', locationArchive:'location-archive.html', customerArchive:'customer-archive.html', docs:'docs.html', ocr:'ocr.html', scanlog:'scanlog.html', qrcode:'qrcode.html',
     stocktake:'stocktake.html', report:'report.html', reportConfig:'report-config.html', audit:'audit.html', processingFee:'processing-fee.html', ai:'ai.html', users:'users.html', equipment:'equipment.html', ocrResult:'ocr-result.html',
     materialRequest:'material-workbench.html', materialRegister:'material-workbench.html', materialReject:'material-workbench.html', materialInbound:'material-workbench.html', materialIssue:'material-workbench.html', materialWReturn:'material-workbench.html', materialReturn:'material-workbench.html', materialStock:'material-workbench.html',
@@ -18,8 +18,8 @@
     baseBom:'base.html', baseMat:'base.html', baseOrg:'base.html', baseLoc:'base.html', baseProd:'base.html', baseTpl:'base.html'
   };
   var SECTION = {
-    login:'login', home:'home', dashboard:'dashboard', inventory:'inventory', location:'location', materialCode:'materialCode', receipt:'receipt',
-    issue:'issue', transfer:'transfer', workshop:'materialRequest', workshopReceive:'materialIssue', return:'materialWReturn',
+    login:'login', home:'home', dashboard:'dashboard', location:'location', materialCode:'materialCode',
+    transfer:'transfer', workshop:'materialRequest', workshopReceive:'materialIssue', return:'materialWReturn',
      finished:'finished', base:'base', baseBom:'baseBom', baseMat:'baseMat', baseOrg:'baseOrg', baseLoc:'baseLoc', baseProd:'baseProd', baseTpl:'baseTpl', warehouseArchive:'warehouseArchive', locationArchive:'locationArchive', customerArchive:'customerArchive', docs:'docs', ocr:'ocr', scanlog:'scanlog', qrcode:'qrcode',
     stocktake:'stocktake', report:'report', reportConfig:'reportConfig', audit:'audit', processingFee:'processingFee', ai:'ai', users:'users', equipment:'equipment', ocrResult:'ocrResult',
     materialRequest:'materialRequest', materialRegister:'materialRegister', materialReject:'materialReject', materialInbound:'materialInbound', materialIssue:'materialIssue', materialWReturn:'materialWReturn', materialReturn:'materialReturn', materialStock:'materialStock',

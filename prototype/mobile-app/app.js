@@ -272,7 +272,9 @@
     openFinishedInbound:function(){location.href='../pages/finished.html?view=inbound&from=app'},
     openFinishedReturn:function(){location.href='../pages/finished.html?view=wreturn&from=app'},
     openFinishedDeliver:function(){location.href='../pages/finished.html?view=deliver&mode=new&from=app'},
-
+    open:function(no){
+      var d=FieldDB.findDoc(no);
+      if(!d){UI.go('todo');return}
       var map={receipt_checklist:'checklist',issue:'issue',wreturn:'wreturn',transfer:'transfer',receive:'receive',inbound:'inbound'};
       UI.go(map[d.type]||'todo',{doc:no});
     },

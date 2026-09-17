@@ -257,7 +257,7 @@
     var map={
       'home.html':'home','dashboard.html':'dashboard','ai.html':'ai','base.html':'base','docs.html':'docs','ocr.html':'ocr','ocr-result.html':'ocrResult',
       'report.html':'report','report-config.html':'reportConfig','audit.html':'audit','processing-fee.html':'processingFee','users.html':'users','equipment.html':'equipment',
-      'receipt.html':'receipt','issue.html':'issue','transfer.html':'transfer','workshop.html':'workshop','workshop-receive.html':'workshopReceive','return.html':'return','inventory.html':'inventory','finished.html':'finished',
+      'transfer.html':'transfer','finished.html':'finished',
       'location-archive.html':'location','location.html':'location','warehouse-archive.html':'warehouseArchive','customer-archive.html':'customerArchive','scanlog.html':'scanlog','stocktake.html':'stocktake','qrcode.html':'qrcode'
     };
     if(file==='material-workbench.html'){
