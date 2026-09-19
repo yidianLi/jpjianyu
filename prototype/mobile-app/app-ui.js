@@ -1,4 +1,4 @@
-/* 现场作业APP · UI 原语：toast/sheet/底部导航/视图容器/签名板 */
+/* 现场作业APP · UI 原语：toast/sheet/底部导航/视图容器/拍照存证 */
 (function(){
   var UI={};
   var toastT;
@@ -68,25 +68,39 @@
       return '<button onclick="'+action+'" class="'+ic[1]+'"><i class="fa-solid '+ic[0]+'"></i>'+label+'</button>';
     }).join('');
   };
-  /* 签名板 */
+  /* 签名板已下线（2026-09-19）：全系统不再使用手写签名，提交以登录账号+拍照存证为准。
+     保留空壳仅防旧代码误调。 */
   UI.signPad=function(host,onOk){
-    host.innerHTML='<div class="signpad"><canvas></canvas><div class="ph">请在框内签名 ✍️</div></div>'
-      +'<div class="btnrow"><button class="btn ghost sm" data-sign-clear>清除</button><button class="btn pri sm" data-sign-ok>确认签名</button></div>';
-    var cv=host.querySelector('canvas'),ph=host.querySelector('.ph'),ctx=cv.getContext('2d');
-    function fit(){var r=cv.getBoundingClientRect();cv.width=r.width*2;cv.height=r.height*2;ctx.scale(2,2);ctx.lineWidth=2.2;ctx.lineCap='round';ctx.strokeStyle='#152338'}
-    setTimeout(fit,60);
-    var draw=false,has=false;
-    function pos(e){var r=cv.getBoundingClientRect();var p=e.touches?e.touches[0]:e;return[p.clientX-r.left,p.clientY-r.top]}
-    function start(e){draw=true;has=true;ph.style.display='none';var p=pos(e);ctx.beginPath();ctx.moveTo(p[0],p[1]);e.preventDefault()}
-    function move(e){if(!draw)return;var p=pos(e);ctx.lineTo(p[0],p[1]);ctx.stroke();e.preventDefault()}
-    function end(){draw=false}
-    cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);window.addEventListener('mouseup',end);
-    cv.addEventListener('touchstart',start,{passive:false});cv.addEventListener('touchmove',move,{passive:false});cv.addEventListener('touchend',end);
-    host.querySelector('[data-sign-clear]').onclick=function(){ctx.clearRect(0,0,cv.width,cv.height);has=false;ph.style.display='grid'};
-    host.querySelector('[data-sign-ok]').onclick=function(){
-      if(!has){UI.toast('签名为空，禁止提交',1);return}
-      onOk(cv.toDataURL('image/png'));
+    if(host)host.style.display='none';
+    if(typeof onOk==='function'){try{onOk(null);}catch(e){}}
+  };
+  /* 拍照存证（相机唤起）：input capture=environment，PDA/手机直接调相机 */
+  UI.photoField=function(host,opts){
+    opts=opts||{};
+    var key=opts.key||('photos_'+Date.now());
+    host.innerHTML='<div class="photo-field"><input type="file" accept="image/*" capture="environment" multiple data-photo-input style="display:none">'
+      +'<div class="btnrow"><button class="btn ghost sm" data-photo-pick>拍照 / 上传图片</button><span class="sub" data-photo-count>0 张</span></div>'
+      +'<div class="photo-prev" data-photo-prev style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div></div>';
+    var input=host.querySelector('[data-photo-input]'),prev=host.querySelector('[data-photo-prev]'),count=host.querySelector('[data-photo-count]');
+    var list=opts.list||[];
+    function paint(){
+      count.textContent=list.length+' 张';
+      prev.innerHTML=list.map(function(p,i){return '<div style="position:relative"><img src="'+p+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#dbe5ef)"><button data-photo-del="'+i+'" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:99px;border:0;background:#b42318;color:#fff;font-size:12px">×</button></div>';}).join('');
+      prev.querySelectorAll('[data-photo-del]').forEach(function(b){b.onclick=function(){list.splice(Number(b.getAttribute('data-photo-del')),1);paint();if(opts.onChange)opts.onChange(list);};});
+    }
+    host.querySelector('[data-photo-pick]').onclick=function(){input.click();};
+    input.onchange=function(){
+      var files=[].slice.call(input.files||[]).slice(0,6);
+      var left=6-list.length;
+      files.slice(0,Math.max(0,left)).forEach(function(f){
+        var r=new FileReader();
+        r.onload=function(){var img=new Image();img.onload=function(){var c=document.createElement('canvas'),max=1024,s=Math.min(1,max/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);list.push(c.toDataURL('image/jpeg',0.7));paint();if(opts.onChange)opts.onChange(list);};img.src=r.result;};
+        r.readAsDataURL(f);
+      });
+      input.value='';
     };
+    paint();
+    return {get:function(){return list;}};
   };
   window.UI=UI;
 })();

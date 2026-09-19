@@ -56,9 +56,8 @@
         return r;
       });
     },
-    // 5.提交(签名必填, 离线进队列 mobile_sync_queue)
+    // 5.提交(登录账号+照片存证, 离线进队列 mobile_sync_queue)
     submit:function(payload){
-      if(!payload.sign){ return Promise.resolve({ok:false,code:'SIGN_REQUIRED',msg:'签名为空禁止提交'}); }
       if(!navigator.onLine){ var q=qLoad(); q.push({ts:Date.now(),payload:payload}); qSave(q); return Promise.resolve({ok:true,queued:true,msg:'弱网已存草稿, 待同步'}); }
       return req('/app/submit',{method:'POST',body:payload,mock:{ok:true,data:{orderId:'LY2026091211'}}});
     },

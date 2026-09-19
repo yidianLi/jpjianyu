@@ -1,4 +1,4 @@
-/* 现场作业APP · 业务视图（含校验/弱网/签名/幂等，与PC同口径） */
+/* 现场作业APP · 业务视图（含校验/弱网/拍照存证/幂等，与PC同口径） */
 (function(){
   if(!document.getElementById('qty-field-style')){var qtyStyle=document.createElement('style');qtyStyle.id='qty-field-style';qtyStyle.textContent='.qty-value,.qty-unit{display:inline-block}.qty-value{font-variant-numeric:tabular-nums;margin-right:3px}.qty-unit{font-weight:600;color:#64748b}';document.head.appendChild(qtyStyle)}
   var DB=FieldDB.get;
@@ -68,7 +68,7 @@
       +'<div class="btnrow"><button class="btn ghost sm" onclick="App.simScan(\'SB20260910003-01\')">SB-01 正常</button><button class="btn ghost sm" onclick="App.simScan(\'SB20260910003-01DUP\')">重复码</button><button class="btn ghost sm" onclick="App.simScan(\'BADCODE\')">无效码</button></div></div>'
       +'<div class="sect"><h2>本次扫码记录</h2><span>'+db.scans.length+' 条</span></div>'
       +'<div class="scanlog">'+(db.scans.slice().reverse().map(function(s){return '<div class="slog '+(s.ok?'ok':'bad')+'"><i class="fa-solid '+(s.ok?'fa-check':'fa-xmark')+'"></i><span class="code">'+esc(s.code)+'</span><span>'+esc(s.msg)+'</span><span class="t">'+s.t+'</span></div>'}).join('')||'<div class="empty">暂无扫码，先扫库区码再扫物料码</div>')+'</div>'
-      +'<div class="card" style="margin-top:10px"><div class="top"><b>提交确认摘要</b>'+tag(db.scans.some(function(s){return s.ok})?'PENDING':'DRAFT')+'</div><div class="sub">照片3 · 扫码'+db.scans.filter(function(s){return s.ok}).length+' · 双签名 · PDA-03</div><div class="btnrow"><button class="btn ghost" onclick="App.scanDraft()">弱网存草稿</button><button class="btn pri" onclick="App.scanSubmit()">提交</button></div></div>';
+      +'<div class="card" style="margin-top:10px"><div class="top"><b>提交确认摘要</b>'+tag(db.scans.some(function(s){return s.ok})?'PENDING':'DRAFT')+'</div><div class="sub">扫码'+db.scans.filter(function(s){return s.ok}).length+' · 账号+照片存证 · PDA-03</div><div class="btnrow"><button class="btn ghost" onclick="App.scanDraft()">弱网存草稿</button><button class="btn pri" onclick="App.scanSubmit()">提交</button></div></div>';
   }});
   /* ---------- 通用单行创建 ---------- */
   function newDoc(type,title,dir){
@@ -141,13 +141,13 @@
   function bizName(b){return b==='product'?'成品':'物料'}
   var DRCFG={
     inbound:{title:'入库',src:'关联登记单',modes:['finarc'],qty:'验收数量',dir:'+',toast:'审批入账完成'},
-    issue:{title:'领料',src:'关联登记单',modes:['stock'],qty:'实发数量',dir:'-',toast:'发料完成（双签名存证）'},
+    issue:{title:'领料',src:'关联登记单',modes:['stock'],qty:'实发数量',dir:'-',toast:'发料完成（账号+照片存证）'},
     transfer:{title:'调仓',src:'关联调仓申请',modes:['stock'],qty:'调仓数量',dir:'-',toast:'调仓已提交（源仓减 · 在途增）'},
     stocktake:{title:'实物盘点',src:'关联盘点任务',modes:['stock'],qty:'实盘数量',dir:'*',toast:'实盘已提交'},
-    deliver:{title:'成品交付',src:'关联成品登记单',modes:['finstock','finarc'],qty:'交付数量',dir:'-',toast:'交付完成（含签收存证）'}
+    deliver:{title:'成品交付',src:'关联成品登记单',modes:['finstock','finarc'],qty:'交付数量',dir:'-',toast:'交付完成（含照片存证）'}
   };
   function blankDr(key){
-    var b={biz:'material',src_doc:'',lines:[],wh:'成品仓A',loc:'',qc:'合格',sign:null,reason:''};
+    var b={biz:'material',src_doc:'',lines:[],wh:'成品仓A',loc:'',qc:'合格',photos:[],reason:''};
     if(key==='inbound'){b.fin_warehouse='成品仓A'}
     if(key==='transfer'){b.from_wh='成品仓A';b.from_loc='第1栏第1格';b.to_wh='成品仓B';b.to_loc='A区-01'}
     if(key==='deliver'){b.customer='恒达服饰';b.recv='';b.stime=''}
@@ -198,8 +198,9 @@
       extra='<div class="flab">源仓库 / 源库区<i>*</i></div><div class="qtyrow"><select class="f" onchange="App.fromWh(\''+key+'\',this.value)">'+whs.map(function(w){return '<option'+(w===d.from_wh?' selected':'')+'>'+esc(w)+'</option>'}).join('')+'</select><select class="f" onchange="App.drField(\''+key+'\',\'from_loc\',this.value)">'+FieldDB.locsOf(d.from_wh).map(function(x){return '<option'+(x===d.from_loc?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'
         +'<div class="flab">目标仓库 / 目标库区<i>*</i></div><div class="qtyrow"><select class="f" onchange="App.toWh(\''+key+'\',this.value)">'+whs.map(function(w){return '<option'+(w===d.to_wh?' selected':'')+'>'+esc(w)+'</option>'}).join('')+'</select><select class="f" onchange="App.drField(\''+key+'\',\'to_loc\',this.value)">'+FieldDB.locsOf(d.to_wh).map(function(x){return '<option'+(x===d.to_loc?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>';
     }
-    if(key==='deliver')extra='<div class="flab">接收人<i>*</i></div><input class="f" value="'+esc(d.recv||'')+'" onchange="App.drField(\''+key+'\',\'recv\',this.value)" placeholder="如 恒达物流 · 陈司机"><div class="flab">签收时间<i>*</i></div><input class="f" type="datetime-local" value="'+esc(d.stime||'')+'" onchange="App.drField(\''+key+'\',\'stime\',this.value)">';
-    if(key==='issue'||key==='deliver')extra+='<div class="flab">'+(key==='deliver'?'客户签名':'领用人签名')+'（必填）<i>*</i></div><div id="drSign"></div>';
+    if(key==='deliver')extra='<div class="flab">接收人<i>*</i></div><input class="f" value="'+esc(d.recv||'')+'" onchange="App.drField(\''+key+'\',\'recv\',this.value)" placeholder="如 恒达物流 · 陈司机"><div class="flab">签收时间<i>*</i></div><input class="f" type="datetime-local" value="'+esc(d.stime||'')+'" onchange="App.drField(\''+key+'\',\'stime\',this.value)">'
+      +'<div class="flab">现场照片（交付存证）</div><div id="drPhoto"></div>';
+    if(key==='issue')extra+='<div class="flab">现场照片（发料存证，可选）</div><div id="drPhoto"></div>';
     el.innerHTML='<div class="sect"><h2>'+esc((key==='inbound'||key==='issue'?bizName(d.biz)+' · ':'')+c.title)+'</h2><span>'+d.lines.length+' 行</span></div>'
       +'<div class="card tblue"><div class="top"><b>'+esc(c.src)+'（可选）</b><button class="btn ghost sm" onclick="App.openSrc(\''+key+'\')">快捷关联</button></div><div class="sub">'+(cur?('已关联 '+esc(cur.no)+' · '+esc(cur.date)+' · '+esc(cur.party||cur.from||cur.wh||'')+' · '+cur.lines.length+' 行'):(key==='stocktake'?'不关联，按库存全量盘点':(key==='transfer'?'不关联，直接调仓':'不关联，直接办理')))+'</div></div>'
       +'<div class="btnrow" style="margin-top:0"><button class="btn ghost sm" onclick="App.openAdd(\''+key+'\')">＋ 快捷添加清单</button><button class="btn ghost sm" onclick="App.openMatDirect(\''+key+'\')">＋ 选'+(c.modes.indexOf('stock')>=0?'库存':'物料')+'</button><button class="btn ghost sm" onclick="App.clearLines(\''+key+'\')">清空</button></div>'
@@ -208,23 +209,23 @@
       +extra
       +'<div class="btnrow"><button class="btn ghost" onclick="App.drDraft(\''+key+'\')">存草稿</button><button class="btn teal" onclick="App.submitDr(\''+key+'\')">提交并过账</button></div>'
       +'<div class="sub" style="margin-top:8px">'+(DRCFG[key].dir==='+'?'入账后一物一码/批次码自动生成':DRCFG[key].dir==='-'?'出库数量 ≤ 可用量，超发拦截':'盘点不动账，差异生成调整单')+'；过账幂等，重复提交自动拒绝。</div>';
-    var sg=el.querySelector('#drSign');
-    if(sg)UI.signPad(sg,function(img){d.sign=img;FieldDB.save();UI.toast('签名已采集')});
+    var sg=el.querySelector('#drPhoto');
+    if(sg)UI.photoField(sg,{list:d.photos||(d.photos=[]),onChange:function(){FieldDB.save();}});
   }}}
   UI.reg('inbound',drView('inbound'));
   UI.reg('issue',drView('issue'));
   UI.reg('receive',{render:function(el){
     var d=FieldDB.findDoc('ZS2026091604');
-    el.innerHTML=docCard(d)+'<div class="flab">签收签名<i>*</i></div><div id="rcSign"></div><div class="btnrow"><button class="btn teal" onclick="App.doReceive()">签收确认</button></div>';
-    UI.signPad(el.querySelector('#rcSign'),function(){UI.toast('签收签名已采集')});
+    el.innerHTML=docCard(d)+'<div class="flab">现场照片（签收存证）</div><div id="rcPhoto"></div><div class="btnrow"><button class="btn teal" onclick="App.doReceive()">签收确认</button></div>';
+    UI.photoField(el.querySelector('#rcPhoto'),{list:d.photos||(d.photos=[]),onChange:function(){FieldDB.save();}});
   }});
   UI.reg('wreturn',{render:function(el){
     var d=FieldDB.findDoc('TL2026091601');
     el.innerHTML=docCard(d,'<div class="sub">原领用单 '+d.src_doc+' · 超退自动拦截</div>')
       +'<div class="flab">退料原因（必填）<i>*</i></div><input class="f" id="wrReason" placeholder="如 布头不足 / 规格不符">'
-      +'<div class="flab">退料人签名<i>*</i></div><div id="wrSign"></div>'
+      +'<div class="flab">现场照片（退料存证）</div><div id="wrPhoto"></div>'
       +'<div class="btnrow"><button class="btn ghost" onclick="App.saveDraft()">存草稿</button><button class="btn amber" onclick="App.doReturn()">提交退料</button></div>';
-    UI.signPad(el.querySelector('#wrSign'),function(){UI.toast('退料签名已采集')});
+    UI.photoField(el.querySelector('#wrPhoto'),{list:d.photos||(d.photos=[]),onChange:function(){FieldDB.save();}});
   }});
   UI.reg('transfer',drView('transfer'));
   UI.reg('stocktake',drView('stocktake'));
@@ -569,7 +570,6 @@
       if(c.dir==='-'){
         var over=d.lines.filter(function(l){return l.avail!=null&&Number(l.qty)>Number(l.avail)});
         if(over.length){UI.toast('超发拦截：'+over[0].name+' 可用 '+over[0].avail+'，本次 '+over[0].qty,1);return}
-        if(!d.sign){UI.toast('签名为空，禁止提交',1);return}
       }
       if(key==='deliver'&&(!String(d.recv||'').trim()||!String(d.stime||'').trim())){UI.toast('外部客户交付需填写接收人与签收时间',1);return}
       if(!navigator.onLine){enqueue(key+'_draft',{key:key,lines:d.lines.length},'弱网已存草稿（'+d.lines.length+' 行）');return}
@@ -733,14 +733,11 @@
       FieldDB.save();UI.toast('已切换为'+bizName(b)+'登记 · 请重新关联/添加清单');UI.go('register');
     },
     doReceive:function(){
-      var signed=!!document.getElementById('rcSign').dataset.img;
-      if(!signed){UI.toast('请先签收签名',1);return}
       var d=FieldDB.findDoc('ZS2026091604');d.status='APPROVED';FieldDB.save();UI.toast(d.doc_no+' 已签收');UI.go('todo');
     },
     doReturn:function(){
       var why=document.getElementById('wrReason').value.trim();
       if(!why){UI.toast('退料原因必填',1);return}
-      if(!document.getElementById('wrSign').dataset.img){UI.toast('签名为空，禁止提交',1);return}
       var d=FieldDB.findDoc('TL2026091601');d.wh='成品仓A';d.dir='+';
       if(!navigator.onLine){enqueue('wreturn',{doc:d.doc_no},'弱网已存退料草稿');return}
       var r=FieldDB.post(d);UI.toast(r.ok?d.doc_no+' 退料回仓完成':r.msg,r.ok?0:1);UI.go('todo');
