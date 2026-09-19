@@ -3,11 +3,41 @@
 <div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">扫码作业</b><span class="ml-auto text-[11px] text-slate-400">连续扫码+振动</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
 <div class="rounded-2xl h-[240px] relative flex items-center justify-center overflow-hidden" style="background:radial-gradient(120% 90% at 50% 30%,#12263f 0%,#050b14 100%)"><img src="https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=600&q=60&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-20"><div class="relative w-[200px] h-[200px]"><div class="absolute w-[30px] h-[30px] border-[3.5px] border-emerald-400 border-r-0 border-b-0 rounded-tl-lg left-0 top-0"></div><div class="absolute w-[30px] h-[30px] border-[3.5px] border-emerald-400 border-l-0 border-b-0 rounded-tr-lg right-0 top-0"></div><div class="absolute w-[30px] h-[30px] border-[3.5px] border-emerald-400 border-r-0 border-t-0 rounded-bl-lg left-0 bottom-0"></div><div class="absolute w-[30px] h-[30px] border-[3.5px] border-emerald-400 border-l-0 border-t-0 rounded-br-lg right-0 bottom-0"></div><div class="laser"></div></div><p class="absolute bottom-3 text-emerald-200 font-mono text-[11px]">对准条码自动识别</p><span class="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-white/10 text-amber-200 grid place-items-center"><i class="fa-solid fa-bolt"></i></span></div>
-<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">手动输入条码</p><div class="flex gap-2"><input value="SB20260910003-01" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono font-bold text-center"><button class="bg-[#2f6fe4] text-white font-bold rounded-xl px-5">识别</button></div><div class="grid grid-cols-3 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold">SB-01 正常</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold">重复码</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold">无效码</button></div></div>
-<div class="flex justify-between items-baseline px-1"><h2 class="font-bold text-[15px]">本次扫码记录</h2><span class="text-[11px] text-slate-500">2 条</span></div>
-<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center"><i class="fa-solid fa-check"></i></span><b class="font-mono">SB20260910003-01</b><span class="text-slate-500">牛津布 200米</span><span class="ml-auto text-[10px] text-slate-400">09:41</span></div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">手动输入条码</p><div class="flex gap-2"><input id="scanCode" data-scan-input value="SB20260910003-01" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono font-bold text-center"><button class="bg-[#2f6fe4] text-white font-bold rounded-xl px-5" id="scanGo">识别</button></div><div class="grid grid-cols-3 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="SB20260910003-01">SB-01 正常</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="SB20260910003-01DUP">重复码</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="BADCODE">无效码</button></div></div>
+<div class="flex justify-between items-baseline px-1"><h2 class="font-bold text-[15px]">本次扫码记录</h2><span class="text-[11px] text-slate-500" id="scanCount">2 条</span></div>
+<div id="scanList">
+<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center"><i class="fa-solid fa-check"></i></span><b class="font-mono">SB20260910003-01</b><span class="text-slate-500">牛津布 200米</span><a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code=SB20260910003-01">查看溯源 →</a></div>
 <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-red-100 text-red-500 grid place-items-center"><i class="fa-solid fa-xmark"></i></span><b class="font-mono">BADCODE</b><span class="text-slate-500">无效码</span><span class="ml-auto text-[10px] text-slate-400">09:40</span></div>
-<div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between font-bold text-[13px]"><b>提交确认摘要</b><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">待办</span></div><p class="text-[11px] text-slate-500 mt-1">照片3 · 扫码1 · 双签名 · PDA-03</p><div class="grid grid-cols-2 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">弱网存草稿</button><button class="bg-[#2f6fe4] text-white rounded-xl py-2.5 font-bold text-[13px]">提交</button></div></div>
+</div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between font-bold text-[13px]"><b>提交确认摘要</b><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">待办</span></div><p class="text-[11px] text-slate-500 mt-1" id="scanSummary">照片3 · 扫码1 · 登录账号+照片存证 · PDA-03</p><div class="grid grid-cols-2 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">弱网存草稿</button><button class="bg-[#2f6fe4] text-white rounded-xl py-2.5 font-bold text-[13px]">提交</button></div></div>
+<script src="../pda-scan.js"></script>
+<script src="../app-data.js"></script>
+<script>
+(function(){
+  var list=[{code:'SB20260910003-01',ok:true,msg:'牛津布 200米',t:'09:41'},{code:'BADCODE',ok:false,msg:'无效码',t:'09:40'}];
+  var box=FieldDB.get().barcodes||{};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function paint(){
+    document.getElementById('scanCount').textContent=list.length+' 条';
+    document.getElementById('scanList').innerHTML=list.map(function(s){
+      return '<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg '+(s.ok?'bg-emerald-100 text-emerald-600':'bg-red-100 text-red-500')+' grid place-items-center"><i class="fa-solid '+(s.ok?'fa-check':'fa-xmark')+'"></i></span><b class="font-mono">'+esc(s.code)+'</b><span class="text-slate-500">'+esc(s.msg)+'</span>'+(s.ok?'<a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code='+encodeURIComponent(s.code)+'">查看溯源 →</a>':'<span class="ml-auto text-[10px] text-slate-400">'+esc(s.t)+'</span>')+'</div>';
+    }).join('');
+    document.getElementById('scanSummary').textContent='照片3 · 扫码'+list.filter(function(s){return s.ok;}).length+' · 登录账号+照片存证 · PDA-03';
+  }
+  function handle(code){
+    code=String(code||'').trim();
+    if(!code)return;
+    if(list.some(function(s){return s.code===code&&s.ok;})){list.push({code:code,ok:false,msg:'重复码已拦截',t:'now'});paint();return;}
+    var hit=box[code];
+    if(!hit){list.push({code:code,ok:false,msg:'无效码',t:'now'});paint();return;}
+    list.unshift({code:code,ok:true,msg:hit.name+' '+hit.qty+hit.unit,t:'now'});paint();
+  }
+  document.getElementById('scanGo').onclick=function(){handle(document.getElementById('scanCode').value);};
+  document.querySelectorAll('[data-demo-scan]').forEach(function(b){b.onclick=function(){document.getElementById('scanCode').value=b.getAttribute('data-demo-scan');handle(b.getAttribute('data-demo-scan'));};});
+  PdaScan.bind('#scanCode',handle);
+  paint();
+})();
+</script>
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html" class="text-blue-600"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
 </body></html>
