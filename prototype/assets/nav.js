@@ -1,6 +1,30 @@
 /* 全系统统一导航：完整一/二级菜单，可点击切换，一级可收缩展开
  * 菜单对照《监狱公司物料系统-菜单与页面数据库设计表》总表 */
 (function(){
+  function qtyUnit(q,u){return '<span class="qty-value">'+String(q==null?'':q)+'</span><span class="qty-unit">'+esc(u||'')+'</span>';}
+  /* Keep quantity and unit as separate DOM fields even for legacy/static page copy. */
+  function splitQuantityText(root){
+    if(!root||root.nodeType!==1)return;
+    var re=/(\d[\d,]*(?:\.\d+)?)\s*(米|件|个|箱|卷|套|台|张|条|公斤|kg)(?![\w])/gi;
+    var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[],node;
+    while(node=walker.nextNode()){
+      var p=node.parentElement;
+      if(!p||p.closest('script,style,textarea,input,select,option,.qty-value,.qty-unit,[data-qty-split]'))continue;
+      if(re.test(node.nodeValue)){re.lastIndex=0;nodes.push(node)}
+    }
+    nodes.forEach(function(text){
+      var value=text.nodeValue,frag=document.createDocumentFragment(),last=0,m;
+      re.lastIndex=0;
+      while((m=re.exec(value))){
+        if(m.index>last)frag.appendChild(document.createTextNode(value.slice(last,m.index)));
+        var q=document.createElement('span');q.className='qty-value';q.dataset.qtyField='quantity';q.textContent=m[1];
+        var u=document.createElement('span');u.className='qty-unit';u.dataset.qtyField='quantity-unit';u.textContent=m[2];
+        frag.appendChild(q);frag.appendChild(u);last=re.lastIndex;
+      }
+      if(last<value.length)frag.appendChild(document.createTextNode(value.slice(last)));
+      text.parentNode.replaceChild(frag,text);
+    });
+  }
   var SPA_SHELL=!!window.__WMS_APP_SHELL;
   if(!document.getElementById('wms-shared-theme')){
     var theme=document.createElement('link'); theme.id='wms-shared-theme'; theme.rel='stylesheet'; theme.href=SPA_SHELL?'assets/theme.css':'../assets/theme.css'; document.head.appendChild(theme);
@@ -663,7 +687,7 @@
           var route=values.find(function(item){return /源仓|来源.*目标/.test(item[0]);});var routeText=route?route[1]:'';var places=routeText.split(/\s*(?:→|->)\s*/);var sourcePlace=places[0]||'来源仓库',targetPlace=places[1]||'目的仓库';
           var material=values.find(function(item){return /客户.*物料|物料/.test(item[0]);});var materialText=material?material[1]:'';var qtyMatch=materialText.match(/([\d.]+)\s*(米|件|个|卷|箱|套|公斤|kg)?\s*$/i);var requested=qtyMatch?qtyMatch[1]:'—',unit=qtyMatch&&qtyMatch[2]?qtyMatch[2]:'';
           var counts=values.find(function(item){return /申请.*已发.*已收/.test(item[0]);});var countParts=counts?counts[1].split('/').map(function(value){return value.trim();}):[];var sent=countParts[1]&&countParts[1]!=='—'?countParts[1]:requested;var received=countParts[2]&&countParts[2]!=='—'?countParts[2]:'';var pending=!received;var diff=!pending&&Number(sent)!==Number(received)?Math.abs(Number(sent)-Number(received)):0;
-          ledger.innerHTML='<div id="wms-inventory-ledger-title" class="wms-inventory-ledger-title">库存记录 · 一张调拨单，两条库存变化</div><div class="wms-ledger-row"><span class="wms-ledger-kind">来源仓扣减</span><span class="wms-ledger-place">'+esc(sourcePlace)+'</span><span class="wms-ledger-value minus">−'+esc(sent+unit)+'</span></div><div class="wms-ledger-row"><span class="wms-ledger-kind">目的仓增加</span><span class="wms-ledger-place">'+esc(targetPlace)+'</span><span class="wms-ledger-value '+(pending?'pending':'plus')+'">'+(pending?'待接收 +':'+')+esc((received||sent)+unit)+'</span></div><div class="wms-ledger-foot">'+(diff?'当前差异 '+esc(diff+unit)+'，需复核后关闭调拨单。':pending?'来源仓已扣减，目的仓接收后增加；仍属于同一张调拨工单。':'调拨已完成，系统总库存不变；列表不会拆成普通出库和普通入库。')+'</div>';
+          ledger.innerHTML='<div id="wms-inventory-ledger-title" class="wms-inventory-ledger-title">库存记录 · 一张调拨单，两条库存变化</div><div class="wms-ledger-row"><span class="wms-ledger-kind">来源仓扣减</span><span class="wms-ledger-place">'+esc(sourcePlace)+'</span><span class="wms-ledger-value minus">−'+qtyUnit(sent,unit)+'</span></div><div class="wms-ledger-row"><span class="wms-ledger-kind">目的仓增加</span><span class="wms-ledger-place">'+esc(targetPlace)+'</span><span class="wms-ledger-value '+(pending?'pending':'plus')+'">'+(pending?'待接收 +':'')+qtyUnit(received||sent,unit)+'</span></div><div class="wms-ledger-foot">'+(diff?'当前差异 '+qtyUnit(diff,unit)+'，需复核后关闭调拨单。':pending?'来源仓已扣减，目的仓接收后增加；仍属于同一张调拨工单。':'调拨已完成，系统总库存不变；列表不会拆成普通出库和普通入库。')+'</div>';
         }
       }
       lastFocus=source||document.activeElement;previousOverflow=document.body.style.overflow;backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';requestAnimationFrame(function(){backdrop.classList.add('is-open');drawer.classList.add('is-open');closeButton.focus();});
@@ -716,6 +740,11 @@
   }
 
   function enhancePage(){
+    normalizePageTop();
+    document.querySelectorAll('main h1,main h2,.p-6 h1,.p-6 h2').forEach(function(heading){
+      var explanation=heading.nextElementSibling;
+      if(explanation&&explanation.tagName==='P'&&!explanation.closest('[role="dialog"],dialog')) explanation.remove();
+    });
     if(document.getElementById('wms-common-a11y')) return;
     if(currentFile()==='base.html'){
       var baseTabs=document.querySelector('.tab');
@@ -1076,6 +1105,27 @@
         drawer.classList.add('hidden');
       });
     });
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    splitQuantityText(document.body);
+    var observer=new MutationObserver(function(mutations){mutations.forEach(function(m){[].forEach.call(m.addedNodes,function(n){if(n.nodeType===1)splitQuantityText(n)})})});
+    observer.observe(document.body,{childList:true,subtree:true});
+  });
+  function normalizePageTop(){
+    var headers=document.querySelectorAll('body header');
+    headers.forEach(function(header){
+      if(header.closest('[role="dialog"],dialog')||header.classList.contains('dash-head')||header.classList.contains('ai-bg')) return;
+      header.classList.add('wms-page-header');
+      header.setAttribute('data-page-header','true');
+    });
+    var titles=document.querySelectorAll('main h1,main h2,.p-6 h1,.p-6 h2,.h1 h2,#main h1,#main h2');
+    titles.forEach(function(title){
+      if(title.closest('[role="dialog"],dialog,.dash-head,.ai-bg')) return;
+      title.classList.add('wms-page-title');
+    });
+    if(!document.getElementById('wms-page-top-style')){
+      var style=document.createElement('style');style.id='wms-page-top-style';style.textContent='.wms-page-header{min-height:44px!important;height:44px!important;display:flex!important;align-items:center!important;gap:8px!important;padding:0 24px!important;box-sizing:border-box!important;white-space:nowrap!important;overflow:hidden!important}.wms-page-header>b{font-weight:800!important;color:#163f63!important}.wms-page-title{margin:0!important;font-size:21px!important;line-height:1.3!important;font-weight:800!important;color:#143b5d!important}.h1:has(.wms-page-title),main>.flex.justify-between:has(.wms-page-title),.p-6>div:first-child:has(.wms-page-title){min-height:52px;align-items:center}.wms-page-header span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}';document.head.appendChild(style);
+    }
   }
   window.wmsEnhancePage=enhancePage;
   if(SPA_SHELL)return;

@@ -1,8 +1,19 @@
 /* 现场作业APP · 业务视图（含校验/弱网/签名/幂等，与PC同口径） */
 (function(){
+  if(!document.getElementById('qty-field-style')){var qtyStyle=document.createElement('style');qtyStyle.id='qty-field-style';qtyStyle.textContent='.qty-value,.qty-unit{display:inline-block}.qty-value{font-variant-numeric:tabular-nums;margin-right:3px}.qty-unit{font-weight:600;color:#64748b}';document.head.appendChild(qtyStyle)}
   var DB=FieldDB.get;
   var ADD={kind:'customer',owner:'',sel:{}};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmt(n){return (Number(n)||0).toLocaleString('zh-CN',{maximumFractionDigits:3})}
+  function qtyUnit(q,u){return '<span class="qty-value">'+fmt(q)+'</span><span class="qty-unit">'+esc(u||'')+'</span>'}
+  function splitQuantityText(root){
+    if(!root||root.nodeType!==1)return;
+    var re=/(\d[\d,]*(?:\.\d+)?)\s*(米|件|个|箱|卷|套|台|张|条|公斤|kg)(?![\w])/gi;
+    var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[],node;
+    while(node=walker.nextNode()){var p=node.parentElement;if(!p||p.closest('script,style,textarea,input,select,option,.qty-value,.qty-unit'))continue;re.lastIndex=0;if(re.test(node.nodeValue))nodes.push(node)}
+    nodes.forEach(function(text){var value=text.nodeValue,frag=document.createDocumentFragment(),last=0,m;re.lastIndex=0;while((m=re.exec(value))){if(m.index>last)frag.appendChild(document.createTextNode(value.slice(last,m.index)));var q=document.createElement('span');q.className='qty-value';q.dataset.qtyField='quantity';q.textContent=m[1];var u=document.createElement('span');u.className='qty-unit';u.dataset.qtyField='quantity-unit';u.textContent=m[2];frag.appendChild(q);frag.appendChild(u);last=re.lastIndex}if(last<value.length)frag.appendChild(document.createTextNode(value.slice(last)));text.parentNode.replaceChild(frag,text)})
+  }
+  if(document.body){splitQuantityText(document.body);new MutationObserver(function(ms){ms.forEach(function(m){[].forEach.call(m.addedNodes,function(n){if(n.nodeType===1)splitQuantityText(n)})})}).observe(document.body,{childList:true,subtree:true})}
   function tag(s){var m={PENDING:['待办','g-amber'],APPROVED:['已过账','g-grn'],DRAFT:['草稿','g-mut'],SYNC:['待同步','g-blue']};var t=m[s]||[s,'g-mut'];return '<span class="tag '+t[1]+'">'+t[0]+'</span>'}
   function enqueue(type,payload,msg){
     var db=DB();db.queue.push({ts:Date.now(),type:type,payload:payload});FieldDB.save();UI.head();
@@ -24,7 +35,7 @@
         return '<div class="card tappro"><div class="top"><b>'+esc(d.doc_no)+' · '+esc(d.title)+'</b>'+tag(d.status)+'</div><div class="sub">'+esc(d.desc)+'</div><div class="btnrow"><button class="btn amber sm" onclick="App.open(\''+d.doc_no+'\')">进入办理 →</button></div></div>';
       }).join('')||'<div class="empty"><i class="fa-solid fa-check-circle"></i>全部完成，无待办</div>')
       +'<div class="sect"><h2>最近流水</h2><span>只读 · PC同源</span></div><div class="card">'
-      +db.ledger.slice(0,3).map(function(l){return '<div class="kv"><span class="k">'+esc(l.t+' · '+l.biz)+'</span><b>'+esc(l.material+' '+l.qty)+'</b></div>'}).join('')+'</div>'
+      +db.ledger.slice(0,3).map(function(l){return '<div class="kv"><span class="k">'+esc(l.t+' · '+l.biz)+'</span><b>'+esc(l.material+' ') + qtyUnit(l.qty,l.unit)+'</b></div>'}).join('')+'</div>'
       +'<div class="card"><div class="top"><b>送货单清单验收（SL2026091609）</b></div><div class="sub">含低置信度 OCR 行，需人工覆盖确认</div><div class="btnrow"><button class="btn dark sm" onclick="UI.go(\'checklist\')">打开清单验收</button></div></div>';
   }});
   /* ---------- 清单验收 ---------- */
@@ -160,9 +171,9 @@
     if(l.batch_no)extra.push('批次 '+l.batch_no);
     if(l.wh)extra.push(l.wh);
     if(l.loc)extra.push(l.loc);
-    var avail=(l.avail!=null)?' · 可用 '+l.avail+u:'';
+    var avail=(l.avail!=null)?' · 可用 '+qtyUnit(l.avail,u):'';
     var isTake=DRCFG[key].dir==='*';
-    return '<div class="linecard"><div class="top"><b>'+esc(l.name||m.name)+'</b>'+((l.avail!=null)?'<span class="tag g-grn">可用 '+l.avail+u+'</span>':'<span class="tag g-mut">'+p+u+'/箱</span>')+'</div>'
+    return '<div class="linecard"><div class="top"><b>'+esc(l.name||m.name)+'</b>'+((l.avail!=null)?'<span class="tag g-grn">可用 '+qtyUnit(l.avail,u)+'</span>':'<span class="tag g-mut">'+qtyUnit(p,u)+'/箱</span>')+'</div>'
       +'<div class="sub">'+esc(l.material_code)+(extra.length?' · '+esc(extra.join(' · ')):'')+avail+'</div>'
       +'<div class="qrow"><button class="step sm" onclick="App.lineStep(\''+key+'\','+i+',-'+p+')">−</button>'
       +'<input class="f" type="number" value="'+(Number(l.qty)||0)+'" onchange="App.lineQty(\''+key+'\','+i+',this.value)">'
@@ -238,8 +249,8 @@
         +'<div class="qtyrow"><input class="f" id="dKw" placeholder="搜索 物料/成品/批次/仓库/库区" value="'+esc(UI._dkw||'')+'" oninput="App.filterData(this.value)"></div>'
         +'<div class="numbadge">共 <b>'+stocks.length+'</b> 条 · 无可用 <b>'+lows+'</b> · 待检 <b>'+pend+'</b> · 隔离 <b>'+quar+'</b></div><div id="dList">'
         +(stocks.map(function(s){
-          var st=s.avail<=0?'<span class="tag g-red">无可用</span>':(s.quarantine>0?'<span class="tag g-amber">隔离'+s.quarantine+s.unit+'</span>':(s.pending>0?'<span class="tag g-blue">待检'+s.pending+s.unit+'</span>':'<span class="tag g-grn">正常</span>'));
-          return '<div class="li" data-k="'+esc((s.name+s.material_code+s.batch_no+s.wh+s.loc).toLowerCase())+'"><div class="nm"><b>'+esc(s.name)+'</b><span>'+esc(s.wh+' · '+s.loc+' · 批次 '+s.batch_no)+'</span><span>账面 '+s.on_hand+s.unit+' · 可用 <b>'+s.avail+s.unit+'</b></span></div>'+st+'<button class="btn ghost sm" onclick="App.showStock(\''+esc(s.material_code)+'\',\''+esc(s.batch_no)+'\',\''+esc(s.wh)+'\')">明细</button></div>';
+          var st=s.avail<=0?'<span class="tag g-red">无可用</span>':(s.quarantine>0?'<span class="tag g-amber">隔离'+qtyUnit(s.quarantine,s.unit)+'</span>':(s.pending>0?'<span class="tag g-blue">待检'+qtyUnit(s.pending,s.unit)+'</span>':'<span class="tag g-grn">正常</span>'));
+          return '<div class="li" data-k="'+esc((s.name+s.material_code+s.batch_no+s.wh+s.loc).toLowerCase())+'"><div class="nm"><b>'+esc(s.name)+'</b><span>'+esc(s.wh+' · '+s.loc+' · 批次 '+s.batch_no)+'</span><span>账面 '+qtyUnit(s.on_hand,s.unit)+' · 可用 <b>'+qtyUnit(s.avail,s.unit)+'</b></span></div>'+st+'<button class="btn ghost sm" onclick="App.showStock(\''+esc(s.material_code)+'\',\''+esc(s.batch_no)+'\',\''+esc(s.wh)+'\')">明细</button></div>';
         }).join('')||'<div class="empty"><i class="fa-solid fa-inbox"></i>无匹配库存</div>')+'</div><div class="empty" id="dEmpty" style="display:none">无匹配，换个关键词</div>';
     }else if(tab==='doc'){
       h+='<div class="qtyrow"><input class="f" placeholder="搜索 单号/标题" oninput="App.filterData(this.value)"></div><div id="dList">'
@@ -449,7 +460,7 @@
         var def=(r.avail!=null)?Math.min(r.qty,Number(r.avail)||r.qty):r.qty;
         var q=ADD.sel[r.key]!=null?ADD.sel[r.key]:def;
         var sub=[r.material_code,r.batch_no,r.wh,r.loc,r.note].filter(Boolean).join(' · ');
-        var av=(r.avail!=null)?(availLabel+' '+r.avail+r.unit):(availLabel+' '+r.qty+r.unit);
+        var av=(r.avail!=null)?(availLabel+' '+qtyUnit(r.avail,r.unit)):(availLabel+' '+qtyUnit(r.qty,r.unit));
         return '<div class="li" data-k="'+esc(k.toLowerCase())+'"><input type="checkbox" data-row="'+esc(r.key)+'" style="width:22px;height:22px;flex-shrink:0" '+(ADD.sel[r.key]!=null?'checked':'')+' onchange="App.pickRow(\''+esc(r.key)+'\','+def+',this.checked)"><div class="nm"><b>'+esc(r.name)+'</b><span>'+esc(sub)+' · '+esc(av)+'</span></div><input type="number" style="width:74px;height:40px;text-align:center;border:1.5px solid var(--line);border-radius:10px;font-weight:800" value="'+q+'" oninput="App.rowQty(\''+esc(r.key)+'\',this.value)" onclick="event.stopPropagation()"></div>';
       }).join('');
     },
@@ -745,8 +756,8 @@
     showStock:function(code,batch,wh){
       var s=FieldDB.stockOf(code,batch,wh),m=FieldDB.mat(code);
       if(!s){UI.toast('无该库存记录',1);return}
-      UI.sheet('<h3>'+esc(m.name||s.name)+'</h3><p class="sub">'+esc(code+' · 批次 '+batch+' · '+wh)+'</p>'
-        +'<div class="card"><div class="kv"><span class="k">账面</span><b>'+s.on_hand+s.unit+'</b></div><div class="kv"><span class="k">可用</span><b>'+s.avail+s.unit+'</b></div><div class="kv"><span class="k">待检</span><b>'+s.pending+s.unit+'</b></div><div class="kv"><span class="k">隔离</span><b>'+(s.quarantine||0)+s.unit+'</b></div><div class="kv"><span class="k">库区</span><b>'+esc(s.loc)+'</b></div><div class="kv"><span class="k">每箱</span><b>'+(Number(m.pack_qty)||1)+s.unit+'</b></div></div>'
+       UI.sheet('<h3>'+esc(m.name||s.name)+'</h3><p class="sub">'+esc(code+' · 批次 '+batch+' · '+wh)+'</p>'
+         +'<div class="card"><div class="kv"><span class="k">账面</span><b>'+qtyUnit(s.on_hand,s.unit)+'</b></div><div class="kv"><span class="k">可用</span><b>'+qtyUnit(s.avail,s.unit)+'</b></div><div class="kv"><span class="k">待检</span><b>'+qtyUnit(s.pending,s.unit)+'</b></div><div class="kv"><span class="k">隔离</span><b>'+qtyUnit(s.quarantine||0,s.unit)+'</b></div><div class="kv"><span class="k">库区</span><b>'+esc(s.loc)+'</b></div><div class="kv"><span class="k">每箱</span><b>'+qtyUnit(Number(m.pack_qty)||1,s.unit)+'</b></div></div>'
         +'<div class="btnrow"><button class="btn ghost" onclick="UI.closeSheet()">关闭</button><button class="btn pri" onclick="UI.closeSheet();UI.go(\'scan\')">去扫码核对</button></div>');
     },
     login:function(id){FieldDB.login(id);UI.head();UI.toast('已切换为 '+FieldDB.user().name);UI.go('todo')},

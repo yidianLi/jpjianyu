@@ -13,6 +13,7 @@
 }
 html{color-scheme:light;scroll-behavior:smooth}
 body{background:linear-gradient(180deg,#e1f4ff 0,#f5fbff 250px,#edf7fc 100%)!important;color:var(--wms-text);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.5}
+.qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px;font-variant-numeric:tabular-nums}.qty-unit{color:#5f7488;font-weight:600}
 h1,h2,h3{color:var(--wms-text);text-wrap:balance}
 p{text-wrap:pretty}
 .card{background:rgba(250,253,255,.94)!important;border:1px solid var(--wms-border)!important;border-radius:var(--wms-radius)!important;box-shadow:0 8px 24px rgba(30,117,171,.08)}

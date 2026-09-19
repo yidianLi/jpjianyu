@@ -46,7 +46,7 @@ function nextPending(type,flow){var steps=cfg(type).steps;
   if(!flow[s.k])return s;}
  return null;}
 function flowText(type,flow){var steps=cfg(type).steps.filter(function(s){return s.on});
- return steps.map(function(s){return s.k+'='+(flow[ s.k]?1:0)+'('+(s.auto?'提交':s.last?'仓管确认':s.role)+')'}).join(' → ');}
+ return steps.map(function(s){return s.k+'='+(flow[ s.k]?1:0)+'('+(s.auto?'提交':s.role)+')'}).join(' → ');}
 window.ApproveFlow={KEY:KEY,CKEY:CKEY,BUILTIN_KEYS:BUILTIN_KEYS,ROLES:ROLES,TYPES:TYPES,load:load,save:save,loadCustom:loadCustom,saveCustom:saveCustom,allTypes:allTypes,addCustom:addCustom,removeCustom:removeCustom,cfg:cfg,activeSteps:activeSteps,ensureFlow:ensureFlow,nextPending:nextPending,flowText:flowText,
  submit:function(doc,type,by){var f=ensureFlow(doc,type);if(f.submitted){return {ok:false,msg:'已提交，请等待审核'};}
   f.submitted=1;f.S1=1;f.cur=(nextPending(type,f)||{}).k||'S6';(f.hist=f.hist||[]).push({t:nowStr(),act:'提交',by:by||'经办人',s:'S1=1'});

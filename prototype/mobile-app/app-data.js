@@ -32,10 +32,10 @@
         '成品库':['F01','F02']
       },
       custBoxes:[
-        {box_code:'HD-9664-3001',material_code:'10A0501020100013',qty:50,unit:'米',customer:'恒达服饰',label:'牛津布 藏青 · 1箱(50米)'},
-        {box_code:'HD-9664-3002',material_code:'10A0501020100013',qty:50,unit:'米',customer:'恒达服饰',label:'牛津布 藏青 · 1箱(50米)'},
-        {box_code:'HD-9664-3005',material_code:'10A0501020100013',qty:50,unit:'米',customer:'恒达服饰',label:'牛津布 藏青 · 1箱(50米)'},
-        {box_code:'HDZL-20-BK',material_code:'10A0501020100015',qty:100,unit:'件',customer:'恒达服饰',label:'拉链 黑色 · 1箱(100件)'}
+        {box_code:'HD-9664-3001',material_code:'10A0501020100013',qty:50,unit:'米',box_qty:1,box_unit:'箱',customer:'恒达服饰'},
+        {box_code:'HD-9664-3002',material_code:'10A0501020100013',qty:50,unit:'米',box_qty:1,box_unit:'箱',customer:'恒达服饰'},
+        {box_code:'HD-9664-3005',material_code:'10A0501020100013',qty:50,unit:'米',box_qty:1,box_unit:'箱',customer:'恒达服饰'},
+        {box_code:'HDZL-20-BK',material_code:'10A0501020100015',qty:100,unit:'件',box_qty:1,box_unit:'箱',customer:'恒达服饰'}
       ],
       /* 登记草稿：快捷选择清单行（关联申请单 / 归属对象带出 / 扫客户箱码累加） */
       reg:{biz:'material',fin_warehouse:'成品仓A',src_sq:'',lines:[],batch_no:'',loc:'第1栏第1格',handler:''},
@@ -124,9 +124,9 @@
       scans:[],           // 本次会话扫码记录 {code,ok,msg,t}
       queue:[],           // 弱网离线队列 {ts,type,payload}
       ledger:[            // 最近流水（只读）
-        {t:'09-16 08:40',doc:'LY2026091607',biz:'物料领用',material:'牛津布 藏青',qty:'-200米',by:'张建国'},
-        {t:'09-16 08:12',doc:'RK2026091600',biz:'成品入库',material:'工装夹克',qty:'+400件',by:'张建国'},
-        {t:'09-15 17:30',doc:'TL2026091551',biz:'车间退料',material:'拉链 黑色',qty:'+100件',by:'王芳'}
+        {t:'09-16 08:40',doc:'LY2026091607',biz:'物料领用',material:'牛津布 藏青',qty:-200,unit:'米',by:'张建国'},
+        {t:'09-16 08:12',doc:'RK2026091600',biz:'成品入库',material:'工装夹克',qty:400,unit:'件',by:'张建国'},
+        {t:'09-15 17:30',doc:'TL2026091551',biz:'车间退料',material:'拉链 黑色',qty:100,unit:'件',by:'王芳'}
       ]
     };
   }
@@ -203,7 +203,7 @@
         var q=Number(l.qty)||0,d=l.dir||doc.dir||'+';
         if(d==='-'){s.on_hand-=q;s.avail-=q}else{s.on_hand+=q;s.avail+=q}
         s.last_move=new Date().toISOString().slice(0,16).replace('T',' ');
-        DB.ledger.unshift({t:s.last_move.slice(5),doc:doc.doc_no,biz:doc.title||doc.type,material:FieldDB.mat(l.material_code).name,qty:(d==='-'?'-':'+')+q+l.unit,by:FieldDB.user().name});
+        DB.ledger.unshift({t:s.last_move.slice(5),doc:doc.doc_no,biz:doc.title||doc.type,material:FieldDB.mat(l.material_code).name,qty:d==='-'?-q:q,unit:l.unit,by:FieldDB.user().name});
       });
       doc.__posted=true;doc.status='APPROVED';save();
       return {ok:true,doc_no:doc.doc_no};

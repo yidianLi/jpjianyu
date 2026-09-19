@@ -16,7 +16,9 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .t th{background:#f8fafc;color:#5f7488;font-weight:700;text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 .t td{padding:10px;border-bottom:1px solid #eef3f8;white-space:nowrap;vertical-align:middle}
 .t tr:hover td{background:#f7fbff}
-.t .num{text-align:right}
+.t .num{text-align:right}.qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px}.qty-unit{color:#5f7488;font-weight:600}
+.t thead th:nth-child(n+5):nth-child(-n+9){text-align:right}
+.t th:nth-child(5),.t td:nth-child(5){min-width:76px}.t th:nth-child(6),.t td:nth-child(6){min-width:88px}.t th:nth-child(7),.t td:nth-child(7),.t th:nth-child(8),.t td:nth-child(8),.t th:nth-child(9),.t td:nth-child(9){min-width:76px}
 .f{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:12px;min-height:40px}
 .f[readonly]{background:#f4f7fa;color:#5f7488}
 .b{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:9px;font-weight:700;font-size:12px;color:#31506b;min-height:36px}
@@ -59,7 +61,6 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 <body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
 <div class="wrap space-y-4">
-<div id="finPlace" class="text-[11px] text-slate-400"></div>
 <div id="main"></div>
 </div></div></div>
 <div id="dlgRoot" class="mask hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><div class="dlg"><div class="dh"><h3 id="dlgTitle">提示</h3><button class="x" id="dlgX" aria-label="关闭">×</button></div><div class="pad" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div></div>
@@ -100,6 +101,7 @@ function migrate(){
 /* ===== 工具 ===== */
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
 function fmt(n){var x=Number(n)||0;return x.toLocaleString('zh-CN',{maximumFractionDigits:3})}
+function fmtQty(v){return '<span class="qty-value">'+fmt(v)+'</span>'}
 function num(v){var x=Number(v);return isFinite(x)?x:0}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function now(){var d=new Date();return today()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
@@ -173,9 +175,9 @@ function renderDetail(){
   var alert=ss.some(function(s){return num(s.qua)>0})?'隔离待处理':ss.some(function(s){return num(s.avail)<=0})?'无可用':'正常';
   return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||first.spec||'—')+'</td>'
   +'<td><span class="link" onclick="finBatches(\''+esc(code)+'\')">共 '+batches.length+' 条 · 点击查看</span></td>'
-  +'<td class="num"><b>'+ss.length+(first.unit==='个'?'袋':'箱')+'</b></td>'
-  +'<td class="num"><b>'+fmt(tot(ss,'on'))+esc(first.unit||'件')+'</b></td><td class="num grn"><b>'+fmt(tot(ss,'avail'))+esc(first.unit||'件')+'</b></td>'
-  +'<td class="num '+(tot(ss,'qua')?'red':'')+'"><b>'+fmt(tot(ss,'qua'))+esc(first.unit||'件')+'</b></td><td class="num org">'+fmt(tot(ss,'pending'))+esc(first.unit||'件')+'</td>'
+  +'<td class="num"><b>'+ss.length+'</b></td><td>'+esc(first.unit==='个'?'袋':'箱')+'</td>'
+  +'<td class="num"><b>'+fmt(tot(ss,'on'))+'</b></td><td>'+esc(first.unit||'件')+'</td><td class="num grn"><b>'+fmt(tot(ss,'avail'))+'</b></td>'
+  +'<td class="num '+(tot(ss,'qua')?'red':'')+'"><b>'+fmt(tot(ss,'qua'))+'</b></td><td class="num org">'+fmt(tot(ss,'pending'))+'</td>'
   +'<td>'+finAlertTag({qua:tot(ss,'qua'),avail:tot(ss,'avail')})+'</td><td class="num">'+ledn+'</td>'
   +'<td class="sm">'+(srcs.length?'<span class="link" onclick="finSourcesDlg(\''+esc(code)+'\')">共 '+srcs.length+' 张 · 查看来源</span>':'<span class="mut">—</span>')+'</td>'
   +'<td class="sm mut">'+esc(last)+'</td>'
@@ -189,26 +191,26 @@ function renderDetail(){
  +'<div class="kpi"><small>隔离待处理</small><b class="red">'+fmt(kpiQua)+'</b><span class="sm mut">退仓产生，需处置</span></div>'
  +'<div class="kpi"><small>待检分量</small><b class="org">'+fmt(kpiPend)+'</b><span class="sm mut">不计可用</span></div>'
  +'<div class="kpi"><small>待审批单据</small><b style="color:#125d97">'+pendingFin()+'</b><span class="sm mut">审批后才动账</span></div></div>'
- +'<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>成品明细（按成品聚合，只读）</b><span class="sm mut">批次显示全部关联记录；数量为包装件数。改数请走登记/入库/退仓/交付。</span><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="成品 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
- +'<div class="tblwrap"><table class="t"><thead><tr><th>成品编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>库存量</th><th>可用</th><th>隔离</th><th>待检</th><th>预警</th><th>流水数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(body||'<tr><td colspan="14" class="mut" style="text-align:center;padding:28px">暂无成品库存</td></tr>')+'</tbody></table></div>'
- +'<div class="pad sum"><span>账面合计：<b>'+fmt(rows.reduce(function(a,s){return a+num(s.on)},0))+'件</b></span><span>可用合计：<b>'+fmt(rows.reduce(function(a,s){return a+num(s.avail)},0))+'件</b></span><span class="mut">不同单位永不相加 · 口径：成品+仓库+库区+批次</span></div></div>';
+ +'<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>成品明细</b><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="成品 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
+ +'<div class="tblwrap"><table class="t"><thead><tr><th>成品编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>数量单位</th><th>库存量</th><th>库存量单位</th><th>可用</th><th>隔离</th><th>待检</th><th>预警</th><th>流水数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(body||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无成品库存</td></tr>')+'</tbody></table></div>'
+ +'</div>';
 }
 window.finBatches=function(code){
  var ss=FDB.stock.filter(function(s){return s.code===code});
- var body='<div class="note">展示该成品关联的全部库存批次及其所在位置。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>仓库</th><th>库区</th><th>批次</th><th>数量</th><th>库存量</th><th>可用</th><th>隔离</th><th>待检</th><th>来源单</th><th>最后变动</th></tr></thead><tbody>'
- +ss.map(function(s){var pu=(s.unit==='个'?'袋':'箱');return '<tr><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td class="num"><b>1'+pu+'</b></td><td class="num"><b>'+fmt(s.on)+esc(s.unit||'件')+'</b></td><td class="num grn">'+fmt(s.avail)+esc(s.unit||'件')+'</td><td class="num">'+fmt(s.qua)+esc(s.unit||'件')+'</td><td class="num org">'+fmt(s.pending)+esc(s.unit||'件')+'</td><td class="sm mut">'+esc(s.src||'—')+'</td><td class="sm mut">'+esc(s.at)+'</td></tr>'}).join('')+'</tbody></table></div>';
+ var body='<div class="note">展示该成品关联的全部库存批次及其所在位置。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>仓库</th><th>库区</th><th>批次</th><th>数量</th><th>数量单位</th><th>库存量</th><th>库存量单位</th><th>可用</th><th>隔离</th><th>待检</th><th>来源单</th><th>最后变动</th></tr></thead><tbody>'
+ +ss.map(function(s){var pu=(s.unit==='个'?'袋':'箱');return '<tr><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td class="num"><b>'+fmt(1)+'</b></td><td>'+esc(pu)+'</td><td class="num"><b>'+fmt(s.on)+'</b></td><td>'+esc(s.unit||'件')+'</td><td class="num grn">'+fmt(s.avail)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num org">'+fmt(s.pending)+'</td><td class="sm mut">'+esc(s.src||'—')+'</td><td class="sm mut">'+esc(s.at)+'</td></tr>'}).join('')+'</tbody></table></div>';
  dialog('批次明细 · '+fmat(code).name+' · '+code,body);
 };
 window.finSourcesDlg=function(code){
  var ss=FDB.stock.filter(function(s){return s.code===code}),all=[];
  ss.forEach(function(s){finSources(s.code,s.batch,s.wh,s.loc).forEach(function(x){if(!all.some(function(y){return y.no===x.no&&y.batch===x.batch}))all.push(x)})});
- var body='<div class="note">汇总该成品在全部仓库、库区和批次中的已审批入账来源（登记/入库）。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>单号</th><th>类型</th><th>日期</th><th>数量</th><th>批次 / 库区</th></tr></thead><tbody>'
- +(all.map(function(s){return '<tr><td><span class="link" onclick="finOpenDoc(\''+esc(s.no)+'\')">'+esc(s.no)+'</span></td><td>'+esc(s.type)+'</td><td>'+esc(s.date)+'</td><td class="num">'+fmt(s.qty)+'件</td><td class="sm">'+esc(s.batch)+' / '+esc(s.loc)+'</td></tr>'}).join('')||'<tr><td colspan="5" class="mut" style="text-align:center;padding:24px">暂无已审批来源单</td></tr>')+'</tbody></table></div>';
+ var body='<div class="note">汇总该成品在全部仓库、库区和批次中的已审批入账来源（登记/入库）。</div><div class="tblwrap" style="margin-top:12px"><table class="t"><thead><tr><th>单号</th><th>类型</th><th>日期</th><th>数量</th><th>数量单位</th><th>批次 / 库区</th></tr></thead><tbody>'
+ +(all.map(function(s){return '<tr><td><span class="link" onclick="finOpenDoc(\''+esc(s.no)+'\')">'+esc(s.no)+'</span></td><td>'+esc(s.type)+'</td><td>'+esc(s.date)+'</td><td class="num">'+fmt(s.qty)+'</td><td>件</td><td class="sm">'+esc(s.batch)+' / '+esc(s.loc)+'</td></tr>'}).join('')||'<tr><td colspan="6" class="mut" style="text-align:center;padding:24px">暂无已审批来源单</td></tr>')+'</tbody></table></div>';
  dialog('来源单 · '+fmat(code).name+' · '+code,body);
 };
 window.finFlowDlg=function(code,batch){
  var ls=FDB.ledger.filter(function(x){return x.code===code&&(!batch||x.batch===batch)});
- dialog('库存流水 · '+code+(batch?' · '+batch:''),ls.length?'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>方向</th><th>数量</th><th>操作人</th></tr></thead><tbody>'+ls.map(function(x){return '<tr><td>'+esc(x.t)+'</td><td>'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc(x.dir)+'</td><td class="num">'+fmt(x.qty)+esc(x.unit||'件')+'</td><td>'+esc(x.by)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="mut">暂无流水：只有已审批单据才会写账</div>');
+ dialog('库存流水 · '+code+(batch?' · '+batch:''),ls.length?'<div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>方向</th><th>数量</th><th>数量单位</th><th>操作人</th></tr></thead><tbody>'+ls.map(function(x){return '<tr><td>'+esc(x.t)+'</td><td>'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc(x.dir)+'</td><td class="num">'+fmt(x.qty)+'</td><td>'+esc(x.unit||'件')+'</td><td>'+esc(x.by)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="mut">暂无流水：只有已审批单据才会写账</div>');
 };
 window.finOpenDoc=function(no){var d=docBy(no);if(!d){toast('未找到单据 '+no,1);return}VIEW=d.type==='wreturn'?'wreturn':d.type;curNo=no;if(VIEW==='deliver')deliverMode='edit';render();};
 window.goDeliverByCode=function(code){VIEW='deliver';deliverMode='edit';var d=blankFinDoc('deliver');d.lines=[newFinLine(d,code,'','')];FDB.doc.unshift(d);fsave();curNo=d.no;render();toast('已按 '+code+' 预填交付单，请选择批次并填写数量');};
@@ -349,16 +351,20 @@ function finListHTML(t){
  var list=finDocs(t).filter(function(d){return queue==='待办'?(d.status==='草稿'||d.status==='已保存'||d.status==='已驳回'):(d.status==='已审批'||d.status==='已作废')});
  if(kw)list=list.filter(function(d){return (d.no+' '+(d.customer||'')+' '+(d.lines||[]).map(function(l){return l.name+l.code+(l.batch||'')}).join(' ')).toLowerCase().indexOf(kw.toLowerCase())>=0});
  var rows=list.map(function(d){
-  var brief=(d.lines||[]).map(function(l){return l.name+' '+fmt(num(l.qty))+(l.unit||'件')+(l.batch?'（'+l.batch+'）':'')}).join('；')||'—';
+  var brief=(d.lines||[]).map(function(l){return l.name+' '+fmt(num(l.qty))+' '+(l.unit||'件')+(l.batch?'（'+l.batch+'）':'')}).join('；')||'—';
   var extra=t==='inbound'?esc(d.wh||'—')+' · '+(d.src||'无关联登记'):t==='wreturn'?esc(d.ret_type||'')+' · '+(d.src||'—'):t==='deliver'?esc(d.recv||'—')+' / '+esc(d.stime||'—'):esc(d.customer||'—')+' · '+esc(d.dept||'—');
-  return '<tr><td><b class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+esc(d.no)+'</b></td><td>'+esc(d.date)+'</td><td>'+extra+'</td><td>'+esc(brief)+'</td><td><b>'+fmt(lineSum(d.lines))+'件</b></td><td>'+finTag(d.status)+'</td><td><span class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+(d.status==='已审批'?'查看':'继续办理')+'</span></td></tr>';
+  return '<tr><td><b class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+esc(d.no)+'</b></td><td>'+esc(d.date)+'</td><td>'+extra+'</td><td>'+esc(brief)+'</td><td><b>'+fmt(lineSum(d.lines))+'</b></td><td>件</td><td>'+finTag(d.status)+'</td><td><span class="link" onclick="finOpen(\''+esc(d.no)+'\')">'+(d.status==='已审批'?'查看':'继续办理')+'</span></td></tr>';
  }).join('');
  var newBtn=t==='deliver'
-  ?'<button class="b pri" onclick="deliverNew()">新建工单</button><button class="b" onclick="deliverNewWindow()">新窗口打开</button>'
+  ?'<button class="b pri" onclick="deliverNew()">新建工单</button>'
   :'<button class="b pri" onclick="newFinDoc(\''+t+'\')">新建工单</button>';
- return '<div class="flex justify-between items-center flex-wrap gap-2"><div><h1 class="text-xl font-extrabold">'+titles[0]+'</h1><p class="text-xs text-slate-500">'+titles[1]+'</p></div><div class="flex gap-2">'+newBtn+'</div></div>'
- +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索单号 / 客户 / 成品 / 批次" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button><span style="flex:1"></span><button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办</button></div>'
- +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div><div class="pad sm mut">共 '+list.length+' 条 · 状态机：草稿 → 已保存 → 已审批（过账）；已过账不可修改</div></div>';
+ var addBtn=t==='deliver'
+  ?'<button class="b" onclick="deliverNew()">添加清单</button>'
+  :'<button class="b" onclick="newFinDoc(\''+t+'\')">添加清单</button>';
+ var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办</button>';
+ return '<div class="card pad mb-3 flex justify-between items-center flex-wrap gap-2"><div class="flex gap-2">'+newBtn+addBtn+'</div><div class="flex gap-2">'+queueBtns+'</div></div>'
+ +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
+ +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>数量单位</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div></div>';
 }
 window.finQueue=function(q){queue=q;curNo='';render()};
 /* ---- 编辑器（参考物料登记/入库/退库：左清单 + 右单头） ---- */
@@ -453,10 +459,10 @@ function finEditorHTML(d){
  return '<div style="margin-bottom:10px">'+backBtn+' <span class="sm mut">当前独立编辑页（交付新建不在列表下方）</span></div>'
  +'<div class="split"><section class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>工单清单 · '+esc(d.no)+' '+finTag(d.status)+'</b><span class="sm mut">'+(locked?'已过账不可修改':'按批次核对：批次下按区域分割显示')+'</span></div>'+batchBar+srcBar
  +'<div class="tblwrap"><table class="t"><thead><tr><th>序号</th>'+heads.map(function(h){return '<th>'+h+'</th>'}).join('')+'<th>操作</th></tr></thead><tbody>'+(finGroupedLines(d)||'<tr><td colspan="12" class="mut" style="text-align:center;padding:26px">请点击“添加清单”加入成品</td></tr>')+'</tbody></table></div>'
- +'<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+fmt(lineSum(d.lines))+'件</b></span>'+(d.type==='register'?'<span class="grn"><b>本单审批不加库存</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签按验收数量生成批次码</span>':'')+(d.type==='wreturn'?'<span class="org"><b>回仓方向以退仓类型为准</b></span>':'')+(d.type==='deliver'?'<span class="red"><b>交付方向：审批后减库存</b></span>':'')+'</div>'
- +(locked?'':'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="b" onclick="finAddLine(\''+esc(d.no)+'\')">添加清单</button>'+(d.type==='register'?'<button class="b pri" onclick="finNewBatch(\''+esc(d.no)+'\')">新建批次</button>':'')+'</div>')+'</div></section>'
+ +'<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+fmt(lineSum(d.lines))+'</b></span><span>数量单位 <b>件</b></span>'+(d.type==='register'?'<span class="grn"><b>本单审批不加库存</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签按验收数量生成批次码</span>':'')+(d.type==='wreturn'?'<span class="org"><b>回仓方向以退仓类型为准</b></span>':'')+(d.type==='deliver'?'<span class="red"><b>交付方向：审批后减库存</b></span>':'')+'</div>'
+ +(locked?'':'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="b" onclick="finAddLine(\''+esc(d.no)+'\')">添加清单</button></div>')+'</div></section>'
  +'<aside class="card pad"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>工单信息'+(d.status==='草稿'?'（新工单）':'')+'</b><button class="b" onclick="finPrint(\''+esc(d.no)+'\')">打印</button></div><div class="hd">'+head+'</div><div class="note" style="margin-top:12px">'+tip+'</div>'
- +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" onclick="finSave(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>保存</button><button class="b pri" onclick="finSubmit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>提交</button><button class="b" onclick="finAudit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>审核</button><button class="b pri" onclick="finConfirm(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>仓管确认</button><button class="b danger" onclick="finVoid(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>作废</button></div>'
+ +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" onclick="finSubmit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>提交</button><button class="b" onclick="finAudit(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>审核</button><button class="b danger" onclick="finVoid(\''+esc(d.no)+'\')"'+(locked?' disabled':'')+'>作废</button></div>'
  +'<div class="sm mut" style="margin-top:8px">审批流：<b>'+esc(finFlowText(d))+'</b> · <span class="link" onclick="location.href=\'approve-flow.html\'">去审批流配置</span></div>'
  +'<div class="sm mut" style="margin-top:10px">附件：'+(d.files||0)+' <span class="link" onclick="finFile(\''+esc(d.no)+'\')">上传照片</span></div>'
  +'<div class="sm mut" style="margin-top:6px">审批日志 <span class="link" onclick="finLog(\''+esc(d.no)+'\')">查看</span> · 流水 <span class="link" onclick="finFlowDlg(\''+esc(((d.lines[0]||{}).code)||'')+'\',\'\')">查看</span></div></aside></div>';
@@ -464,7 +470,6 @@ function finEditorHTML(d){
 /* ---- 全局动作 ---- */
 window.render=function(){
  document.getElementById('crumb').textContent=NAMES[VIEW]||NAMES.register;
- document.getElementById('finPlace').textContent='当前页：'+(NAMES[VIEW]||NAMES.register)+'（从左侧二级菜单进入）';
  notifyParent();
  if(VIEW==='detail'){curNo='';renderDetail();return}
  var t=VIEW==='return'?'wreturn':VIEW;

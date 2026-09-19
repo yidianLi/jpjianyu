@@ -30,7 +30,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
     <header class="bg-white border-b px-6 py-3 text-xs text-slate-400">单据中心 / <b class="text-slate-700">加工费对账</b><span class="ml-2 bg-blue-50 text-blue-700 px-2 py-1 rounded">业务对账 · 金额为参考</span></header>
     <main id="fee-main" class="p-6 space-y-4">
       <div class="flex justify-between items-start flex-wrap gap-3">
-        <div><h1 class="text-xl font-extrabold">加工费对账</h1><p class="text-xs text-slate-500 mt-1">按客户、工单和车间核对加工数量与参考金额，不处理发票、收款或核销。</p></div>
+        <div><h1 class="text-xl font-extrabold">加工费对账</h1></div>
         <button type="button" class="px-3 py-2 bg-white border rounded-lg text-xs font-bold" onclick="exportFees()"><i class="fa-solid fa-download mr-1" aria-hidden="true"></i>导出对账记录</button>
       </div>
 
@@ -43,7 +43,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
 
       <section class="card p-4" aria-labelledby="fee-list-title">
         <div class="flex justify-between items-center gap-3 flex-wrap">
-          <div><h2 id="fee-list-title" class="text-sm font-bold">加工费对账记录</h2><p class="text-[11px] text-slate-400 mt-1">一张对账单对应一个业务目的，详情可查看关联送料、领料和成品记录。</p></div>
+          <div><h2 id="fee-list-title" class="text-sm font-bold">加工费对账记录</h2></div>
           <span id="fee-count" class="text-xs text-slate-400" role="status" aria-live="polite"></span>
         </div>
         <div class="flex items-end gap-2 flex-wrap mt-4" role="search" aria-label="筛选加工费对账记录">

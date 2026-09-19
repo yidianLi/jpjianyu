@@ -28,7 +28,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
     <header class="bg-white border-b px-6 py-3 text-xs text-slate-400">异常与审计 / <b class="text-slate-700">操作审计</b><span class="ml-2 bg-amber-50 text-amber-700 px-2 py-1 rounded">只读留痕 · 不可删除</span></header>
     <main id="audit-main" class="p-6 space-y-4">
       <div class="flex justify-between items-start flex-wrap gap-3">
-        <div><h1 class="text-xl font-extrabold">操作审计</h1><p class="text-xs text-slate-500 mt-1">记录库存、单据和权限相关操作，支持按人、业务类型和结果追溯。</p></div>
+        <div><h1 class="text-xl font-extrabold">操作审计</h1></div>
         <button type="button" class="px-3 py-2 bg-white border rounded-lg text-xs font-bold" onclick="exportAudit()"><i class="fa-solid fa-download mr-1" aria-hidden="true"></i>导出审计记录</button>
       </div>
 
@@ -41,7 +41,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
 
       <section class="card p-4" aria-labelledby="audit-list-title">
         <div class="flex justify-between items-center gap-3 flex-wrap">
-          <div><h2 id="audit-list-title" class="text-sm font-bold">审计记录列表</h2><p class="text-[11px] text-slate-400 mt-1">所有记录只读，详情可回看关联单据与前后值。</p></div>
+          <div><h2 id="audit-list-title" class="text-sm font-bold">审计记录列表</h2></div>
           <span id="audit-count" class="text-xs text-slate-400" role="status" aria-live="polite"></span>
         </div>
         <div class="flex items-end gap-2 flex-wrap mt-4" role="search" aria-label="筛选审计记录">
