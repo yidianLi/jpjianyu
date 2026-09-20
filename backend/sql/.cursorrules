@@ -1,0 +1,374 @@
+# MySQL 5.6 数据库设计规范（Cursor / Codex Rules）
+
+> 本文件为数据库全库设计的强制规范。当进行数据库设计、表结构设计、建表 SQL 生成、表结构评审或优化时，必须严格遵守本文件全部规则，所有产物必须兼容 MySQL 5.6，可直接执行。
+
+---
+
+## 0. 适用范围与触发条件
+
+- 触发场景：全新业务全库设计、单模块表设计、存量表结构优化、分库分表设计、建表 SQL 生成。
+- 数据库版本：**MySQL 5.6，存储引擎 InnoDB，字符集 utf8mb4，排序规则 utf8mb4_general_ci**。
+- 设计目标：结构规范、命名统一、注释完整、SQL 可直接执行、性能可预期、便于后期维护。
+- 工作方式：全程自动按流程推进，中途不提问；所有不确定项标注 ⚠️ 统一汇总到最后的【待确认事项】。
+
+---
+
+## 1. 执行流程规则
+
+严格按以下顺序输出，禁止跳步：
+
+1. **业务模型说明**：核心业务实体、实体关系（ER 关系文字描述）、业务模块划分。
+2. **数据表总清单**：表名 + 中文说明，按业务模块分组（系统模块 / 业务模块 / 日志模块 / 字典模块）。
+3. **分库分表评估**：逐表评估数据量级，明确哪些表需要分表，输出拆分方案（不分表也要写明"单表可承载，不拆分"）。
+4. **逐表详细设计**：字段名、类型、是否非空、默认值、字段注释。
+5. **索引设计总览**：每张表的索引清单，含字段、索引类型、适用查询场景。
+6. **完整建表 SQL**：按表拆分，逐表输出 CREATE TABLE 语句，可直接执行。
+7. **待确认事项 + 性能优化建议**：拿不准的设计标注 ⚠️ 统一列出。
+
+流程中若输出被截断，收到接续口令 `===GOON===` 后，从断点继续输出，禁止重复已输出内容。
+
+---
+
+## 2. 命名规范
+
+| 对象 | 规则 | 示例 |
+|---|---|---|
+| 表名 | 全小写英文 + 下划线，按模块加前缀，见名知意，单数形式 | `sys_user`、`biz_order`、`log_login`、`dict_item` |
+| 字段名 | 全小写英文 + 下划线，禁止拼音、歧义缩写、SQL 保留字 | `order_status`、`create_time` |
+| 主键 | 固定命名 `id` | `id` |
+| 外键关联字段 | `关联表单数_id` | `user_id`、`dept_id` |
+| 普通索引 | `idx_表简写_字段` | `idx_user_status` |
+| 唯一索引 | `uk_表简写_字段` | `uk_user_username` |
+| 联合索引 | `idx_表简写_字段1_字段2` | `idx_order_user_status` |
+
+表前缀约定：
+
+- `sys_`：系统管理类（用户、角色、菜单、部门、字典、配置）
+- `biz_`：核心业务类
+- `log_`：日志、流水、记录类
+- `rel_`：多对多关联关系表（也可用业务前缀，如 `sys_user_role`）
+
+禁止：中文表名/字段名、驼峰命名、复数表名、单字母命名、SQL 保留字（如 order、group、desc 单独做字段名时必须加反引号，且尽量避免）。
+
+---
+
+## 3. 通用字段规范
+
+### 3.1 业务主表（强制包含）
+
+所有业务表、系统表必须包含以下字段，字段顺序固定放在业务字段之后：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT | 主键 ID |
+| `create_by` | BIGINT(20) UNSIGNED DEFAULT NULL | 创建人 ID |
+| `create_time` | DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| `update_by` | BIGINT(20) UNSIGNED DEFAULT NULL | 更新人 ID |
+| `update_time` | DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+| `is_deleted` | TINYINT(1) NOT NULL DEFAULT 0 | 软删除标记：0-正常，1-已删除 |
+| `remark` | VARCHAR(255) DEFAULT NULL | 备注（按需保留） |
+
+### 3.2 关联关系表
+
+多对多关联表（如用户-角色、角色-菜单）采用**物理删除**，只需包含：`id`、两个关联字段、`create_by`、`create_time`，不需要 `is_deleted`、`update_time`。
+
+### 3.3 日志流水表
+
+日志类表只增不改，只需：`id`、业务字段、`create_time`；不需要 `update_by`、`update_time`、`is_deleted`。
+
+### 3.4 软删除规则
+
+- 全库统一软删除机制，业务查询默认携带 `is_deleted = 0` 过滤条件。
+- 唯一索引设计时必须考虑软删除场景：业务唯一键可能被软删除数据占用，必要时将 `is_deleted` 纳入联合唯一索引，或软删除时同步改写唯一键字段（推荐前者）。
+
+---
+
+## 4. 字段类型规范（MySQL 5.6 专属）
+
+| 数据类型 | 选用规则 | 禁止事项 |
+|---|---|---|
+| 主键 | 单体项目 INT UNSIGNED 自增；分布式/分表项目 BIGINT UNSIGNED（雪花 ID 由应用层生成或自增） | 禁止 UUID 字符串做主键 |
+| 时间 | 统一 DATETIME，精度到秒 | 禁止 TIMESTAMP（2038 问题、自动更新坑）；禁止字符串存时间 |
+| 日期 | DATE；仅需年月用 VARCHAR(7) 或 INT(6)，如 202609 | — |
+| 状态/类型/枚举 | TINYINT，0/1/2 数字编码，含义写入注释并登记数据字典 | 禁止 ENUM；禁止 CHECK 约束（5.6 仅语法兼容、实际不生效） |
+| 布尔 | TINYINT(1)，0-否 1-是 | 禁止 BIT 之外的花式布尔 |
+| 金额 | DECIMAL(18,2)；超高精度按业务调整小数位 | 禁止 FLOAT/DOUBLE 存金额 |
+| 短字符串 | VARCHAR，按实际长度设置：编码类 50/100，名称类 50/100，地址类 255 | 禁止无脑 VARCHAR(255) |
+| 长文本/富文本/JSON 结构数据 | TEXT（5.6 无 JSON 类型，结构化 JSON 由应用层序列化后存入 TEXT） | 禁止使用 JSON 类型 |
+| 超大文本 | MEDIUMTEXT/LONGTEXT（确有必要时） | — |
+| 二进制 | 不入库，存文件服务器，库中只存路径 | 禁止 BLOB 存文件 |
+
+**MySQL 5.6 禁用特性清单**：JSON 类型、CHECK 约束生效、生成列/虚拟列、窗口函数、CTE（WITH 语法）、`DEFAULT CURRENT_TIMESTAMP` 作用于多个 DATETIME（5.6.5 之前一张表只允许一个时间列自动初始化，5.6.5 及之后放开；本规范按 5.6.5+ 编写，若目标库低于 5.6.5，update_time 改用 TIMESTAMP 或触发器实现并标注 ⚠️）。
+
+---
+
+## 5. 表设计与索引原则
+
+### 5.1 结构设计
+
+1. 以第三范式为基准，核心高频展示字段（名称、编码）允许适度冗余，减少联表，冗余字段必须在注释中标注"冗余自 xx 表"。
+2. 采用**逻辑外键**：不创建物理外键约束，关联字段靠应用层保证一致性；关联字段必须建普通索引。
+3. 禁止级联删除、级联更新。
+4. 状态、类型等枚举值统一登记数据字典表（见第 7 节），业务表只存数字编码。
+5. 大字段（详情、富文本、TEXT）单独拆扩展表，不影响主表查询。
+6. 日志、流水类表与业务主表物理分离，不混建在同一组表中。
+7. 每张表预留扩展能力：高频变更的业务表可预留 `ext1`~`ext3` VARCHAR(255) 备用字段（分表场景强制预留，避免 5.6 DDL 锁表改结构），普通表不强制。
+
+### 5.2 索引设计
+
+1. 索引场景：WHERE 高频条件字段、JOIN 关联字段、ORDER BY 排序字段、GROUP BY 分组字段。
+2. 联合索引遵循最左匹配原则，区分度高的字段放前面；单表索引数量不超过 6 个。
+3. 避免冗余索引：已有联合索引 (a,b) 时不再单独建 (a) 索引。
+4. **utf8mb4 索引长度红线（5.6 InnoDB 单列索引上限 767 字节）**：
+   - 普通索引字段长度不超过 VARCHAR(191)（191×4=764 字节）；
+   - 唯一索引字段长度控制在 VARCHAR(100) 以内；
+   - 超长字段必须建前缀索引，如 `KEY idx_xx (field(50))`，前缀索引不能做唯一索引，唯一性由应用层保证；
+   - 若 DBA 已开启 `innodb_large_prefix=ON`（配合 Barracuda + DYNAMIC 行格式可放宽到 3072 字节），可不受此限，但必须在【待确认事项】中标注依赖该参数。
+5. 区分度极低的字段（如 is_deleted、status 只有 2~3 个值）不单独建索引，作为联合索引的附带字段。
+6. 分页深查询、报表统计类需求，考虑汇总表/覆盖索引，不允许在线上全表扫描。
+
+### 5.3 SQL 编写约定
+
+- 所有表名、字段名加反引号；每张表末尾必须指定 `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表注释'`。
+- 每个字段必须带 COMMENT，表必须带表注释，无注释视为无效产物。
+- 字符型默认值用单引号，数字型默认值不加引号。
+- 建表语句按表拆分输出，每张表独立可执行，不要输出一个巨型 CREATE 块。
+
+---
+
+## 6. 分库分表规则（MySQL 5.6）
+
+### 6.1 拆分判定
+
+- 触发条件：单表预估数据量超过 500 万行，或日增量超过 1 万条，以流水、日志、订单、消息类表为主。
+- 不拆分：配置表、字典表、用户表、角色表等低增长强关联基础表。
+- 判定结论必须逐表写明，不允许跳过评估。
+
+### 6.2 拆分策略
+
+1. 优先垂直分库：按业务模块拆库（用户库、订单库、日志库），模块内聚，减少跨库关联。
+2. 水平分表二选一，同一业务只允许一种主策略：
+   - **时间范围分表**：按月/按季，适用于日志、流水、统计数据，表名如 `log_login_202609`；
+   - **哈希取模分表**：按核心业务 ID 取模，表数量固定为 2 的 N 次幂（4/8/16/32），表名如 `biz_order_0` ~ `biz_order_31`。
+3. 单库分表数控制在 32 张以内。
+4. 分表键必须是最高频查询字段，写入与核心查询都必须携带分表键；禁止不带分表键的全分片扫描，跨分片查询走汇总表或异步聚合。
+5. 同组所有分表结构完全一致（字段、类型、索引、字符集、注释）。
+6. 分表后禁止跨库 JOIN、跨库事务；需要关联的数据由应用层多次查询组装。
+7. 分表场景主键禁止数据库自增，统一雪花 ID（BIGINT），可配合序列表（见 8.6）。
+8. 分表键必须是联合索引的第一个字段；分表上不建跨表唯一约束，全局唯一性由应用层保证。
+9. 不使用 MySQL 5.6 原生分区表替代分表（性能与维护成本不可控）。
+
+### 6.3 公共配套
+
+- 全局字典表、配置表：各库存全量副本，仅主库可写，定期同步。
+- 汇总表：按统计维度预聚合，替代跨分片统计查询。
+- 分表建表 SQL 只输出 1 份模板 + 命名规则 + 路由规则说明，不重复输出 32 份相同结构。
+
+---
+
+## 7. 标准数据字典表（强制基础表，可直接执行）
+
+所有状态、类型、枚举统一入库管理，业务表只存 `item_value` 编码，禁止硬编码 ENUM。
+
+```sql
+-- 字典类型表
+CREATE TABLE `sys_dict_type` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `dict_name` varchar(100) NOT NULL COMMENT '字典名称',
+  `dict_type` varchar(100) NOT NULL COMMENT '字典类型编码',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态 0-正常 1-停用',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` bigint(20) unsigned DEFAULT NULL COMMENT '更新人ID',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '软删除标记 0-正常 1-删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dict_type` (`dict_type`),
+  KEY `idx_dict_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='字典类型表';
+
+-- 字典项表
+CREATE TABLE `sys_dict_item` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `dict_type` varchar(100) NOT NULL COMMENT '字典类型编码',
+  `item_label` varchar(100) NOT NULL COMMENT '字典标签（展示文本）',
+  `item_value` varchar(100) NOT NULL COMMENT '字典键值（业务表存储值）',
+  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序号',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态 0-正常 1-停用',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` bigint(20) unsigned DEFAULT NULL COMMENT '更新人ID',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '软删除标记 0-正常 1-删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_dict_type` (`dict_type`),
+  KEY `idx_item_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='字典项表';
+```
+
+---
+
+## 8. 系统基础表标准模板（可直接执行）
+
+### 8.1 用户表
+
+```sql
+CREATE TABLE `sys_user` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `username` varchar(50) NOT NULL COMMENT '登录账号',
+  `password` varchar(100) NOT NULL COMMENT '登录密码（BCrypt加密存储）',
+  `nickname` varchar(50) DEFAULT NULL COMMENT '用户昵称',
+  `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
+  `mobile` varchar(20) DEFAULT NULL COMMENT '手机号',
+  `avatar` varchar(255) DEFAULT NULL COMMENT '头像访问路径',
+  `dept_id` bigint(20) unsigned DEFAULT NULL COMMENT '所属部门ID',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '账号状态 0-正常 1-停用',
+  `last_login_time` datetime DEFAULT NULL COMMENT '最后登录时间',
+  `last_login_ip` varchar(50) DEFAULT NULL COMMENT '最后登录IP',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` bigint(20) unsigned DEFAULT NULL COMMENT '更新人ID',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '软删除标记 0-正常 1-删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_username` (`username`),
+  KEY `idx_user_dept_id` (`dept_id`),
+  KEY `idx_user_mobile` (`mobile`),
+  KEY `idx_user_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
+```
+
+### 8.2 角色表
+
+```sql
+CREATE TABLE `sys_role` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `role_name` varchar(50) NOT NULL COMMENT '角色名称',
+  `role_code` varchar(100) NOT NULL COMMENT '角色编码',
+  `data_scope` tinyint(1) NOT NULL DEFAULT '1' COMMENT '数据权限范围 1-全部数据 2-本部门数据 3-仅本人数据',
+  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序号',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态 0-正常 1-停用',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` bigint(20) unsigned DEFAULT NULL COMMENT '更新人ID',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '软删除标记 0-正常 1-删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_role_code` (`role_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统角色表';
+```
+
+### 8.3 菜单权限表
+
+```sql
+CREATE TABLE `sys_menu` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `parent_id` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '父菜单ID 0-根节点',
+  `menu_name` varchar(50) NOT NULL COMMENT '菜单名称',
+  `menu_type` tinyint(1) NOT NULL COMMENT '菜单类型 0-目录 1-菜单 2-按钮',
+  `path` varchar(200) DEFAULT NULL COMMENT '前端路由地址',
+  `component` varchar(255) DEFAULT NULL COMMENT '前端组件路径',
+  `perms` varchar(100) DEFAULT NULL COMMENT '权限标识 如 system:user:add',
+  `icon` varchar(100) DEFAULT NULL COMMENT '菜单图标',
+  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序号',
+  `visible` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否显示 0-显示 1-隐藏',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态 0-正常 1-停用',
+  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` bigint(20) unsigned DEFAULT NULL COMMENT '更新人ID',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '软删除标记 0-正常 1-删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_menu_parent_id` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统菜单权限表';
+```
+
+### 8.4 用户-角色关联表
+
+```sql
+CREATE TABLE `sys_user_role` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint(20) unsigned NOT NULL COMMENT '用户ID',
+  `role_id` bigint(20) unsigned NOT NULL COMMENT '角色ID',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_role` (`user_id`,`role_id`),
+  KEY `idx_ur_role_id` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联表';
+```
+
+### 8.5 角色-菜单关联表
+
+```sql
+CREATE TABLE `sys_role_menu` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `role_id` bigint(20) unsigned NOT NULL COMMENT '角色ID',
+  `menu_id` bigint(20) unsigned NOT NULL COMMENT '菜单ID',
+  `create_by` bigint(20) unsigned DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_role_menu` (`role_id`,`menu_id`),
+  KEY `idx_rm_menu_id` (`menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色菜单关联表';
+```
+
+### 8.6 序列表（分库分表全局 ID 场景使用）
+
+```sql
+CREATE TABLE `sys_sequence` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `biz_type` varchar(50) NOT NULL COMMENT '业务类型标识',
+  `max_id` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '当前已分配最大ID',
+  `step` int(11) NOT NULL DEFAULT '1000' COMMENT '每次取号步长',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_seq_biz_type` (`biz_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全局ID序列表';
+```
+
+---
+
+## 9. 输出格式规范
+
+1. 先输出设计文档（业务模型 → 表清单 → 分表评估 → 字段设计 → 索引总览），再输出建表 SQL。
+2. 每张表输出格式：表用途说明 → 字段表格（字段名/类型/非空/默认值/注释）→ 索引说明 → CREATE TABLE SQL。
+3. SQL 按表拆分、按模块分组，表之间的创建顺序：字典/基础表 → 主业务表 → 关联表 → 日志表。
+4. 所有表、字段必须带中文注释；SQL 必须可在 MySQL 5.6 直接执行，不允许出现 5.7+ 语法。
+5. 不确定的设计一律标注 ⚠️ 并在末尾【待确认事项】集中列出，包括但不限于：
+   - 字段长度拿不准；
+   - 是否需要分表取决于真实数据量；
+   - 依赖 `innodb_large_prefix` 等数据库参数；
+   - 目标 MySQL 小版本低于 5.6.5 的时间字段兼容。
+6. 只输出数据库相关产物，不输出 Java/JS 等业务代码。
+7. 存量表优化场景：先输出现状问题 → 变更 SQL（ALTER 语句）→ 变更影响与回滚方案，核心业务字段不允许擅自修改或删除。
+
+---
+
+## 10. 禁止项清单（红线）
+
+1. 禁止中文/拼音表名、字段名。
+2. 禁止无主键表、无注释表、无注释字段。
+3. 禁止 JSON、生成列、CHECK 约束、CTE、窗口函数等 5.7+/8.0 特性。
+4. 禁止物理外键、级联删除、级联更新。
+5. 禁止 FLOAT/DOUBLE 存储金额，禁止 TIMESTAMP 存业务时间，禁止 ENUM。
+6. 禁止 UUID 字符串做主键。
+7. 禁止索引字段超过 767 字节红线而不做处理。
+8. 禁止过度设计：新增无明确业务用途的字段、索引、表。
+9. 禁止跳过分表评估、跳过待确认事项直接给"最终结论"。
+10. 禁止在未确认数据量的情况下默认全库分表，或反之默认全库不分表。
+
+---
+
+## 11. 协作指令约定
+
+- 启动全库设计时，输入业务需求后按第 1 节流程自动执行，中途不暂停提问。
+- 输出截断时，用户发送 `===GOON===`，从断点继续，不重复已输出内容。
+- 用户发送 `只输出SQL` 时，跳过设计说明，直接按规范输出全部建表语句。
+- 用户发送 `先出表清单` 时，只执行流程第 1~3 步，等待人工确认后再继续详细设计（大型项目推荐此模式，避免返工）。
+- 适配其他数据库时（达梦、人大金仓、PostgreSQL），以用户最新指令为准，类型与语法按目标库调整，命名、流程、注释规范保持不变。
