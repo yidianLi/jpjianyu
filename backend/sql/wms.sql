@@ -460,7 +460,7 @@ CREATE TABLE IF NOT EXISTS wo_task(
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============ L 组:报表中心(原型 report/report-config,12类) ============
--- 报表配置:收发存/余额/领退/调拨/退料分布/成品/差异/库龄/损耗/对账/日报周月报/完工汇总
+-- 报表配置:收发存/余额/领退/调仓/退料分布/成品/差异/库龄/损耗/对账/日报周月报/完工汇总
 CREATE TABLE IF NOT EXISTS rpt_config(
   rpt_code VARCHAR(32) NOT NULL PRIMARY KEY,
   category VARCHAR(32) NOT NULL,
@@ -509,7 +509,7 @@ CREATE TABLE IF NOT EXISTS sync_queue(
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============ N 组:本次补齐(transfer/audit/users 原型缺口) ============
--- 调拨在途:DB 申请/已发/已收+运输在途只读(承运/车牌/ETA)+差异确认
+-- 调仓在途:本系统无调拨只有调仓;DB=调仓单 申请/已发/已收+运输在途只读(承运/车牌/ETA)+差异确认
 CREATE TABLE IF NOT EXISTS transfer_ship(
   doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
   from_wh VARCHAR(32) NOT NULL,
