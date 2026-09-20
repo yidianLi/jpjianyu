@@ -39,4 +39,6 @@ WFlow.open=function(id,title,meta){ _mode=pdModeOf(id); _open(id,title,meta); se
 WFlow.init({page:'stocktake',steps:['创建范围','实盘清单（可修改）','差异原因','复核调整','关闭追溯'],
 validate:function(c){if(_mode==='auto'&&(c===1||c===2))return{ok:true};if(c===1&&!document.getElementById('scopeAck').checked)return{ok:false,msg:'请先确认盘点范围'};if(c===2&&!_real)return{ok:false,msg:'请先完成实盘清单'};if(c===3&&!document.getElementById('diffReason').value.trim())return{ok:false,msg:'请填写差异原因'};if(c===4&&!document.getElementById('revAck').checked)return{ok:false,msg:'请先完成负责人复核'};return{ok:true};},
 onFinish:function(){toast('异常已关闭，审计可见前后值');setTimeout(function(){WFlow.back();},800);}});
+// P1:驾驶舱异常卡直达 stocktake.html?pd=PD单号,仅PC
+try{var _pd=new URLSearchParams(location.search).get('pd');if(_pd){var _hit=null;document.querySelectorAll('#recBody tr').forEach(function(tr){if(tr.innerText.indexOf(_pd)>-1)_hit=tr;});if(_hit){_hit.style.outline='2px solid #d94b58';_hit.scrollIntoView({block:'center'});var _btn=_hit.querySelector('[data-resume-for]');if(_btn)_btn.click();toast('已直达 '+_pd);}}}catch(e){}
 </script></body></html>

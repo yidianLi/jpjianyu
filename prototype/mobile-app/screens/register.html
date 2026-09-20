@@ -1,7 +1,8 @@
 <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>物料登记 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style></head><body class="w-[393px] h-[852px] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
 <div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
-<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">物料登记 DJ</b><span class="ml-auto text-[11px] text-slate-400">2行 · 合计350</span></div>
+<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]" id="bizTitle">物料登记 DJ</b><span class="ml-auto text-[11px] text-slate-400">2行 · 合计350</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
+<div id="missWarn" class="hidden bg-red-50 border border-red-200 rounded-xl p-2.5 text-[11px] text-red-700"></div>
 <div class="bg-white border-l-4 !border-l-blue-600 border border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">关联申请领料单（可选）</b><button class="border-[1.5px] border-slate-200 rounded-lg px-3 py-1.5 text-[12px] font-bold">快捷选择</button></div><p class="text-[11px] text-slate-500 mt-1">已关联 SQ20260916003 · 缝制一车间 · 1行</p></div>
 <div class="flex gap-2"><button class="flex-1 border-[1.5px] border-slate-200 bg-white rounded-xl py-2.5 text-[12px] font-bold">＋ 快捷添加清单</button><button class="flex-1 border-[1.5px] border-slate-200 bg-white rounded-xl py-2.5 text-[12px] font-bold">＋ 建档</button></div>
 <div class="bg-white border-[1.5px] border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">牛津布 藏青</b><span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">已扫 1 箱</span></div><p class="text-[11px] text-slate-500 mt-0.5">10A0501020100013 · 米 · 每箱50米</p><div class="flex gap-1.5 mt-2 items-center"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">−</button><input value="300" class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">＋</button><button class="border-[1.5px] border-slate-200 rounded-[10px] px-2.5 h-10 text-[12px] font-bold">扫箱码</button></div></div>
@@ -12,4 +13,21 @@
 <p class="text-[11px] text-slate-400 px-1">过账后一物一码逐件生成条码；过账幂等，重复提交自动拒绝。</p>
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<script>
+(function(){
+  // P1业务闭环:register.html?biz=DJ|RK|LY|TL 一页四态,不新增页;缺关联只标出不拦单
+  var biz='DJ';
+  try{biz=(new URLSearchParams(location.search).get('biz')||'DJ').toUpperCase();}catch(e){}
+  if('DJRKLYTL'.indexOf(biz)<0)biz='DJ';
+  var NAMES={DJ:'物料登记 DJ',RK:'物料入库 RK',LY:'物料领用 LY',TL:'车间退料 TL'};
+  document.getElementById('bizTitle').textContent=NAMES[biz];
+  // LY超发拦截(qty<=avail)为P1保留校验;TL校验src_doc;缺关联标红待处理
+  var miss=[];
+  if(biz==='LY')miss=['LY2026091608 缺可用量校验:本次800米,可用3980米 ✓'];
+  if(biz==='TL')miss=['TL2026091601 缺对应LY:原领 LY2026091108 待补关联 → 点 docs 补录'];
+  if(biz==='RK')miss=['RK 待关联DJ:缺 DJ20260916003,单照过,待补'];
+  var w=document.getElementById('missWarn');
+  if(miss.length){w.classList.remove('hidden');w.innerHTML='缺关联待处理(不拦单):<br>'+miss.join('<br>');}
+})();
+</script>
 </body></html>
