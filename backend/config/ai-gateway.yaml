@@ -1,14 +1,13 @@
 # backend/config/ai-gateway.yaml（稳定引用，切换只改 provider 段）
-qwen:
-  provider: dashscope   # 上线后改为 vllm
-  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-  model: qwen2.5-7b-instruct-fp8
-  api_key: ${DASHSCOPE_API_KEY}
-  # vLLM 示例：
-  # provider: vllm
-  # base_url: http://10.8.0.20:8000/v1
-  # model: Qwen2.5-7B-Instruct-FP8
-  # api_key: ${VLLM_API_KEY}
+# 模型不写死：provider/base_url/model 全走环境变量，换模型只改本地 .env
+llm:
+  provider: a6api        # 可选: a6api | dashscope | vllm（内网）
+  base_url: ${LLM_BASE_URL:-https://api.a6api.com/v1}
+  model: ${LLM_MODEL:-qwen2.5-7b-instruct}
+  api_key: ${LLM_API_KEY}
+  # 内网 vLLM 示例（切离线时只改本地 .env，不改代码）：
+  # LLM_BASE_URL=http://10.8.0.20:8000/v1
+  # LLM_MODEL=Qwen2.5-7B-Instruct-FP8
 ocr:
   provider: online      # 上线后改为 local
   endpoint: ${OCR_ONLINE_ENDPOINT}
