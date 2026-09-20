@@ -1,0 +1,20 @@
+# backend/config/ai-gateway.yaml（稳定引用，切换只改 provider 段）
+qwen:
+  provider: dashscope   # 上线后改为 vllm
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen2.5-7b-instruct-fp8
+  api_key: ${DASHSCOPE_API_KEY}
+  # vLLM 示例：
+  # provider: vllm
+  # base_url: http://10.8.0.20:8000/v1
+  # model: Qwen2.5-7B-Instruct-FP8
+  # api_key: ${VLLM_API_KEY}
+ocr:
+  provider: online      # 上线后改为 local
+  endpoint: ${OCR_ONLINE_ENDPOINT}
+guards:
+  allow_tables: [doc_main, doc_line, stock_onhand, stock_ledger, material_item, batch]
+  max_rows: 200
+  deny_words: [insert, update, delete, drop, alter, grant, post]
+scope:
+  enforce_user_data_scope: true
