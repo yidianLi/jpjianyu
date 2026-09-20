@@ -1,6 +1,7 @@
 -- WMS 最终版 DDL (单库单文件, MySQL 5.6, InnoDB, utf8mb4, 可直接执行)
--- 库名:wms;54 表 13 组;以 prototype 全部页面为主,单 stock/doc 真源,其他域只加主档/任务/配置表。
--- 永久约束 [PERMANENT]:单据前缀 MVP DJ/RK/LY/TL/PD,扩展 SQ/JS/TK/DB/CP/JJ/TC/TZ 只放应用层+stock_doc_ref 行,不建新单据表;
+-- 库名:wms;57 表 13 组;以 prototype 全部页面为主,单 stock/doc 真源,其他域只加主档/任务/配置表。
+-- 永久约束 [PERMANENT]:单据前缀全集 SQ/DJ/JS/RK/LY/TL/TK/DB/PD/TZ/CP/JJ/TC,MVP 先用 DJ/RK/LY/TL/PD,
+-- 扩展类型只放应用层白名单+stock_doc_ref 行,不建新单据表;
 -- stock_ledger 只增不改,PD 不动账;idem_key=doc_no:line_no:biz 唯一;数量必带 qty+unit;溯源到 BT 批级;
 -- 命名空间 /api/v1/web|app|ai;错误码 DUP_SCAN/OVER_ISSUE/SCOPE_DENIED。
 -- MySQL 5.6 注意:无 CHECK(应用层 guards 强制)、无 JSON 类型(JSON 存 TEXT)、
@@ -9,6 +10,7 @@
 SET NAMES utf8mb4;
 
 -- ============ A 组:业务核心(物料+成品共用同一套库存/单据真源) ============
+-- mat_master 统收全部编码(含 CP- 成品);product_master 只存成品扩展属性(款号/客户),同码
 CREATE TABLE IF NOT EXISTS mat_master(
   material_code VARCHAR(32) NOT NULL PRIMARY KEY,
   name VARCHAR(128) NOT NULL,
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS stock_onhand(
   frozen DECIMAL(18,3) NOT NULL DEFAULT 0,
   PRIMARY KEY(material_code, batch_no, wh, loc)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 流水:成品入库/退仓/交付同样写此表,biz 区分,dir 仅 +/-,应用层强制
+-- stock_ledger.biz 只存前缀(DJ/RK/LY/TL/PD/SQ/JS/TK/DB/TZ/CP/JJ/TC),中文只做显示映射
 CREATE TABLE IF NOT EXISTS stock_ledger(
   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   doc_no VARCHAR(64) NOT NULL,
@@ -76,7 +78,7 @@ CREATE TABLE IF NOT EXISTS stock_doc_ref(
   rel VARCHAR(32) NOT NULL,
   UNIQUE KEY uk_doc_ref(from_doc, to_doc, rel)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 单据主/行:全部工单唯一入口,成品登记CP/交付JJ/退仓TC/调仓DB/申请SQ/拒收JS/退库TK/调整TZ 均存此表,type 应用层校验
+-- 单据主/行:全部工单唯一入口,MVP DJ/RK/LY/TL/PD,扩展 SQ/JS/TK/DB/TZ/CP/JJ/TC 均存此表,type 应用层白名单校验
 CREATE TABLE IF NOT EXISTS doc_main(
   doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
   type VARCHAR(8) NOT NULL,
@@ -91,6 +93,9 @@ CREATE TABLE IF NOT EXISTS doc_line(
   batch_no VARCHAR(32),
   qty DECIMAL(18,3) NOT NULL,
   unit VARCHAR(16) NOT NULL,
+  loc VARCHAR(64),
+  qc_result VARCHAR(32),
+  reason VARCHAR(255),
   PRIMARY KEY(doc_no, line_no),
   CONSTRAINT fk_line_main FOREIGN KEY (doc_no) REFERENCES doc_main(doc_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -119,6 +124,11 @@ CREATE TABLE IF NOT EXISTS audit_log(
   by_user VARCHAR(64) NOT NULL,
   action VARCHAR(64) NOT NULL,
   doc_no VARCHAR(64),
+  biz_type VARCHAR(16),
+  result VARCHAR(16) NOT NULL DEFAULT '已完成',
+  before_val VARCHAR(255),
+  after_val VARCHAR(255),
+  device VARCHAR(64),
   detail TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -297,7 +307,7 @@ CREATE TABLE IF NOT EXISTS sys_user_role(
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============ I 组:基础资料(原型 base.html P1-P6) ============
--- 成品档案:CP- 开头,成品登记/BOM从此带出
+-- 成品档案:CP- 开头必须先在 mat_master 建码,此处只存成品扩展属性(款号/客户)
 CREATE TABLE IF NOT EXISTS product_master(
   product_code VARCHAR(32) NOT NULL PRIMARY KEY,
   name VARCHAR(128) NOT NULL,
@@ -423,7 +433,7 @@ CREATE TABLE IF NOT EXISTS fee_settle(
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============ K 组:工单/审批流(原型 material-workbench/finished/approve-flow) ============
--- 审批流定义:按 doc_type 配级数,冲红默认高一档
+-- 审批流定义:按 doc_type 配级数,冲红默认高一档;steps_cfg JSON 约定 [{k:S1,role:经办人,on:1,auto:1}..{k:S6,role:仓管员,on:1,last:1}]
 CREATE TABLE IF NOT EXISTS flow_def(
   flow_key VARCHAR(64) NOT NULL PRIMARY KEY,
   doc_type VARCHAR(16) NOT NULL,
@@ -435,6 +445,8 @@ CREATE TABLE IF NOT EXISTS flow_instance(
   flow_key VARCHAR(64) NOT NULL,
   cur_step VARCHAR(16) NOT NULL DEFAULT 'S1',
   status VARCHAR(16) NOT NULL DEFAULT '草稿',
+  approver VARCHAR(64),
+  updated_at TIMESTAMP NULL,
   hist TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 车间工单:一轮完工汇总/完工触发报表来源
@@ -496,6 +508,43 @@ CREATE TABLE IF NOT EXISTS sync_queue(
   `at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============ N 组:本次补齐(transfer/audit/users 原型缺口) ============
+-- 调拨在途:DB 申请/已发/已收+运输在途只读(承运/车牌/ETA)+差异确认
+CREATE TABLE IF NOT EXISTS transfer_ship(
+  doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
+  from_wh VARCHAR(32) NOT NULL,
+  to_wh VARCHAR(32) NOT NULL,
+  from_loc VARCHAR(64),
+  to_loc VARCHAR(64),
+  qty_apply DECIMAL(18,3) NOT NULL DEFAULT 0,
+  qty_sent DECIMAL(18,3) NOT NULL DEFAULT 0,
+  qty_recv DECIMAL(18,3),
+  unit VARCHAR(16) NOT NULL,
+  carrier VARCHAR(64),
+  plate VARCHAR(32),
+  eta TIMESTAMP NULL,
+  diff_status VARCHAR(16) NOT NULL DEFAULT '无差异'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- 对账明细:fee_settle 存头汇总,订单级行存此表
+CREATE TABLE IF NOT EXISTS fee_settle_line(
+  settle_no VARCHAR(64) NOT NULL,
+  line_no INT NOT NULL,
+  material_code VARCHAR(32) NOT NULL,
+  qty_send DECIMAL(18,3) NOT NULL DEFAULT 0,
+  qty_issue DECIMAL(18,3) NOT NULL DEFAULT 0,
+  qty_fin DECIMAL(18,3) NOT NULL DEFAULT 0,
+  qty_confirm DECIMAL(18,3) NOT NULL DEFAULT 0,
+  unit VARCHAR(16) NOT NULL,
+  PRIMARY KEY(settle_no, line_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- 角色动作矩阵:users.html 10种角色x7种动作,70 行数据
+CREATE TABLE IF NOT EXISTS sys_perm(
+  role_id VARCHAR(32) NOT NULL,
+  action VARCHAR(32) NOT NULL,
+  allowed CHAR(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY(role_id, action)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ============ 索引(溯源三索引必建;5.6 无 IF NOT EXISTS,重复跑先查 INFORMATION_SCHEMA) ============
 CREATE INDEX ix_ledger_barcode ON stock_ledger(barcode);
 CREATE INDEX ix_ledger_batch ON stock_ledger(batch_no);
@@ -514,3 +563,6 @@ CREATE INDEX ix_pdline_mat ON pd_line(material_code);
 CREATE INDEX ix_rpt_code ON rpt_instance(rpt_code);
 CREATE INDEX ix_flow_key ON flow_instance(flow_key);
 CREATE INDEX ix_wo_product ON wo_task(product_code);
+CREATE INDEX ix_ship_doc ON transfer_ship(to_wh);
+CREATE INDEX ix_feeline_settle ON fee_settle_line(settle_no);
+CREATE INDEX ix_perm_role ON sys_perm(role_id);
