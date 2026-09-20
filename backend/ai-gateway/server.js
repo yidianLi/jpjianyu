@@ -1,6 +1,7 @@
 /* WMS AI 最小网关(单文件,<=300行):POST /ai/ask 只做问答中转+护栏
  * 模型不写死:BASE_URL/MODEL/KEY 全走环境变量(LLM_BASE_URL/LLM_MODEL/LLM_API_KEY),
- * 换模型只改 backend/config/.env,不改代码。页面 key 永不落地前端。
+ * 切 qwen3.8-max 这类大模型只改本地 backend/config/.env 的 LLM_MODEL,不改代码。
+ * 页面 key 永不落地前端。启动回显模型名,query 参数 ?model= 可单次覆盖(仅调试)。
  * 护栏:禁写词/禁 5.6 方言外语法在转给模型前先拦;模型只做"出 SQL",不直连 DB。
  * 运行: set LLM_API_KEY=xxx&& node server.js (默认 127.0.0.1:8081) */
 var http = require('http');
@@ -35,13 +36,13 @@ function checkSql(sql) {
   if (!/limit\s+\d+/i.test(s)) s += ' LIMIT 200';
   return { sql: s };
 }
-async function askLLM(question) {
+async function askLLM(question, useModel) {
   var sys = 'You output exactly one line of MySQL 5.6 SELECT SQL and nothing else. Tables only: ' + ALLOW_TABLES.join(',') + '. Must include LIMIT. No writes, no comments, no CTE, no window functions, no JSON functions.';
   var prompt = '问题:' + question + '\n表结构:doc_main(doc_no,type,status,handler),doc_line(doc_no,line_no,material_code,batch_no,qty,unit),stock_onhand(material_code,batch_no,wh,loc,on_hand,avail),stock_ledger(doc_no,material_code,batch_no,qty,unit,biz),material_item(barcode,material_code,batch_no),batch(batch_no,material_code)\n只输出SQL:';
   var r = await fetch(CFG.base + '/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CFG.key },
-    body: JSON.stringify({ model: CFG.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], temperature: 0, max_tokens: 200 })
+    body: JSON.stringify({ model: useModel || CFG.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], temperature: 0, max_tokens: 200 })
   });
   if (!r.ok) throw new Error('LLM HTTP ' + r.status);
   var j = await r.json();
@@ -53,17 +54,20 @@ var server = http.createServer(async function (req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') { res.end('{}'); return; }
-  if (req.method === 'POST' && req.url === '/ai/ask') {
+  if (req.method === 'POST' && req.url.indexOf('/ai/ask') === 0) {
     var b = await bodyOf(req);
+    var qmodel = null;
+    try { qmodel = new URL(req.url, 'http://127.0.0.1').searchParams.get('model'); } catch (e) {}
+    var useModel = qmodel || b.model || CFG.model;
     var no = deniedQuestion(b.question);
     if (no) { res.end(JSON.stringify({ ok: false, msg: no })); return; }
     if (!CFG.key) { res.end(JSON.stringify({ ok: false, msg: '网关未配 LLM_API_KEY,页面已回退Mock。' })); return; }
     try {
-      var sql = await askLLM(b.question);
+      var sql = await askLLM(b.question, useModel);
       var chk = checkSql(sql);
       if (typeof chk === 'string') { res.end(JSON.stringify({ ok: false, msg: chk })); return; }
       // 最小网关只出SQL,不直连DB;执行由后端只读账号另行完成,此处回SQL+公式占位
-      res.end(JSON.stringify({ ok: true, data: { sql: chk.sql, formula: '见执行方案V2.1', answer: 'SQL已生成(只读),请经只读账号执行。' } }));
+      res.end(JSON.stringify({ ok: true, data: { sql: chk.sql, formula: '见执行方案V2.1', answer: 'SQL已生成(只读,' + useModel + '),请经只读账号执行。' } }));
     } catch (e) { res.end(JSON.stringify({ ok: false, msg: 'LLM调用失败:' + e.message })); }
     return;
   }
