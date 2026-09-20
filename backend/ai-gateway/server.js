@@ -8,7 +8,7 @@ var http = require('http');
 var CFG = {
   port: Number(process.env.AI_PORT || 8081),
   base: process.env.LLM_BASE_URL || 'https://api.a6api.com/v1',
-  model: process.env.LLM_MODEL || 'qwen3.8-flash',
+  model: process.env.LLM_MODEL || 'auto',
   key: process.env.LLM_API_KEY || ''
 };
 var ALLOW_TABLES = ['doc_main', 'doc_line', 'stock_onhand', 'stock_ledger', 'material_item', 'batch'];

@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS stock_ledger(
   idem_key VARCHAR(128) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 关联:JS<->RK、TK<->RK/LY、TL<->LY、PD->TK/RK
+-- 关联:由 stock_doc_ref 表达单据关系(MVP:TL->LY/RK->DJ/PD->TK/RK;二期扩展时加行,不改表结构)
 CREATE TABLE IF NOT EXISTS stock_doc_ref(
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   from_doc VARCHAR(64) NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS stock_doc_ref(
   UNIQUE KEY uk_doc_ref(from_doc, to_doc, rel)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 单据主/行(MVP 仅 DJ/RK/LY/TL/PD;type 应用层 CHECK,5.6 无 CHECK)
+-- 单据主/行(MVP 仅 DJ/RK/LY/TL/PD;type 应用层校验,5.6 无 CHECK)
 CREATE TABLE IF NOT EXISTS doc_main(
   doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
   type VARCHAR(8) NOT NULL,
