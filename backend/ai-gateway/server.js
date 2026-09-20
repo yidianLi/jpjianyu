@@ -27,10 +27,10 @@ function deniedQuestion(q) {
   return '';
 }
 function checkSql(sql) {
-  var s = String(sql || '').trim();
+  var s = String(sql || '').trim().replace(/\s+/g, ' ');
   if (!/^select\b/i.test(s)) return '只允许单条SELECT。';
   var low = s.toLowerCase();
-  if (DENY.some(function (w) { return low.indexOf(w) > -1; })) return 'SQL含禁写词,已拒绝。';
+  if (DENY.some(function (w) { return new RegExp('\\b' + w + '\\b').test(low); })) return 'SQL含禁写词,已拒绝。';
   if (/with\s|over\s*\(|json_/i.test(s)) return 'SQL超出MySQL5.6方言,已拒绝。';
   if (!ALLOW_TABLES.some(function (t) { return low.indexOf(t) > -1; })) return 'SQL表不在三域白名单,已拒绝。';
   if (!/limit\s+\d+/i.test(s)) s += ' LIMIT 200';
