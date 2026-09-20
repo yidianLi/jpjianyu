@@ -7,7 +7,7 @@ var http = require('http');
 var CFG = {
   port: Number(process.env.AI_PORT || 8081),
   base: process.env.LLM_BASE_URL || 'https://api.a6api.com/v1',
-  model: process.env.LLM_MODEL || 'qwen2.5-7b-instruct',
+  model: process.env.LLM_MODEL || 'qwen3.8-flash',
   key: process.env.LLM_API_KEY || ''
 };
 var ALLOW_TABLES = ['doc_main', 'doc_line', 'stock_onhand', 'stock_ledger', 'material_item', 'batch'];
@@ -36,12 +36,12 @@ function checkSql(sql) {
   return { sql: s };
 }
 async function askLLM(question) {
-  var prompt = '你是WMS仓储问答助手,只输出一条MySQL5.6方言SELECT(单行,无注释),表仅限'
-    + ALLOW_TABLES.join(',') + ',必须带LIMIT,禁写操作。\n问题:' + question + '\n表结构:doc_main(doc_no,type,status,handler),doc_line(doc_no,line_no,material_code,batch_no,qty,unit),stock_onhand(material_code,batch_no,wh,loc,on_hand,avail),stock_ledger(doc_no,material_code,batch_no,qty,unit,biz),material_item(barcode,material_code,batch_no),batch(batch_no,material_code)\n只输出SQL:';
+  var sys = 'You output exactly one line of MySQL 5.6 SELECT SQL and nothing else. Tables only: ' + ALLOW_TABLES.join(',') + '. Must include LIMIT. No writes, no comments, no CTE, no window functions, no JSON functions.';
+  var prompt = '问题:' + question + '\n表结构:doc_main(doc_no,type,status,handler),doc_line(doc_no,line_no,material_code,batch_no,qty,unit),stock_onhand(material_code,batch_no,wh,loc,on_hand,avail),stock_ledger(doc_no,material_code,batch_no,qty,unit,biz),material_item(barcode,material_code,batch_no),batch(batch_no,material_code)\n只输出SQL:';
   var r = await fetch(CFG.base + '/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CFG.key },
-    body: JSON.stringify({ model: CFG.model, messages: [{ role: 'user', content: prompt }], temperature: 0 })
+    body: JSON.stringify({ model: CFG.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], temperature: 0, max_tokens: 200 })
   });
   if (!r.ok) throw new Error('LLM HTTP ' + r.status);
   var j = await r.json();
