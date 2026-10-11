@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="../assets/store.js"></script>
 <script src="../assets/flow.js"></script>
-<script src="../assets/nav.js" defer></script>
+<script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script>
+<script src="../assets/ai-gateway.js" defer></script><script src="../assets/doc-bridge.js" defer></script>
 <style>
 :root{--ink:#13293f;--muted:#6b7d8f;--line:#dbe5ef;--blue:#1677c8;--navy:#0b4770}
 *{box-sizing:border-box}
@@ -20,7 +21,7 @@ button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .wrap{padding:24px 24px 32px;max-width:1680px;margin:0 auto}
 .crumb{font-size:12px;color:var(--muted);margin-bottom:10px}
 .h1{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-.h1 h2{margin:0;font-size:19px;font-weight:800}
+.h1 h1{margin:0;font-size:19px;font-weight:800}
 .h1 p{margin:2px 0 0;font-size:12px;color:var(--muted);max-width:1080px}
 .tabs{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--line);background:#e9eff5}
 .tab{border:1px solid transparent;border-bottom:0;background:transparent;color:var(--muted);padding:9px 14px;font-weight:700;white-space:nowrap;border-radius:6px 6px 0 0;margin-bottom:-1px}
@@ -63,8 +64,9 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .note{background:#f4f9fd;border:1px solid #d7e9f7;border-radius:10px;padding:11px 12px;font-size:12px;color:#3c5a72}
 .link{color:var(--blue);font-weight:700;cursor:pointer}
 .link:hover{text-decoration:underline}
-.mask{position:fixed;inset:0;background:rgba(11,45,72,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
-.dlg{background:#fff;border-radius:8px;width:min(860px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(11,45,72,.3)}
+.ops{white-space:nowrap;text-align:left}.ops .link{margin-right:2px}
+/* 弹窗形态已收敛为共享 .wms-dialog（assets/theme.css），此处只保留本页面板宽度 */
+.dlg{width:min(860px,100%)}
 .dlg h3{margin:0;font-size:15px}
 .dh{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
 .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
@@ -89,6 +91,10 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px}.qty-unit{color:#5f7488;font-weight:600}
 .t .num,.t .num .qty-value{font-variant-numeric:tabular-nums}
 .t thead th:nth-child(n+9):nth-child(-n+17){text-align:right}
+.t th.column-center,.t td.column-center{text-align:center!important}
+/* 操作列（末列）表头与内容一律左对齐，避免数字列右对齐规则误伤 */
+.t thead th:last-child:not(.column-center){text-align:left}
+.ops{white-space:nowrap;text-align:left}.ops .link{margin-right:2px}
 .t th:nth-child(9),.t td:nth-child(9){min-width:92px}
 .t th:nth-child(10),.t td:nth-child(10){min-width:82px}
 .t th:nth-child(11),.t td:nth-child(11){min-width:96px}
@@ -120,17 +126,17 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
   <aside class="standalone-nav w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
   <div class="workbench-content flex-1 min-w-0">
 <div class="wrap">
-  <div class="crumb">物料管理 / <b id="crumb">物料登记</b></div>
-  <div class="h1"><div><h2 id="ttl">物料登记</h2></div></div>
+  <div class="crumb"><b id="crumbPage">物料管理 / 物料登记</b></div>
+  <div class="h1"><div><h1 id="ttl">物料登记</h1></div></div>
   <div class="bar" id="bar"></div>
   <main id="main" class="mt-3" aria-live="polite"></main>
 </div>
   </div>
 </div>
-<div id="dlgRoot" class="mask hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
-  <div class="dlg"><div class="dh"><h3 id="dlgTitle">提示</h3><button class="x" id="dlgX" aria-label="关闭">×</button></div><div class="pad" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div>
+<div id="dlgRoot" class="mask wms-dialog hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg wms-dialog-panel"><div class="dh wms-dialog-head"><h3 id="dlgTitle" class="wms-dialog-title">提示</h3><button class="x wms-dialog-close" id="dlgX" aria-label="关闭">×</button></div><div class="pad wms-dialog-body" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div>
 </div>
-<div id="toast" class="hide fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full z-[80]" role="status" aria-live="polite"></div>
+<div id="toast" class="wms-toast hide fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full z-[80]" role="status" aria-live="polite"></div>
 <script>
 (function(){
 /* ===== 1. 字典（基础数据 · 编码与字典） ===== */
@@ -274,7 +280,8 @@ function qtyVal(v){return '<span class="qty-value">'+fmt(v)+'</span>'}
 function amount(list){var s=0;(list||[]).forEach(function(l){s+=num(l.qty)*num(l.price)});return s}
 function alertOf(s){var m=mat(s.code);if(num(s.avail)<num(m.min))return '低于下限';if(num(s.on)>num(m.max))return '超过上限';return '正常'}
 function toast(m,bad){var t=document.getElementById('toast');t.textContent=m;t.style.background=bad?'#b42318':'#0f172a';t.classList.remove('hide');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hide')},2800);try{if(window.Store)Store.toast(m)}catch(e){}}
-function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide');var f=r.querySelector('#dlgBody button,#dlgBody input,#dlgFoot button');if(f)f.focus()}
+function centerRelevantColumns(root,title){if(!root)return;var labels=['批次','批次 / 库区','来源单','分量','操作人','备注','操作','预警','最后变动'];if(String(title||'').indexOf('审批日志')===0)labels.push('说明');Array.prototype.forEach.call(root.querySelectorAll('table.t'),function(table){Array.prototype.forEach.call(table.querySelectorAll('thead th'),function(header,index){if(labels.indexOf(header.textContent.trim())<0)return;header.classList.add('column-center');Array.prototype.forEach.call(table.tBodies,function(body){Array.prototype.forEach.call(body.rows,function(row){if(row.cells[index])row.cells[index].classList.add('column-center')})})})})}
+function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;centerRelevantColumns(document.getElementById('dlgBody'),title);document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide');var f=r.querySelector('#dlgBody button,#dlgBody input,#dlgFoot button');if(f)f.focus()}
 document.getElementById('dlgX').onclick=function(){document.getElementById('dlgRoot').classList.add('hide')};
 document.getElementById('dlgRoot').addEventListener('click',function(e){if(e.target===this||e.target.closest('[data-close]'))this.classList.add('hide')});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('dlgRoot').classList.add('hide')});
@@ -513,7 +520,7 @@ function renderMaterialDetail(){
   var rows=dl.map(function(s){var m=mat(s.code),al=alertOf(s),gi=DB.stock.indexOf(s),sources=materialSources(s);
     var ledn=DB.ledger.filter(function(x){return x.code===s.code&&x.batch===s.batch&&x.wh===s.wh&&x.loc===s.loc}).length;
     var itn=DB.item.filter(function(x){return x.code===s.code&&x.batch===s.batch}).length;
-    var srcHtml=sources.length?'<span class="link" data-act="sources" data-i="'+gi+'">共 '+sources.length+' 张 · 查看来源</span>':'<span class="mut">—</span>';
+    var srcHtml=sources.length?'<span class="link" data-act="sources" data-i="'+gi+'">共 '+sources.length+' 张</span>':'<span class="mut">—</span>';
     return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(m.mode||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+qtyVal(s.on)+'</b></td><td class="num">¥'+fmt(m.price||0)+'</td><td class="num">¥'+fmt(num(s.on)*num(m.price))+'</td><td class="num grn">'+qtyVal(s.avail)+'</td><td class="num org">'+qtyVal(s.pending)+'</td><td class="num">'+qtyVal(s.qua)+'</td><td class="num">'+qtyVal(s.frozen)+'</td><td class="sm mut">'+qtyVal(m.pack||0)+' / '+qtyVal(m.sub||0)+'</td><td class="sm mut">'+esc(m.min||'—')+'/'+esc(m.max||'—')+'</td><td>'+tag(al)+'</td><td class="num">'+ledn+'</td><td class="num">'+itn+'</td><td class="sm">'+srcHtml+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span> <span class="link" data-act="quick" data-i="'+gi+'">领用</span></td></tr>'}).join('');
   document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>明细记录</small><b>'+dl.length+'</b><span class="sm mut">物料+仓库+库区+批次+单位</span></div><div class="kpi"><small>低于下限</small><b class="red">'+dl.filter(function(s){return alertOf(s)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(dl.reduce(function(a,s){return a+num(s.pending)},0))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+
   '<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>物料明细</b><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div><div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>管理方式</th><th>仓库</th><th>库区</th><th>批次</th><th>单位</th><th>数量（账面）</th><th>参考单价</th><th>金额（参考）</th><th>可用</th><th>待检</th><th>隔离</th><th>冻结</th><th>包装量 / 细分量</th><th>最低/最高</th><th>预警</th><th>流水数</th><th>条码数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="23" class="mut" style="text-align:center;padding:28px">暂无库存明细</td></tr>')+'</tbody></table></div></div>';
@@ -550,16 +557,16 @@ function renderMaterialDetailByItem(){
     var stocks=grouped[code],first=stocks[0],material=mat(code),unit=first.unit||material.unit;
     var sources=[];
     stocks.forEach(function(stock){materialSources(stock).forEach(function(source){if(!sources.some(function(item){return item.no===source.no&&item.batch===source.batch&&item.loc===source.loc}))sources.push(source)})});
-    var sourceHtml=sources.length?'<span class="link" data-act="materialsources" data-code="'+esc(code)+'">共 '+sources.length+' 条 · 查看来源</span>':'<span class="mut">—</span>';
+    var sourceHtml=sources.length?'<span class="link" data-act="materialsources" data-code="'+esc(code)+'">共 '+sources.length+' 条</span>':'<span class="mut">—</span>';
     var alert=stocks.some(function(stock){return alertOf(stock)==='低于下限'})?'低于下限':stocks.some(function(stock){return alertOf(stock)!=='正常'})?'高于上限':'正常';
     var lastChanged=unique(stocks,'at').sort().reverse();
     var batchCount=unique(stocks,'batch');
-    var batchHtml='<span class="link" data-act="materialbatches" data-code="'+esc(code)+'">共 '+batchCount.length+' 条 · 点击查看</span>';
+    var batchHtml='<span class="link" data-act="materialbatches" data-code="'+esc(code)+'">共 '+batchCount.length+' 条</span>';
     var packUnit=(unit==='个'?'袋':'箱');
-    return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(material.name)+'</td><td>'+esc(material.spec||'—')+'</td><td class="sm">'+batchHtml+'</td><td class="num"><b>'+fmt(stocks.length)+'</b></td><td>'+esc(packUnit)+'</td><td class="num"><b>'+fmt(total(stocks,'on'))+'</b></td><td>'+esc(unit||'—')+'</td><td class="num">¥'+fmt(material.price||0)+'</td><td class="num">¥'+fmt(total(stocks,'on')*num(material.price))+'</td><td class="num grn">'+qtyVal(total(stocks,'avail'))+'</td><td class="num org">'+qtyVal(total(stocks,'pending'))+'</td><td class="num">'+qtyVal(total(stocks,'qua'))+'</td><td class="num">'+qtyVal(total(stocks,'frozen'))+'</td><td class="sm mut">'+esc(material.min||'—')+'/'+esc(material.max||'—')+'</td><td>'+tag(alert)+'</td><td class="num">'+DB.ledger.filter(function(item){return item.code===code}).length+'</td><td class="num">'+DB.item.filter(function(item){return item.code===code}).length+'</td><td class="sm">'+sourceHtml+'</td><td class="sm mut">'+esc(lastChanged[0]||'—')+'</td><td><span class="link" data-act="flow" data-code="'+esc(code)+'">流水</span></td></tr>';
+    return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(material.name)+'</td><td>'+esc(material.spec||'—')+'</td><td class="sm">'+batchHtml+'</td><td class="num"><b>'+fmt(stocks.length)+'</b></td><td>'+esc(packUnit)+'</td><td class="num"><b>'+fmt(total(stocks,'on'))+'</b></td><td>'+esc(unit||'—')+'</td><td class="num">¥'+fmt(material.price||0)+'</td><td class="num">¥'+fmt(total(stocks,'on')*num(material.price))+'</td><td class="num grn">'+qtyVal(total(stocks,'avail'))+'</td><td class="num org">'+qtyVal(total(stocks,'pending'))+'</td><td class="num">'+qtyVal(total(stocks,'qua'))+'</td><td class="num">'+qtyVal(total(stocks,'frozen'))+'</td><td class="sm mut">'+esc(material.min||'—')+'/'+esc(material.max||'—')+'</td><td>'+tag(alert)+'</td><td class="num">'+DB.ledger.filter(function(item){return item.code===code}).length+'</td><td class="num">'+DB.item.filter(function(item){return item.code===code}).length+'</td><td class="sm">'+sourceHtml+'</td><td class="sm mut">'+esc(lastChanged[0]||'—')+'</td></tr>';
   }).join('');
   document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>物料种类</small><b>'+Object.keys(grouped).length+'</b><span class="sm mut">物料编码一行一条</span></div><div class="kpi"><small>低于下限</small><b class="red">'+detailRows.filter(function(stock){return alertOf(stock)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(total(detailRows,'pending'))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+ 
-  '<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>物料明细</b><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div><div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>数量单位</th><th>库存量</th><th>库存量单位</th><th>参考单价</th><th>金额（参考）</th><th>可用</th><th>待检</th><th>隔离</th><th>冻结</th><th>最低/最高</th><th>预警</th><th>流水数</th><th>条码数</th><th>来源单</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="21" class="mut" style="text-align:center;padding:28px">暂无库存明细</td></tr>')+'</tbody></table></div></div>';
+  '<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>物料明细</b><span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div><div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>批次</th><th>数量</th><th>数量单位</th><th>库存量</th><th>库存量单位</th><th>参考单价</th><th>金额（参考）</th><th>可用</th><th>待检</th><th>隔离</th><th>冻结</th><th>最低/最高</th><th>预警</th><th>流水数</th><th>条码数</th><th>来源单</th><th>最后变动</th></tr></thead><tbody>'+(rows||'<tr><td colspan="20" class="mut" style="text-align:center;padding:28px">暂无库存明细</td></tr>')+'</tbody></table></div></div>';
 }
 function renderPlace(){
   var map={request:'物料管理 / 申请领料',register:'物料管理 / 物料登记',reject:'物料管理 / 来料拒收',inbound:'物料管理 / 物料入库',issue:'物料管理 / 物料领用',wreturn:'物料管理 / 车间退料',return:'物料管理 / 物料退库',materialCode:'物料管理 / 物料明细',onhand:'仓储作业 / 仓库库存',ledger:'仓储作业 / 库存记录',stock:'仓储作业 / 仓库库存'};
@@ -598,15 +605,16 @@ function render(){
   var sharedBar=document.getElementById('bar');
   if(sharedBar){sharedBar.innerHTML='';sharedBar.classList.remove('has-content')}
   var place={request:'物料管理 / 申请领料',register:'物料管理 / 物料登记',reject:'物料管理 / 来料拒收',inbound:'物料管理 / 物料入库',issue:'物料管理 / 物料领用',wreturn:'物料管理 / 车间退料',return:'物料管理 / 物料退库',materialCode:'物料管理 / 物料明细',onhand:'仓储作业 / 仓库库存',ledger:'仓储作业 / 库存记录',stock:'仓储作业 / 仓库库存'};
-  document.getElementById('crumb').textContent=place[view]||(VIEWS[view]||VIEWS.request).name;
+  var crumbPageEl=document.getElementById('crumbPage');if(crumbPageEl)crumbPageEl.textContent=place[view]||(VIEWS[view]||VIEWS.request).name;
   document.getElementById('ttl').textContent=(view==='onhand'?'仓库库存':view==='ledger'?'库存记录':(VIEWS[view]||VIEWS.request).name);
   notifyParentRoute();
   renderPlace();
-  if(view==='onhand'||view==='ledger'||view==='stock')return renderStock();
-  if(view==='materialCode')return renderMaterialDetailByItem();
+  if(view==='onhand'||view==='ledger'||view==='stock'){renderStock();centerRelevantColumns(document.getElementById('main'));return}
+  if(view==='materialCode'){renderMaterialDetailByItem();centerRelevantColumns(document.getElementById('main'));return}
   renderBar();
   if(mode==='edit'&&docBy(curNo)){renderEditor();applyEditorActions();paintFlowLine();return;}
   renderList();
+  centerRelevantColumns(document.getElementById('main'));
 }
 function paintFlowLine(){
   try{
@@ -617,6 +625,16 @@ function paintFlowLine(){
       el.innerHTML='审批流：<b>'+esc(ApproveFlow.flowText(d.type,d.flow))+'</b> · 当前节点 <b>'+esc(d.flow.done?'DONE(可仓管确认)':(nx?nx.k+'('+nx.role+')':'—'))+'</b> · <span class="link" data-act="gocfg">去审批流配置</span>';
     }
   }catch(e){}
+}
+/* 列表操作列：按状态给不同动作，避免全行只有一个“继续办理” */
+function opsFor(d){
+  var no=' data-no="'+esc(d.no)+'"';
+  function ln(act,label){return '<span class="link" data-act="'+act+'"'+no+'>'+label+'</span>';}
+  if(d.status==='草稿')return ln('open','继续办理')+'<span class="mut"> · </span>'+ln('delDoc','删除');
+  if(d.status==='已保存')return ln('open','继续办理')+'<span class="mut"> · </span>'+ln('voidDoc','作废');
+  if(d.status==='已驳回')return ln('open','修改重提')+'<span class="mut"> · </span>'+ln('voidDoc','作废');
+  if(d.status==='已审批')return ln('open','查看')+'<span class="mut"> · </span>'+ln('printDoc','打印');
+  return ln('open','查看');
 }
 function renderList(){
   function destination(d){
@@ -634,7 +652,7 @@ function renderList(){
   if(kw)list=list.filter(function(d){return (d.no+' '+(d.party||'')+' '+(d.dept||'')+' '+(d.receiver||'')+' '+(d.lines||[]).map(function(l){return mat(l.code).name+l.code}).join(' ')).toLowerCase().indexOf(kw.toLowerCase())>=0});
   var rows=list.map(function(d){
     var brief=(d.lines||[]).map(function(l){var lu=l.unit||mat(l.code).unit||'—';return mat(l.code).name+' '+fmt(num(l.qty))+' '+lu}).join('；')||'—';
-    return '<tr><td><b class="link" data-act="open" data-no="'+esc(d.no)+'">'+esc(d.no)+'</b>'+(d.reversed?' <span class="sm red">已冲 '+fmt(d.reversed)+'</span>':'')+'</td><td>'+esc(d.date)+'</td><td>'+esc(destination(d))+'</td><td>'+esc(customers(d))+'</td><td>'+esc(brief)+'</td><td>'+esc(unitSum(d.lines))+'</td><td class="num">¥'+fmt(amount(d.lines))+'</td><td>'+tag(d.status)+'</td><td><span class="link" data-act="open" data-no="'+esc(d.no)+'">'+(d.status==='已审批'?'查看':'继续办理')+'</span></td></tr>';
+    return '<tr><td><b class="link" data-act="open" data-no="'+esc(d.no)+'">'+esc(d.no)+'</b>'+(d.reversed?' <span class="sm red">已冲 '+fmt(d.reversed)+'</span>':'')+'</td><td>'+esc(d.date)+'</td><td>'+esc(destination(d))+'</td><td>'+esc(customers(d))+'</td><td>'+esc(brief)+'</td><td>'+unitSum(d.lines)+'</td><td class="num">¥'+fmt(amount(d.lines))+'</td><td>'+tag(d.status)+'</td><td class="ops">'+opsFor(d)+'</td></tr>';
   }).join('');
   document.getElementById('main').innerHTML=
     '<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div>'+
@@ -787,7 +805,7 @@ function renderRegisterGroupedLines(d,cols){
       '<section class="card">'+
         '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>工单清单 · '+esc(d.no)+' '+tag(d.status)+(d.reversed?' '+tag('已冲红'):'')+'</b><span class="sm mut">'+(locked?'已过账：明细不可修改，如需更正请走《物料退库 · 入库冲红》':'')+(d.type==='request'&&!locked?'<button type="button" class="b" data-act="addsingle" style="margin-left:8px">+单条</button>':'')+'</span></div>'+batchBar+srcBar+
         '<div class="tblwrap"><table class="t"><thead><tr><th>序号</th>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th>操作</th></tr></thead><tbody>'+(lines||'<tr><td colspan="'+(cols.length+2)+'" style="text-align:center;padding:26px"><button class="empty-add" data-act="addline" title="添加清单" aria-label="添加清单">＋</button></td></tr>')+'</tbody></table></div>'+ 
-        '<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+esc(unitSum(d.lines))+'</b></span><span>参考金额 <b>¥'+fmt(amount(d.lines))+'</b><span class="mut">（仅展示，不参与记账）</span></span>'+((d.type==='reject'||d.type==='request')?'<span class="red"><b>本单审批不产生任何库存变动</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签张数按 验收数量 ÷ 包装数量 向上取整</span>':'')+(d.type==='wreturn'?'<span class="grn"><b>回仓进项：审批后目标仓库存量增加</b></span>':'')+(d.type==='return'?'<span class="red"><b>出库/冲红方向：审批后库存减少或分量互转</b></span>':'')+'</div></div>'+
+        '<div class="pad"><div class="sum"><span>共 <b>'+(d.lines||[]).length+'</b> 行</span><span>数量合计 <b>'+unitSum(d.lines)+'</b></span><span>参考金额 <b>¥'+fmt(amount(d.lines))+'</b><span class="mut">（仅展示，不参与记账）</span></span>'+((d.type==='reject'||d.type==='request')?'<span class="red"><b>本单审批不产生任何库存变动</b></span>':'')+(d.type==='inbound'?'<span class="mut">标签张数按 验收数量 ÷ 包装数量 向上取整</span>':'')+(d.type==='wreturn'?'<span class="grn"><b>回仓进项：审批后目标仓库存量增加</b></span>':'')+(d.type==='return'?'<span class="red"><b>出库/冲红方向：审批后库存减少或分量互转</b></span>':'')+'</div></div>'+
       '</section>'+
       '<aside class="card pad work-order-info">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>工单信息'+(d.status==='草稿'?'（新工单，未保存）':'')+'</b><button class="b" data-act="print">打印</button></div>'+
@@ -948,6 +966,9 @@ var ACT={
    back:function(){var d=cur();if(d&&d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存')}mode='list';curNo='';render()},
    cancel:function(){var d=cur();if(!d)return;if(d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存，未提交审批')}curNo='';mode='list';render()},
   void:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no)},
+  delDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;if(d.status!=='草稿'){toast('只有草稿可以删除',1);return}dialog('删除草稿 · '+d.no,'<div class="note">删除后不可恢复，确认删除这张草稿工单吗？</div>','<button class="b" data-close>取消</button><button class="b danger" id="delYes">确认删除</button>');document.getElementById('delYes').onclick=function(){DB.doc=DB.doc.filter(function(x){return x.no!==d.no});audit(d,'删除草稿');save();document.getElementById('dlgRoot').classList.add('hide');render();toast('已删除草稿：'+d.no);};},
+  voidDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}if(d.status==='已作废'||d.status==='已冲红'){toast('该单据已'+d.status+'，无需重复作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no);},
+  printDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;var codes=(d.lines||[]).map(function(l){return l.barcode}).filter(Boolean);toast(codes.length?('已推送 '+codes.length+' 张二维码标签到打印队列（二维码 / 名称 / 单价）'):'物料登记后才会生成二维码标签');},
   newbatch:function(){
     var d=cur();if(!d||d.type!=='register'){toast('请先打开一张物料登记工单',1);return}
     if(d.status==='已审批'||d.status==='已作废'){toast('已过账单据不能新增批次',1);return}
