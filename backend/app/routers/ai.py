@@ -26,10 +26,10 @@ def ask(body: dict, authed: dict = Depends(auth.need_auth),
     except Exception as err:
         return resp.fail(400, "SQL执行失败:" + str(err)[:200])
     data = [dict(r) for r in rows[:200]]
-    with db.begin():
-        db.execute(text("INSERT INTO ai_qa_log(by_user,question,sql_text,rows_count)"
-                        " VALUES('web',:q,:s,:n)"),
-                   {"q": question[:1000], "s": final[:2000], "n": len(data)})
+    db.execute(text("INSERT INTO ai_qa_log(by_user,question,sql_text,rows_count)"
+                    " VALUES('web',:q,:s,:n)"),
+               {"q": question[:1000], "s": final[:2000], "n": len(data)})
+    db.commit()
     return resp.ok({"sql": final, "rows": data,
                     "formula": "默认查快照onhand,仲裁查ledger"}, total=len(data))
 
@@ -44,8 +44,8 @@ def text2sql(body: dict, authed: dict = Depends(auth.need_auth),
 def ocr(body: dict, authed: dict = Depends(auth.need_auth),
         db: Session = Depends(get_db)):
     out = paddle.recognize(str(body.get("image") or ""))
-    with db.begin():
-        db.execute(text("INSERT INTO ocr_document(ocr_id,conf,ref)"
-                        " VALUES(:i,:c,:r)"),
-                   {"i": "OCR1", "c": 0.0, "r": "ref"})
+    db.execute(text("INSERT INTO ocr_document(ocr_id,conf,ref)"
+                    " VALUES(:i,:c,:r)"),
+               {"i": "OCR1", "c": 0.0, "r": "ref"})
+    db.commit()
     return resp.ok(out)

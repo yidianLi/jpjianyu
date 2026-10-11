@@ -54,3 +54,4 @@ Docker 一键起：`docker compose up -d`（`mysql:5.6` + `wms-api`，`sql/wms.s
 - step20（2026-10-11）：路由表补至九路由（+docparts 4 口+batches/items/doc_templates/bill_methods 4 口）；`web.py` 178 行仍达标；原型 `dashboard/docs/ocr/scan` 4 页已接真接口（无后端自动回 Mock）。
 - step22（2026-10-11）：`requirements.txt` 刷新为本机实测版本（fastapi 0.141.1/sqlalchemy 2.0.52/pydantic 2.13.5 等 7 包）；确认新版懒挂载无异常并记入本文档；冒烟 9/9。
 - step23（2026-10-11）：冒烟加端到端 2 项（`TestClient` 拉起全应用：`/health` 200 + `openapi.json` 含 dashboard/aiask）；冒烟 11/11。
+- step25（2026-10-11）：容器实机联调通过——`mysql:5.6`+`wms-api` 双容器 Up；`wms.sql` 连跑两遍均为 63 表零报错（幂等）；5 读口全 200（health/onhand/docs/dashboard/materials，空库 data 为 [] 符合预期）；另抓到真 bug 一只：`ai.py` 问答口 `with db.begin()` 与 Session 自带事务冲突 500，已改为 `execute+commit`、重建镜像复测 200；写口护栏实测（空行 400、提不存在单 403）。
