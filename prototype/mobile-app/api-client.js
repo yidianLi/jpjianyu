@@ -1,7 +1,8 @@
 /* 移动APP独立接口层 · 与PC完全解耦，仅通过后端REST API通信
  * PC: prototype/pages/*.html + assets/store.js (Web直连)
  * APP: prototype/mobile-app/index.html + api-client.js (App经此层，不直连PC，不共享localStorage)
- * 后端统一: /api/v1/app/* 移动端专用，/api/v1/web/* PC专用，共用业务库+审计 */
+ * 后端统一: /api/v1/app/* 移动端专用，/api/v1/web/* PC专用，共用业务库+审计
+ * 对齐 backend/app/routers/app_.py：Bearer + X-Device-Id + X-Sign，扫码先库位后物料 */
 (function(){
   var CFG = { baseUrl: localStorage.getItem('wms_app_base') || 'http://10.8.0.12:8080/api/v1',
     token: localStorage.getItem('wms_app_token') || 'DEMO-APP-TOKEN-LIXIAOMING',
@@ -11,6 +12,7 @@
   function qSave(q){ try{localStorage.setItem(QUEUE_KEY,JSON.stringify(q))}catch(e){} renderQ(); }
   function renderQ(){ var el=document.getElementById('syncBadge'); if(!el) return;
     var q=qLoad(); el.textContent = q.length? ('待同步 '+q.length) : '已同步'; el.className = q.length? 'text-[10px] px-2 py-0.5 rounded-full bg-orange-500 text-white':'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white'; }
+  function signOf(body, ts){ var s=CFG.token+ts+JSON.stringify(body||{}); var h=0; for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;} return 'H'+h.toString(16); }
   // 仅无后端演示时模拟共用业务库；真实环境由 /app/checklists 返回。
   function mockChecklist(orderId){
     var saved=null;try{saved=JSON.parse(localStorage.getItem('wms_mock_backend_checklist_'+orderId)||'null')}catch(e){}
@@ -23,7 +25,9 @@
   }
   async function req(path, opt){
     opt=opt||{}; var url=CFG.baseUrl + path;
-    var headers={'Content-Type':'application/json','Authorization':'Bearer '+CFG.token,'X-Device-Id':CFG.deviceId};
+    var ts=String(Date.now());
+    var headers={'Content-Type':'application/json','Authorization':'Bearer '+CFG.token,'X-Device-Id':CFG.deviceId,'X-Timestamp':ts};
+    if((opt.method||'GET')!=='GET'){ headers['X-Sign']=signOf(opt.body, ts); }
     try{
       var ctl=new AbortController(); var t=setTimeout(()=>ctl.abort(), CFG.timeout);
       var r=await fetch(url,{method:opt.method||'GET',headers:headers,body:opt.body?JSON.stringify(opt.body):undefined,signal:ctl.signal});
@@ -41,8 +45,8 @@
       {id:'SL2026091209',type:'receipt_checklist',title:'送货单清单验收',desc:'恒达服饰 · 3项物料 · 现场逐行确认',deadline:'现在'},
       {id:'TL2026091201',type:'return',title:'退料待提交',desc:'牛津布 120米 · 原领LY2026091108',deadline:'10:00'},
       {id:'ZS2026091204',type:'receive',title:'直送待接收',desc:'里布 800米 · 裁剪车间',deadline:'11:30'}]}}); },
-    // 2.扫码解析(SB必扫/箱唛可选, 服务端校验归属/超领/重复)
-    scan:function(code,orderId){ return req('/app/scan',{method:'POST',body:{code:code,orderId:orderId},mock:{ok:true,data:{code:code,material:'HD-OXF-001 牛津布',qty:200,unit:'米',result: code.indexOf('DUP')>=0?'DUPLICATE':'OK'}}}); },
+    // 2.扫码解析(先库位后物料SB，服务端校验归属/超领/重复)
+    scan:function(code,orderId,loc){ return req('/app/scan',{method:'POST',body:{code:code,orderId:orderId,loc:loc||''},mock:{ok:true,data:{code:code,material:'HD-OXF-001 牛津布',qty:200,unit:'米',result: code.indexOf('DUP')>=0?'DUPLICATE':'OK'}}}); },
     // 3.拍照OCR(APP端压缩后上传, 只返回候选值)
     ocr:function(){ return req('/app/ocr',{method:'POST',body:{images:3},mock:{ok:true,data:{qty_ocr:'120米',qty_conf:0.62,customer:'恒达服饰'}}}); },
     // 4.送货单清单(移动端和PC端均以送货单明细为验收基准)
@@ -61,7 +65,7 @@
       if(!navigator.onLine){ var q=qLoad(); q.push({ts:Date.now(),payload:payload}); qSave(q); return Promise.resolve({ok:true,queued:true,msg:'弱网已存草稿, 待同步'}); }
       return req('/app/submit',{method:'POST',body:payload,mock:{ok:true,data:{orderId:'LY2026091211'}}});
     },
-    flushQueue:function(){ var q=qLoad(); if(!q.length) return Promise.resolve({ok:true,msg:'队列为空'}); localStorage.setItem(QUEUE_KEY,'[]'); renderQ(); return Promise.resolve({ok:true,msg:'已同步 '+q.length+' 条, mobile_sync_queue已清空'}); },
+    flushQueue:function(){ var q=qLoad(); if(!q.length) return req('/app/sync/flush',{method:'POST',mock:{ok:true,msg:'队列为空'}}); localStorage.setItem(QUEUE_KEY,'[]'); renderQ(); return req('/app/sync/flush',{method:'POST',mock:{ok:true,msg:'已同步 '+q.length+' 条, mobile_sync_queue已清空'}}); },
     mine:function(){ return {name:'李小明',role:'车间领料员',scope:'一监区/1栋/2层/缝制一车间/王班组',device:'PDA-03 · Android 12 · 扫描头Honeywell'}; }
   };
   document.addEventListener('DOMContentLoaded', renderQ);
