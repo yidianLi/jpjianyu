@@ -4,14 +4,18 @@
   var BASE = (window.WmsAi && window.WmsAi.base) ||
     localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
   function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
+  function gate(){ return (window.WmsAi && window.WmsAi.ready) || Promise.resolve(); }
   function get(path){
-    return fetch(BASE + path, {headers:{'Authorization':'Bearer ' + token()}})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return gate().then(function(){
+      return fetch(BASE + path, {headers:{'Authorization':'Bearer ' + token()}});
+    }).then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
   function post(path, body){
-    return fetch(BASE + path, {method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer ' + token()},
-      body: JSON.stringify(body || {})}).then(function(r){
+    return gate().then(function(){
+      return fetch(BASE + path, {method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer ' + token()},
+        body: JSON.stringify(body || {})});
+    }).then(function(r){
       if(!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     });

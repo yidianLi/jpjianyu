@@ -741,4 +741,18 @@ ON DUPLICATE KEY UPDATE method_name=VALUES(method_name);
 
 
 
+-- 演示账号(空密码哈希=免密演示登录,生产必须先设哈希):admin系统管理员/demo仓库演示员
+INSERT INTO sys_role(role_id,autocode,lowest,name,cat_allow,func_allow,data_scope) VALUES
+('R-ADMIN','1',1,'系统管理员','*','*','*'),
+('R-WH','1',1,'仓库演示员','*','*','WH-A,WH-B,WH-C')
+ON DUPLICATE KEY UPDATE name=VALUES(name);
+INSERT INTO sys_user(username,name,password_hash,phone,data_scope,enabled,status,last_login,last_device) VALUES
+('admin','系统管理员','',NULL,'*',1,'启用',NULL,NULL),
+('demo','仓库演示员','',NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL)
+ON DUPLICATE KEY UPDATE name=VALUES(name);
+INSERT INTO sys_user_role(username,role_id) VALUES
+('admin','R-ADMIN'),
+('demo','R-WH')
+ON DUPLICATE KEY UPDATE username=VALUES(username);
+
 -- END: 本文件可重复执行(CREATE TABLE IF NOT EXISTS + INSERT..ON DUPLICATE KEY),无独立CREATE INDEX,无物理外键,无ENUM/JSON/CHECK

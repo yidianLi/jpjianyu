@@ -15,6 +15,7 @@ def create_wo(body: dict, authed: dict = Depends(auth.need_auth),
         return resp.fail(400, "成品编码与计划数量必填")
     if not body.get("bom_version"):
         return resp.fail(400, "BOM_VERSION_REQUIRED:须指定启用版本")
+    db.rollback()
     with db.begin():
         wo_no = posting.make_doc_no(db, "WO")
         db.execute(text("INSERT INTO wo_task(wo_no,product_code,bom_version,"
@@ -39,12 +40,12 @@ def wo_issue(wo_no: str, body: dict, authed: dict = Depends(auth.need_auth),
                         "v": wo["bom_version"]}).mappings().all()
     if not lines:
         return resp.fail(400, "BOM无行,不可领料")
-    with db.begin():
-        doc_no = posting.create(db, "LY", str(body.get("handler") or ""),
-                                [{"material_code": r["material_code"],
-                                  "qty": float(r["qty"] or 0),
-                                  "unit": r["unit"],
-                                  "loc": body.get("loc") or ""} for r in lines])
+    doc_no = posting.create(db, "LY", str(body.get("handler") or ""),
+                            [{"material_code": r["material_code"],
+                              "qty": float(r["qty"] or 0),
+                              "unit": r["unit"],
+                              "loc": body.get("loc") or ""} for r in lines])
+    db.commit()
     return resp.ok({"wo_no": wo_no, "ly_no": doc_no, "lines": len(lines),
                     "tip": "已按BOM展开建LY单,过账才扣减"})
 

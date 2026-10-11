@@ -9,6 +9,8 @@ TYPE_SID = {"DJ": 10000, "JS": 10200, "RK": 10100, "LY": 10400,
 
 
 def make_doc_no(db, prefix):
+    db.execute(text("INSERT IGNORE INTO sys_sequence(seq_name,cid,next_val,remark)"
+                    " VALUES('DOC_MAIN.DOC_NO',0,10000001,'单据主键池')"))
     row = db.execute(text("SELECT next_val FROM sys_sequence WHERE seq_name=:n"),
                      {"n": "DOC_MAIN.DOC_NO"}).mappings().first()
     nxt = int(row["next_val"]) if row else 10000001
@@ -31,7 +33,7 @@ def create(db, dtype, handler, lines):
                     "q": line.get("qty"), "u": line.get("unit"),
                     "l": line.get("loc")})
     db.execute(text("INSERT INTO flow_instance(doc_no,flow_key,cur_step,flow_status)"
-                    " VALUES(:d,:f,'S1','草稿)"), {"d": doc_no, "f": dtype})
+                    " VALUES(:d,:f,'S1','草稿')"), {"d": doc_no, "f": dtype})
     return doc_no
 
 

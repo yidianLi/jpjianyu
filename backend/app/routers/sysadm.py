@@ -1,6 +1,5 @@
 """系统管理最小可用:登录/我/用户/角色/设备/队列.密码哈希比对,Token演示签发."""
 import hashlib
-import time
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -8,7 +7,7 @@ from app.core import resp, auth
 from app.core.db import get_db
 
 router = APIRouter()
-TOKENS: dict = {}
+TOKENS = auth.TOKENS
 
 
 def _sha(pwd):
@@ -24,15 +23,14 @@ def login(body: dict, db: Session = Depends(get_db)):
         return resp.fail(401, "TOKEN_INVALID:账号不存在或已停用")
     if row["password_hash"] and row["password_hash"] != _sha(body.get("password")):
         return resp.fail(401, "TOKEN_INVALID:密码错误")
-    token = "T-%s-%d" % (username, int(time.time()))
-    TOKENS[token] = username
+    token = auth.issue_token(username)
     return resp.ok({"token": token, "name": row["name"], "username": username})
 
 
 @router.get("/auth/me")
 def me(authed: dict = Depends(auth.need_auth),
        db: Session = Depends(get_db)):
-    username = TOKENS.get(authed.get("token") or "", "")
+    username = authed.get("username") or ""
     if not username:
         return resp.ok({"username": "demo", "demo": True})
     row = db.execute(text("SELECT username,name,data_scope,status FROM sys_user"

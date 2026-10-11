@@ -45,6 +45,7 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
   var BASE = (window.WmsAi && window.WmsAi.base) || localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
   function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
   function num(v){ var n = Number(v); return isFinite(n) ? n.toLocaleString('zh-CN') : '—'; }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function setKpi(key, valueHtml, meta){
     var el = document.querySelector('[data-kpi="'+key+'"]');
     if(!el) return;
@@ -62,7 +63,7 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
     var box = document.querySelector('.dash-right .dash-panel .dash-panel-body');
     if(box && alerts.length){
       box.innerHTML = alerts.map(function(a){
-        return '<button type="button" class="list-item text-left" data-live-alert="' + a.doc + '"><b><span class="status-dot danger">' + a.doc + '</span></b><span>' + (a.reason || '异常') + '</span><small>点直达 docs</small></button>';
+        return '<button type="button" class="list-item text-left" data-live-alert="' + esc(a.doc) + '"><b><span class="status-dot danger">' + esc(a.doc) + '</span></b><span>' + esc(a.reason || '异常') + '</span><small>点直达 docs</small></button>';
       }).join('');
       box.querySelectorAll('[data-live-alert]').forEach(function(b){
         b.addEventListener('click', function(){ location.href = 'docs.html?code=' + encodeURIComponent(b.getAttribute('data-live-alert')); });

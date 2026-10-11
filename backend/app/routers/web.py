@@ -108,6 +108,9 @@ def doc_detail(doc_no: str, authed: dict = Depends(auth.need_auth),
 def create_doc(body: dict, authed: dict = Depends(auth.need_auth),
                db: Session = Depends(get_db),
                key: str = Depends(idem.idem_key)):
+    cached = idem.replay(key)
+    if cached:
+        return resp.ok(cached["data"])
     dtype = str(body.get("type") or "")
     if dtype not in DOC_TYPES:
         return resp.fail(400, "单据类型非白名单")
@@ -119,6 +122,9 @@ def create_doc(body: dict, authed: dict = Depends(auth.need_auth),
             return resp.fail(400, "INVALID_QTY:数量必带单位")
         if not line.get("material_code") and not line.get("product_code"):
             return resp.fail(400, "物料行/成品行二选一必填")
+    hit = idem.peek(key)
+    if hit is not None:
+        return resp.ok(hit)
     with db.begin():
         doc_no = posting.create(db, dtype, str(body.get("handler") or ""),
                                 lines)
@@ -144,12 +150,19 @@ def post(doc_no: str, authed: dict = Depends(auth.need_auth),
     head, _ = queries.fetch_doc_detail(db, doc_no)
     if not head:
         return resp.fail(404, "DOC_NOT_FOUND:单据不存在")
+    hit = idem.peek(key)
+    if hit is not None:
+        return resp.ok(hit)
+    db.rollback()
     try:
-        with db.begin():
-            state = posting.post(db, doc_no, str(head.get("type") or ""),
-                                 "web-user", "")
+        state = posting.post(db, doc_no, str(head.get("type") or ""),
+                             "web-user", "")
+        db.commit()
     except ValueError as err:
+        db.rollback()
         return resp.fail(403, str(err))
+    if state == "404":
+        return resp.fail(404, "DOC_NOT_FOUND:单据不存在")
     out = idem.replay_or_put(key, lambda: {"doc_no": doc_no,
                                            "biz_status": state})
     return resp.ok(out["data"])

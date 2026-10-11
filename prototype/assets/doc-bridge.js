@@ -9,11 +9,14 @@
     return (docNo || 'NEW') + ':' + (lineNo || 1) + ':' + (biz || 'DOC');
   }
   function post(path, body, key){
-    return fetch(BASE + path, {method: 'POST',
-      headers: {'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token(),
-        'Idempotency-Key': key || idemKey('', 1, 'DOC')},
-      body: JSON.stringify(body || {})}).then(function(r){
+    var gate = (window.WmsAi && window.WmsAi.ready) || Promise.resolve();
+    return gate.then(function(){
+      return fetch(BASE + path, {method: 'POST',
+        headers: {'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token(),
+          'Idempotency-Key': key || idemKey('', 1, 'DOC')},
+        body: JSON.stringify(body || {})});
+    }).then(function(r){
       if(!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     });

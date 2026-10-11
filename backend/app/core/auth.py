@@ -1,8 +1,15 @@
 """鉴权:Bearer+设备白名单+时间戳防重放.行数<=300."""
 import time
+import secrets
 from fastapi import Header, HTTPException
 
 APP_DEVICES = {"PDA-03", "PDA-04"}
+TOKENS = {}
+
+def issue_token(username: str) -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS[token] = {"username": username, "issued_at": time.time()}
+    return token
 
 
 def need_auth(authorization: str = Header(default=""),
@@ -16,7 +23,14 @@ def need_auth(authorization: str = Header(default=""),
                 raise HTTPException(status_code=401, detail="TIMESTAMP_EXPIRED")
         except ValueError:
             raise HTTPException(status_code=401, detail="TIMESTAMP_INVALID")
-    return {"token": authorization[7:], "device": x_device_id}
+    token = authorization[7:].strip()
+    session = TOKENS.get(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="TOKEN_INVALID")
+    if time.time() - session["issued_at"] > 8 * 60 * 60:
+        TOKENS.pop(token, None)
+        raise HTTPException(status_code=401, detail="TOKEN_EXPIRED")
+    return {"token": token, "device": x_device_id, "username": session["username"]}
 
 
 def need_app_device(auth: dict) -> dict:

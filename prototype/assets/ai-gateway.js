@@ -3,6 +3,19 @@
 (function(){
   var BASE = localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
   function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
+  /* 演示自动登录:无token时以demo免密登录换真token,失败保留Demo(后端回Mock) */
+  var ready = (function(){
+    if(localStorage.getItem('wms_token')) return Promise.resolve();
+    return fetch(BASE + '/web/auth/login', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'demo'})}).then(function(r){
+      if(!r.ok) throw new Error('login ' + r.status);
+      return r.json();
+    }).then(function(j){
+      var t = j && j.data && j.data.token;
+      if(t) localStorage.setItem('wms_token', t);
+    }).catch(function(){});
+  })();
   var DENY = ['insert','update','delete','drop','alter','grant','post'];
   function frontCheck(sql){
     if(!/^select\b/i.test(String(sql||'').trim())) return '只允许单条SELECT.';
@@ -10,15 +23,18 @@
     return '';
   }
   function post(path, body){
-    return fetch(BASE + path, {method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},
-      body:JSON.stringify(body||{})}).then(function(r){
+    return ready.then(function(){
+      return fetch(BASE + path, {method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},
+        body:JSON.stringify(body||{})});
+    }).then(function(r){
       if(!r.ok) throw new Error('HTTP '+r.status);
       return r.json();
     });
   }
   window.WmsAi = {
     base: BASE,
+    ready: ready,
     ask: function(question){
       return post('/ai/ask', {question: question}).then(function(j){
         var sql = j && j.data && j.data.sql || '';

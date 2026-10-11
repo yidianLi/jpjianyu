@@ -8,6 +8,20 @@
     token: localStorage.getItem('wms_app_token') || 'DEMO-APP-TOKEN-LIXIAOMING',
     deviceId: 'PDA-03', timeout: 1800 };
   var QUEUE_KEY='wms_app_offline_q_v1';
+  /* 演示自动登录:无token时以demo免密登录换真token,失败保留Demo走Mock */
+  try{
+    if(!localStorage.getItem('wms_app_token')){
+      fetch(CFG.baseUrl + '/web/auth/login', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username:'demo'})}).then(function(r){
+        if(!r.ok) throw new Error('login fail');
+        return r.json();
+      }).then(function(j){
+        var t = j && j.data && j.data.token;
+        if(t){ CFG.token = t; localStorage.setItem('wms_app_token', t); }
+      }).catch(function(){});
+    }
+  }catch(e){}
   function qLoad(){ try{return JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]')}catch(e){return[]} }
   function qSave(q){ try{localStorage.setItem(QUEUE_KEY,JSON.stringify(q))}catch(e){} renderQ(); }
   function renderQ(){ var el=document.getElementById('syncBadge'); if(!el) return;
