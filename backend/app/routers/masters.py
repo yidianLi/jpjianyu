@@ -1,4 +1,4 @@
-"""主档路由:物料/成品/BOM/仓储地点/客户组织.只读为主,写口仅管理员."""
+"""主档路由:物料/成品/BOM/仓储地点/客户组织/模板/方法.只读为主,写口仅管理员."""
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -118,9 +118,34 @@ def org_tree(authed: dict = Depends(auth.need_auth),
     return resp.ok([dict(r) for r in rows], total=len(rows))
 
 
+@router.get("/masters/doc_templates")
+def doc_templates(biz: str = "", authed: dict = Depends(auth.need_auth),
+                  db: Session = Depends(get_db)):
+    args = {}
+    sql = "SELECT tpl_code,biz,version,content,status FROM doc_template"
+    if biz:
+        sql += " WHERE biz=:b"
+        args["b"] = biz
+    rows = db.execute(text(sql), args).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=len(rows))
+
+
 @router.get("/meta/biz_states")
 def biz_states(authed: dict = Depends(auth.need_auth),
                db: Session = Depends(get_db)):
     rows = db.execute(text("SELECT sid,biz,name,bill_no_format,enabled"
                            " FROM sys_biz_state ORDER BY sid")).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=len(rows))
+
+
+@router.get("/meta/bill_methods")
+def bill_methods(sid: int = 0, authed: dict = Depends(auth.need_auth),
+                 db: Session = Depends(get_db)):
+    args = {}
+    sql = ("SELECT bmid,sid,method_code,method_name,enabled"
+           " FROM sys_bill_method")
+    if sid:
+        sql += " WHERE sid=:s"
+        args["s"] = sid
+    rows = db.execute(text(sql + " ORDER BY sid,bmid"), args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=len(rows))

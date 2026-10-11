@@ -30,6 +30,46 @@ def ledger(authed: dict = Depends(auth.need_auth),
     return resp.ok(rows, total=total)
 
 
+@router.get("/stock/batches")
+def batches(material_code: str = "", authed: dict = Depends(auth.need_auth),
+            db: Session = Depends(get_db), page: int = 1, page_size: int = 20):
+    page, size = resp.page_args(page, page_size)
+    args, cond = {}, "1=1"
+    if material_code:
+        cond = "material_code=:m"
+        args["m"] = material_code
+    total = db.execute(text("SELECT COUNT(*) c FROM batch WHERE " + cond),
+                       args).scalar() or 0
+    args.update({"o": (page - 1) * size, "n": size})
+    rows = db.execute(text("SELECT batch_no,material_code,partner_id,source_doc_no,"
+                           "created_at,created_by FROM batch WHERE " + cond +
+                           " ORDER BY created_at DESC LIMIT :o,:n"),
+                      args).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=int(total))
+
+
+@router.get("/stock/items")
+def items(batch_no: str = "", status: str = "",
+          authed: dict = Depends(auth.need_auth),
+          db: Session = Depends(get_db), page: int = 1, page_size: int = 20):
+    page, size = resp.page_args(page, page_size)
+    cond, args = ["1=1"], {}
+    if batch_no:
+        cond.append("batch_no=:b")
+        args["b"] = batch_no
+    if status:
+        cond.append("status=:s")
+        args["s"] = status
+    where = " AND ".join(cond)
+    total = db.execute(text("SELECT COUNT(*) c FROM material_item WHERE " + where),
+                       args).scalar() or 0
+    args.update({"o": (page - 1) * size, "n": size})
+    rows = db.execute(text("SELECT barcode,material_code,batch_no,source_doc_no,"
+                           "status FROM material_item WHERE " + where +
+                           " LIMIT :o,:n"), args).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=int(total))
+
+
 @router.get("/stock/trace")
 def trace(code: str, authed: dict = Depends(auth.need_auth),
           db: Session = Depends(get_db)):
