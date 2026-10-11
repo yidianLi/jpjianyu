@@ -1,4 +1,4 @@
-"""冒烟测试:不连库,只验护栏/幂等/分页/白名单/公式/路由挂载.行数<=300."""
+"""冒烟测试:不连库,验护栏/幂等/分页/白名单/公式/挂载/端到端.行数<=300."""
 import sys
 sys.path.insert(0, ".")
 from app.core import guards, resp, idem, dash
@@ -29,6 +29,14 @@ from app.routers import web, masters, sysadm, reports, transfer, produce, docpar
 n = sum(len(m.router.routes) for m in
         (web, masters, sysadm, reports, transfer, produce, docparts, app_, ai))
 check("routes-59", n == 59)
+from fastapi.testclient import TestClient
+from app.main import app
+client = TestClient(app, raise_server_exceptions=False)
+h = client.get("/health")
+check("health-200", h.status_code == 200 and h.json().get("code") == 200)
+spec = client.get("/openapi.json").json()
+paths = spec.get("paths", {})
+check("openapi-59", "/api/v1/web/dashboard" in paths and "/api/v1/ai/ask" in paths)
 if fails:
     raise SystemExit("SMOKE FAIL:" + ",".join(fails))
 print("SMOKE ALL PASS")
