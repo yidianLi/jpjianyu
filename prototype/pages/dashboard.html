@@ -18,7 +18,8 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
 .dash-left,.dash-right{display:grid;gap:14px;align-content:start}.dash-center{min-height:600px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;background:linear-gradient(180deg,rgba(226,247,255,.32),rgba(193,230,250,.28))}.dash-center:before{content:"";position:absolute;left:8%;right:8%;bottom:10%;height:44%;background:url('../assets/digital-human-stage.png') center bottom/contain no-repeat;opacity:.7;pointer-events:none;animation:dash-stage-breathe 4.8s ease-in-out infinite}.dash-center:after{content:"";position:absolute;inset:16% 5% 0;background:radial-gradient(ellipse at 50% 68%,rgba(255,255,255,.38),transparent 55%);pointer-events:none}.dash-human{position:absolute;z-index:1;right:17%;bottom:3%;height:min(78%,520px);max-width:48%;object-fit:contain;object-position:bottom;filter:drop-shadow(0 14px 18px rgba(40,123,184,.18));pointer-events:none;transform-origin:50% 100%;animation:dash-human-idle 4.2s ease-in-out infinite;will-change:transform}.dash-center-copy{position:relative;z-index:2;margin:0 auto 14px;width:min(430px,88%);padding:13px 15px;border:1px solid rgba(255,255,255,.9);border-radius:14px;background:rgba(233,249,255,.8);box-shadow:0 10px 26px rgba(43,128,186,.16)}.dash-center-copy strong{color:#0877d4;font-size:14px}.dash-center-copy p{margin:5px 0 10px;color:#527d9e;font-size:12px;line-height:1.6}.dash-quick{display:flex;gap:8px;flex-wrap:wrap}.dash-quick button{flex:1;min-width:120px;min-height:38px;border:1px solid rgba(109,184,233,.42);border-radius:9px;background:rgba(255,255,255,.78);color:#196ba5;font-size:11px;font-weight:700;cursor:pointer}.dash-quick button:hover{background:#fff}.dash-assistant-state{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:10px;font-weight:600;color:#15936f}.dash-assistant-state:before{content:"";width:6px;height:6px;border-radius:50%;background:#16b981;box-shadow:0 0 0 0 rgba(22,185,129,.35);animation:dash-online-pulse 2s ease-out infinite}.dash-center.is-speaking .dash-human{animation:dash-human-speaking .7s ease-in-out 2}.dash-center.is-speaking .dash-assistant-state{color:#0877d4}.dash-center.is-speaking .dash-assistant-state:before{background:#1689e8;animation:dash-speaking-pulse .7s ease-in-out infinite}.dash-center.is-speaking .dash-center-copy{box-shadow:0 0 0 3px rgba(22,137,232,.12),0 10px 26px rgba(43,128,186,.16)}
 @keyframes dash-human-idle{0%,100%{transform:translate3d(0,0,0) rotate(-.7deg)}25%{transform:translate3d(0,-8px,0) rotate(.4deg)}50%{transform:translate3d(0,-13px,0) rotate(1deg)}75%{transform:translate3d(0,-6px,0) rotate(-.2deg)}}@keyframes dash-human-speaking{0%,100%{transform:translate3d(0,0,0) rotate(-.4deg)}50%{transform:translate3d(0,-18px,0) rotate(1.6deg)}}@keyframes dash-stage-breathe{0%,100%{opacity:.58;transform:scale(.97)}50%{opacity:.86;transform:scale(1.025)}}@keyframes dash-online-pulse{0%{box-shadow:0 0 0 0 rgba(22,185,129,.35)}70%{box-shadow:0 0 0 6px rgba(22,185,129,0)}100%{box-shadow:0 0 0 0 rgba(22,185,129,0)}}@keyframes dash-speaking-pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,137,232,.35)}50%{box-shadow:0 0 0 6px rgba(22,137,232,0)}}
 .metric-row{display:flex;align-items:end;gap:10px;min-height:112px}.metric{flex:1;text-align:center}.metric strong{display:block;font-size:25px;color:#0a7bd7}.metric span{font-size:10px;color:#7097b4}.bar-chart{display:flex;align-items:end;gap:8px;height:75px;padding:5px 4px 0;border-bottom:1px solid rgba(111,180,222,.4)}.bar-chart i{flex:1;display:block;border-radius:5px 5px 0 0;background:linear-gradient(#1c9fe7,#62d8ca);min-height:12px}.bar-chart i:nth-child(2){height:46%}.bar-chart i:nth-child(1){height:34%}.bar-chart i:nth-child(3){height:60%}.bar-chart i:nth-child(4){height:76%;background:linear-gradient(#67b5f4,#d4e759)}.bar-chart i:nth-child(5){height:88%;background:linear-gradient(#f2c562,#f39b4c)}.chart-labels{display:flex;justify-content:space-between;padding-top:5px;font-size:9px;color:#7b9eb7}.progress-list{display:grid;gap:9px}.progress-item{display:grid;grid-template-columns:70px 1fr 34px;align-items:center;gap:7px;font-size:10px;color:#4e7897}.progress-item b{text-align:right;color:#2575b0;font-size:10px}.progress-track{height:8px;border-radius:99px;background:rgba(164,216,244,.38);overflow:hidden}.progress-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#18a6ec,#7677ec)}.list{display:grid;gap:8px}.list-item{padding:9px;border:1px solid rgba(122,191,227,.32);border-radius:9px;background:rgba(255,255,255,.46);font-size:11px;color:#4e7897}.list-item b{display:block;color:#236994;margin-bottom:2px}.list-item small{font-size:10px;color:#86a5ba}.status-dot{display:inline-flex;align-items:center;gap:4px}.status-dot:before{content:"";width:7px;height:7px;border-radius:50%;background:#13b57a}.status-dot.warn:before{background:#ef9d2e}.status-dot.danger:before{background:#df4b5b}
-.dash-modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(13,86,137,.28)}.dash-modal[hidden]{display:none}.dash-modal-card{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid rgba(255,255,255,.9);border-radius:14px;background:#f6fcff;box-shadow:0 24px 60px rgba(18,94,144,.22);padding:18px}.dash-modal-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.dash-modal-head h2{margin:0;color:#146ba6;font-size:16px}.dash-modal-close{border:0;background:transparent;color:#658aa3;font-size:20px;cursor:pointer}.dash-detail{display:grid;gap:10px;margin-top:14px}.dash-detail-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(115,184,221,.3);font-size:12px}.dash-detail-row span{color:#7197b0}.dash-detail-row b{color:#1b6090;text-align:right}.dash-toast{position:fixed;left:50%;bottom:20px;z-index:60;transform:translateX(-50%);padding:9px 14px;border-radius:9px;background:#0d527f;color:#fff;font-size:12px;box-shadow:0 8px 24px rgba(13,82,127,.2)}.dash-toast[hidden]{display:none}
+/* 弹窗/Toast 已收敛为共享 .wms-dialog / .wms-toast（assets/theme.css），此处只保留驾驶舱面板宽度与内容样式 */
+.dash-modal-card{width:min(520px,100%)}.dash-modal-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.dash-detail{display:grid;gap:10px;margin-top:14px}.dash-detail-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(115,184,221,.3);font-size:12px}.dash-detail-row span{color:#7197b0}.dash-detail-row b{color:#1b6090;text-align:right}
 @media(max-width:980px){.dash-grid{grid-template-columns:1fr 1fr}.dash-center{grid-column:1/-1;grid-row:2;min-height:420px;order:-1}.dash-left,.dash-right{grid-row:3}.dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.dash-page{padding:10px 10px 20px}.dash-head{align-items:flex-start;flex-direction:column;padding:12px}.dash-head-actions{width:100%}.dash-head-actions .dash-btn{flex:1}.dash-grid{display:flex;flex-direction:column}.dash-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.dash-kpi{min-height:84px;padding:10px}.dash-center{min-height:330px;order:-1}.dash-left,.dash-right{display:grid;grid-template-columns:1fr}.dash-panel-head{padding:9px 11px}.dash-panel-body{padding:11px}}
 @media(prefers-reduced-motion:reduce){.dash-kpi{transition:none!important}.dash-kpi:hover{transform:none}.dash-human,.dash-center:before,.dash-assistant-state:before{animation:none!important}.dash-center.is-speaking .dash-human{animation:none!important}}
@@ -37,13 +38,56 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
 @keyframes dash-human-drift{0%,100%{transform:translate3d(0,0,0) scale(1) rotate(0deg)}25%{transform:translate3d(0,-1px,0) scale(1.002) rotate(-.08deg)}50%{transform:translate3d(0,-2px,0) scale(1.004) rotate(.08deg)}70%{transform:translate3d(0,-1px,0) scale(1.002) rotate(-.04deg)}}
 @media(prefers-reduced-motion:reduce){.dash-human{animation:none!important;transform:none!important}}
 </style>
-<script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script>
+<script src="../assets/ai-gateway.js"></script>
+<script>
+/* 驾驶舱真数据:GET /api/v1/web/dashboard,失败自动保留Mock展示. */
+(function(){
+  var BASE = (window.WmsAi && window.WmsAi.base) || localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+  function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
+  function num(v){ var n = Number(v); return isFinite(n) ? n.toLocaleString('zh-CN') : '—'; }
+  function setKpi(key, valueHtml, meta){
+    var el = document.querySelector('[data-kpi="'+key+'"]');
+    if(!el) return;
+    var v = el.querySelector('.dash-kpi-value'), m = el.querySelector('.dash-kpi-meta');
+    if(v && valueHtml) v.innerHTML = valueHtml;
+    if(m && meta) m.textContent = meta;
+  }
+  function render(j){
+    var d = (j && j.data) || {}, kpi = d.kpi || {}, alerts = d.alerts || [];
+    setKpi('待办任务', num(kpi.todo) + '<span class="text-sm"> 项</span>', '待办=DRAFT/APPROVING · 真数据');
+    setKpi('库存现存', num(kpi.onhand) + '<span class="text-sm"> 米</span>', '现存=Σon_hand · 真数据');
+    setKpi('盘点差异', num(kpi.diff) + '<span class="text-sm"> 项</span>', '未关闭盘点 · 点击直达差异行');
+    var t = kpi.turnover || {}, c = kpi.capacity || {};
+    setKpi('产能', num(t.fin_in) + '<span class="text-sm"> 件</span>', '发料' + num(t.issue) + ' · 退料率' + (Number(c.back_rate || 0) * 100).toFixed(1) + '%');
+    var box = document.querySelector('.dash-right .dash-panel .dash-panel-body');
+    if(box && alerts.length){
+      box.innerHTML = alerts.map(function(a){
+        return '<button type="button" class="list-item text-left" data-live-alert="' + a.doc + '"><b><span class="status-dot danger">' + a.doc + '</span></b><span>' + (a.reason || '异常') + '</span><small>点直达 docs</small></button>';
+      }).join('');
+      box.querySelectorAll('[data-live-alert]').forEach(function(b){
+        b.addEventListener('click', function(){ location.href = 'docs.html?code=' + encodeURIComponent(b.getAttribute('data-live-alert')); });
+      });
+    }
+    var meta = document.getElementById('dash-answer-meta');
+    if(meta && d.formula) meta.textContent = '公式：' + d.formula;
+    var time = document.getElementById('dash-time');
+    if(time) time.textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}) + ' · 真数据';
+  }
+  function load(){
+    fetch(BASE + '/web/dashboard', {headers:{'Authorization':'Bearer ' + token()}})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(render).catch(function(){ /* 保留Mock */ });
+  }
+  document.getElementById('dash-refresh').addEventListener('click', load);
+  load();
+})();
+</script>
 </head>
 <body>
 <div class="dash-page" id="dashboard-page">
   <header class="dash-head">
     <div><div class="dash-kicker">MATERIAL OPERATIONS CENTER</div><h1 class="dash-title">物料管理数字运营驾驶舱</h1><p class="dash-subtitle">仓储、车间与成品流转实时概览 · 数据截至 <span id="dash-time">08:30</span></p></div>
-    <div class="dash-head-actions"><button type="button" class="dash-btn" id="dash-refresh" aria-label="刷新驾驶舱"><i class="fa-solid fa-rotate mr-1" aria-hidden="true"></i>刷新</button><button type="button" class="dash-btn" id="dash-range">今日 · 09-12</button><button type="button" class="dash-btn primary" id="dash-new" aria-label="新建送料单"><i class="fa-solid fa-plus mr-1" aria-hidden="true"></i>新建送料单</button></div>
+    <div class="dash-head-actions"><button type="button" class="dash-btn" id="dash-fullscreen" aria-label="切换全屏显示"><i class="fa-solid fa-expand mr-1" aria-hidden="true"></i>全屏</button><button type="button" class="dash-btn" id="dash-refresh" aria-label="刷新驾驶舱"><i class="fa-solid fa-rotate mr-1" aria-hidden="true"></i>刷新</button><button type="button" class="dash-btn" id="dash-range">今日 · 09-12</button><button type="button" class="dash-btn primary" id="dash-new" aria-label="新建送料单"><i class="fa-solid fa-plus mr-1" aria-hidden="true"></i>新建送料单</button></div>
   </header>
   <main class="dash-grid" aria-label="物料管理数据概览">
     <section class="dash-kpis" aria-label="核心指标">
@@ -65,8 +109,8 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
     </div>
   </main>
 </div>
-<div class="dash-modal" id="dash-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dash-modal-title"><div class="dash-modal-card"><div class="dash-modal-head"><h2 id="dash-modal-title">指标详情</h2><button type="button" class="dash-modal-close" id="dash-modal-close" aria-label="关闭指标详情"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div><div class="dash-detail" id="dash-detail"></div></div></div>
-<div class="dash-toast" id="dash-toast" hidden role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="dash-modal wms-dialog" id="dash-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dash-modal-title"><div class="dash-modal-card wms-dialog-panel"><div class="dash-modal-head wms-dialog-head"><h2 id="dash-modal-title" class="wms-dialog-title">指标详情</h2><button type="button" class="dash-modal-close wms-dialog-close" id="dash-modal-close" aria-label="关闭指标详情"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div><div class="dash-detail wms-dialog-body" id="dash-detail"></div></div></div>
+<div class="dash-toast wms-toast" id="dash-toast" hidden role="status" aria-live="polite" aria-atomic="true"></div>
 <script>
 (function(){
   var modal=document.getElementById('dash-modal'),detail=document.getElementById('dash-detail'),toastEl=document.getElementById('dash-toast'),lastFocus=null;
@@ -96,9 +140,9 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
   if(kpis.length>=4){
     // P2:三域卡片 待办/库存/差异/产能(无设备无人均),公式见执行方案V2.1 §3.3
     kpis[0].querySelector('.dash-kpi-label').textContent='待办任务';kpis[0].querySelector('.dash-kpi-value').innerHTML='6<span class="text-sm"> 项</span>';kpis[0].querySelector('.dash-kpi-meta').textContent='退料 2 · 直送 3 · 其它 1';kpis[0].classList.add('warn');kpis[0].dataset.kpi='待办任务';kpis[0].dataset.formula='待办=Σdocs WHERE status=PENDING';
-    kpis[1].querySelector('.dash-kpi-label').textContent='库存现存';kpis[1].querySelector('.dash-kpi-value').innerHTML='12,480<span class="text-sm"> 米</span>';kpis[1].querySelector('.dash-kpi-meta').textContent='问答默认查 stock_onhand · 3 个仓库';kpis[1].dataset.kpi='库存现存';kpis[1].dataset.formula='现存=Σstock_onhand.avail';
-    kpis[2].querySelector('.dash-kpi-label').textContent='盘点差异';kpis[2].querySelector('.dash-kpi-value').innerHTML='-35<span class="text-sm"> 米</span>';kpis[2].querySelector('.dash-kpi-meta').textContent='PD2026091201 · 已冻结待复核 · 点直达差异行';kpis[2].classList.remove('warn');kpis[2].classList.add('danger');kpis[2].dataset.kpi='盘点差异';kpis[2].dataset.pd='PD2026091201';kpis[2].dataset.formula='差异=实盘-账面,不平只报警不锁';
-    kpis[3].querySelector('.dash-kpi-label').textContent='产能·成品入库';kpis[3].querySelector('.dash-kpi-value').innerHTML='3,250<span class="text-sm"> 件</span>';kpis[3].querySelector('.dash-kpi-meta').textContent='公式 Σledger WHERE biz=RK AND CP-% · 今日';kpis[3].classList.remove('danger');kpis[3].dataset.kpi='产能';kpis[3].dataset.formula="成品入库=Σledger WHERE biz='RK' AND material_code LIKE 'CP-%'";
+    kpis[1].querySelector('.dash-kpi-label').textContent='库存现存';kpis[1].querySelector('.dash-kpi-value').innerHTML='12,480<span class="text-sm"> 米</span>';kpis[1].querySelector('.dash-kpi-meta').textContent='可用量合计 · 3 个仓库';kpis[1].dataset.kpi='库存现存';kpis[1].dataset.formula='现存=Σstock_onhand.avail';
+    kpis[2].querySelector('.dash-kpi-label').textContent='盘点差异';kpis[2].querySelector('.dash-kpi-value').innerHTML='-35<span class="text-sm"> 米</span>';kpis[2].querySelector('.dash-kpi-meta').textContent='已冻结待复核 · 点击直达差异行';kpis[2].classList.remove('warn');kpis[2].classList.add('danger');kpis[2].dataset.kpi='盘点差异';kpis[2].dataset.pd='PD2026091201';kpis[2].dataset.formula='差异=实盘-账面,不平只报警不锁';
+    kpis[3].querySelector('.dash-kpi-label').textContent='产能·成品入库';kpis[3].querySelector('.dash-kpi-value').innerHTML='3,250<span class="text-sm"> 件</span>';kpis[3].querySelector('.dash-kpi-meta').textContent='今日成品入库 · 3 个车间';kpis[3].classList.remove('danger');kpis[3].dataset.kpi='产能';kpis[3].dataset.formula="成品入库=Σledger WHERE biz='RK' AND material_code LIKE 'CP-%'";
   }
   // P2:差异卡点单直达 stocktake.html?pd=,仅PC
   kpis.forEach(function(k){k.addEventListener('click',function(){if(k.dataset.pd){location.href='stocktake.html?pd='+encodeURIComponent(k.dataset.pd);}});});
@@ -106,6 +150,14 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
   var pending=document.querySelector('.dash-right .dash-panel');if(pending){pending.querySelector('.dash-panel-head h2').textContent='库存预警';pending.querySelector('.dash-panel-head small').textContent='INVENTORY ALERTS';pending.querySelector('.dash-panel-body').innerHTML='<button type="button" class="list-item text-left" data-doc="A-05容量"><b><span class="status-dot warn">A-05 区容量 96%</span></b><span>外仓 WH-A · 建议分流至 A-06 区</span><small>仓位管理</small></button><button type="button" class="list-item text-left" data-doc="WH-A-05差异" data-pd="PD2026091201"><b><span class="status-dot danger">WH-A-05 盘点差异</span></b><span>短少 35 米 · 已冻结待复核 · 点直达差异行</span><small>盘点复核</small></button><button type="button" class="list-item text-left" data-doc="TL2026091201" data-code="TL2026091201"><b><span class="status-dot warn">TL缺对应LY</span></b><span>退料120米 · 缺关联待补 · 点直达补录</span><small>缺关联待处理</small></button><button type="button" class="list-item text-left" data-doc="WH-C安全库存"><b><span class="status-dot warn">WH-C 安全库存偏低</span></b><span>纽扣可用量低于预警线</span><small>库存总览</small></button>';pending.querySelectorAll('[data-doc]').forEach(function(btn){btn.addEventListener('click',function(){if(btn.dataset.pd){location.href='stocktake.html?pd='+encodeURIComponent(btn.dataset.pd);return;}if(btn.dataset.code){location.href='docs.html?code='+encodeURIComponent(btn.dataset.code);return;}openModal(btn.dataset.doc+' · 预警详情',[['业务状态',btn.textContent.trim()],['建议操作','打开对应业务页面']],btn);});});}
   document.querySelectorAll('[data-action]').forEach(function(btn){btn.addEventListener('click',function(){var route={receipt:'receipt',transfer:'transfer',docs:'docs'}[btn.dataset.action];if(typeof goPage==='function'){goPage(route);return;}if(window.parent&&window.parent!==window&&typeof window.parent.go==='function'){window.parent.go(route);return;}toast('已打开'+btn.textContent);});});
   document.getElementById('dash-refresh').addEventListener('click',function(){document.getElementById('dash-time').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});toast('驾驶舱数据已刷新');});
+  document.getElementById('dash-fullscreen').addEventListener('click',function(){
+    if(document.fullscreenElement){document.exitFullscreen().catch(function(){});return;}
+    if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(function(){toast('当前环境不支持全屏');});
+  });
+  document.addEventListener('fullscreenchange',function(){
+    var btn=document.getElementById('dash-fullscreen');if(!btn)return;
+    btn.innerHTML=document.fullscreenElement?'<i class="fa-solid fa-compress mr-1" aria-hidden="true"></i>退出全屏':'<i class="fa-solid fa-expand mr-1" aria-hidden="true"></i>全屏';
+  });
   document.getElementById('dash-range').addEventListener('click',function(){toast('时间范围：今日 · 2026-09-12');}); document.getElementById('dash-new').addEventListener('click',function(){toast('已打开新建送料单流程');}); document.getElementById('dash-modal-close').addEventListener('click',closeModal); modal.addEventListener('click',function(e){if(e.target===modal)closeModal();}); document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!modal.hidden)closeModal();trapFocus(e);});
 })();
 </script>
