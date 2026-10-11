@@ -1,16 +1,28 @@
 # backend/config/ai-gateway.yaml（稳定引用，切换只改 provider 段）
-# 模型不写死：provider/base_url/model 全走环境变量，a6api 上哪个模型都行，换模型只改本地 .env
+# 三档顺序：dashscope(百炼在线) → vllm(内网) → paddle(本机离线)
+# 模型不写死：provider/base_url/model 全走环境变量，换模型只改本地 .env
 llm:
-  provider: a6api        # 可选: a6api | dashscope | vllm（内网）
-  base_url: ${LLM_BASE_URL:-https://api.a6api.com/v1}
-  model: ${LLM_MODEL:-auto}
-  api_key: ${LLM_API_KEY}
-  # 内网 vLLM 示例（切离线时只改本地 .env，不改代码）：
-  # LLM_BASE_URL=http://10.8.0.20:8000/v1
-  # LLM_MODEL=Qwen2.5-7B-Instruct-FP8
+  provider: dashscope   # 可选: dashscope | vllm | paddle（离线兜底）
+  failover: [dashscope, vllm, paddle]
+  timeout_s: 30
+  tiers:
+    dashscope:
+      base_url: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      model: ${LLM_MODEL:-qwen-max}
+      api_key: ${LLM_API_KEY}
+    vllm:
+      base_url: ${VLLM_BASE_URL:-http://10.8.0.20:8000/v1}
+      model: ${VLLM_MODEL:-Qwen2.5-7B-Instruct-FP8}
+      api_key: ${VLLM_API_KEY:-EMPTY}
+    paddle:
+      base_url: ${PADDLE_BASE_URL:-http://127.0.0.1:8090/v1}
+      model: ${PADDLE_MODEL:-qwen2.5-7b-local}
+      api_key: ${PADDLE_API_KEY:-EMPTY}
 ocr:
-  provider: online      # 上线后改为 local
+  provider: online      # 可选: online | local（断外网改 local）
+  failover: [online, local]
   endpoint: ${OCR_ONLINE_ENDPOINT}
+  local_endpoint: ${OCR_LOCAL_ENDPOINT:-http://127.0.0.1:8091/ocr}
 guards:
   allow_tables: [doc_main, doc_line, stock_onhand, stock_ledger, material_item, batch]
   max_rows: 200
