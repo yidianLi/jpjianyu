@@ -25,7 +25,9 @@ def health() -> dict:
     return {"code": 200, "msg": "成功", "data": {"ok": True}, "total": 1}
 
 
-PROTO = os.path.join(os.path.dirname(__file__), "..", "..", "prototype")
+PROTO = "/prototype"
+if not os.path.isdir(PROTO):
+    PROTO = os.path.join(os.path.dirname(__file__), "..", "..", "prototype")
 if os.path.isdir(PROTO):
     app.mount("/proto", StaticFiles(directory=PROTO, html=True), name="proto")
 
