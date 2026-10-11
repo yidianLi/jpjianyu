@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, idem, queries, posting
+from app.core import resp, auth, idem, queries, posting, dash
 from app.core.db import get_db
 
 router = APIRouter()
@@ -132,8 +132,7 @@ def approve(doc_no: str, body: dict,
 
 
 @router.get("/dashboard")
-def dashboard(authed: dict = Depends(auth.need_auth)):
-    data = {"kpi": {"todo": 0, "onhand": 0, "diff": 0},
-            "alerts": [],
-            "formula": "发料量Σledger biz=LY;成品入库Σledger product_code LIKE 'CP-%'"}
-    return resp.ok(data)
+def dashboard(authed: dict = Depends(auth.need_auth),
+              db: Session = Depends(get_db)):
+    return resp.ok({"kpi": dash.kpi(db), "alerts": dash.alerts(db),
+                    "formula": dash.formula()})
