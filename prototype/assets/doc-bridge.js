@@ -35,6 +35,32 @@
         });
     }
   };
+  window.WmsTransfer = {
+    create: function(ship){
+      return post('/web/transfer_ships', ship || {}, idemKey('DB' + Date.now(), 1, 'DB'));
+    },
+    list: function(){
+      return fetch(BASE + '/web/transfer_ships', {headers:{'Authorization':'Bearer ' + token()}})
+        .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    },
+    receive: function(docNo, nQty){
+      return fetch(BASE + '/web/transfer_ships/' + encodeURIComponent(docNo) + '/receive',
+        {method: 'PATCH', headers:{'Content-Type':'application/json',
+          'Authorization':'Bearer ' + token()},
+          body: JSON.stringify({n_qty: nQty})}).then(function(r){
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+    },
+    createPd: function(whCode, mode){
+      return post('/web/pd_tasks', {wh_code: whCode, mode: mode || '人工临时'},
+        idemKey('PD' + Date.now(), 1, 'PD'));
+    },
+    confirmPd: function(pdNo, lineNo, nQty){
+      return post('/web/pd_tasks/' + encodeURIComponent(pdNo) + '/confirm',
+        {line_no: lineNo || 1, n_qty: nQty}, idemKey(pdNo, lineNo || 1, 'PD'));
+    }
+  };
   var oldToast = window.toast;
   window.addEventListener('load', function(){
     if(typeof window.toast === 'function' && !window.toast.__wmsDocBridge){
