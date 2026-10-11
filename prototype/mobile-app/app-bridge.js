@@ -83,5 +83,13 @@
   document.addEventListener('DOMContentLoaded', function(){
     wireDraft(); wireSubmit(); wireWh(); wireTodos();
     if(window.AppApi) AppApi.renderQ();
+    try{
+      var lk = document.createElement('link');
+      lk.rel = 'manifest'; lk.href = '../manifest.json';
+      document.head.appendChild(lk);
+      if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+        navigator.serviceWorker.register('../sw.js').catch(function(){});
+      }
+    }catch(e){}
   });
 })();
