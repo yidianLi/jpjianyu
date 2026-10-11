@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WMS API 接口文档 V2.2（MySQL 5.6 / wms.sql 63表·双主线）</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:#f4f6fa;color:#1f2937}
+header{position:sticky;top:0;z-index:10;background:#111827;color:#fff;padding:14px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:17px;margin:0}header .sub{font-size:12px;color:#9ca3af}
+.searchbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 22px;position:sticky;top:61px;z-index:9;display:flex;gap:10px}
+.searchbar input{flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
+.searchbar select{padding:9px;border:1px solid #d1d5db;border-radius:8px}
+.layout{display:flex;max-width:1400px;margin:0 auto}
+nav{width:280px;flex-shrink:0;padding:16px 12px;position:sticky;top:118px;height:calc(100vh - 118px);overflow:auto;background:#fff;border-right:1px solid #e5e7eb}
+nav a{display:block;padding:7px 10px;font-size:13px;color:#374151;text-decoration:none;border-radius:6px}
+nav a:hover{background:#eef2ff}nav .g{font-size:12px;color:#6b7280;margin:12px 4px 4px;font-weight:700}
+main{flex:1;padding:20px 26px;min-width:0}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;margin:14px 0}
+.card h3{margin:0 0 6px;font-size:15px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:8px}
+.GET{background:#dcfce7;color:#166534}.POST{background:#dbeafe;color:#1d4ed8}.PUT{background:#fef3c7;color:#92400e}.PATCH{background:#f3e8ff;color:#6b21a8}.DELETE{background:#fee2e2;color:#991b1b}
+.path{font-family:Consolas,monospace;font-size:13px;background:#f8fafc;border:1px solid #e5e7eb;padding:6px 10px;border-radius:8px;display:inline-block;margin:6px 0;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid #e5e7eb;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#f9fafb}code{font-family:Consolas,monospace;font-size:12px;background:#f3f4f6;padding:1px 5px;border-radius:4px}
+pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:10px;overflow:auto;font-size:12px;line-height:1.55}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:13px;margin:10px 0}
+h2{font-size:18px;margin:28px 0 8px;border-left:4px solid #4f46e5;padding-left:10px}
+.copybtn{float:right;font-size:12px;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer}
+.small{font-size:12px;color:#6b7280}
+</style>
+</head>
+<body>
+<header>
+<h1>WMS API 接口文档 V2.2</h1>
+<span class="sub">真源 backend/sql/wms.sql（63表·MySQL5.6·utf8mb4）｜ 字典 docs/数据字典-V2.2.md ｜ 双主线：物料线 / 成品线 / BOM桥 / 仓储地点 ｜ 规范参考 腾讯云《API接口设计：企业级通用规范与实战设计指南》</span>
+</header>
+<div class="searchbar">
+<input id="q" placeholder="搜索接口：如 ledger / BOM / 盘点 / scan / 调仓 / approve / product …">
+<select id="mfilter"><option value="">全部方法</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
+<span class="small" id="count"></span>
+</div>
+<div class="layout">
+<nav id="nav"></nav>
+<main id="main">
+
+<h2 id="g0">0. 通用规范（腾讯规范落地）</h2>
+<div class="card"><h3>0.1 六原则映射</h3>
+<table><tr><th>原则</th><th>本系统落地</th></tr>
+<tr><td>简洁统一</td><td>动词只用 GET/POST/PUT/PATCH/DELETE；路径全小写下划线名词；返回统一 <code>{code,msg,data,total}</code>；分页统一 <code>page/page_size</code></td></tr>
+<tr><td>语义清晰</td><td>资源名词=表域：<code>masters/materials</code>、<code>masters/products</code>、<code>masters/boms</code>、<code>stock/ledger</code>、<code>docs</code>、<code>pd_tasks</code>、<code>transfer_ships</code>；单据前缀即 <code>biz</code></td></tr>
+<tr><td>安全可控</td><td>Bearer 鉴权＋X-Device-Id＋X-Timestamp 防重放；AI 账号禁写；脱敏 phone/sn；PDA 白名单设备</td></tr>
+<tr><td>兼容迭代</td><td>版本号进 URL：<code>/api/v1/web|app|ai</code>；新增只加路由不改旧字段；<code>sys_biz_state/sys_bill_method</code> 加业务只加行不加列</td></tr>
+<tr><td>容错性强</td><td>单行异常不阻断批量，<code>errors[]</code> 逐行回；幂等键冲突直接返原结果；缺码缺批不拦单只标红</td></tr>
+<tr><td>性能最优</td><td>查快照 <code>stock_onhand</code>，仲裁查 <code>stock_ledger</code>；列表强制分页＋<code>LIMIT≤200</code>；TEXT 大字段走附件/引用不进列表</td></tr></table></div>
+<div class="card"><h3>0.2 请求方式 / 路径 / 版本</h3>
+<table><tr><th>方式</th><th>用途</th><th>示例</th></tr>
+<tr><td>GET</td><td>查询，无请求体可缓存</td><td><code>GET /api/v1/web/stock/onhand</code></td></tr>
+<tr><td>POST</td><td>新增、复杂查询、批量、过账、确认</td><td><code>POST /api/v1/web/docs</code>、<code>POST /api/v1/web/docs/{doc_no}/post</code></td></tr>
+<tr><td>PUT</td><td>全量更新</td><td><code>PUT /api/v1/web/masters/materials/{code}</code></td></tr>
+<tr><td>PATCH</td><td>局部更新（启用/状态/数量）</td><td><code>PATCH /api/v1/web/masters/materials/{code}/enabled</code></td></tr>
+<tr><td>DELETE</td><td>逻辑删除优先（<code>enabled=0/status=停用</code>），物理删除仅关联表</td><td><code>DELETE /api/v1/web/system/user_roles</code></td></tr></table>
+<div class="note">路径：全小写，多词下划线，名词为核心，禁止驼峰大写。版本：<code>/api/v1/…</code>，三命名空间：<code>web</code>（PC）、<code>app</code>（PDA）、<code>ai</code>（问答/OCR薄网关）。V2.2 双主线：物料 <code>masters/materials</code> 与成品 <code>masters/products</code> 平级，BOM 是配方桥，仓储只管地点。</div></div>
+<div class="card"><h3>0.3 公共参数（头＋分页）</h3>
+<table><tr><th>位置</th><th>字段</th><th>必填</th><th>说明</th></tr>
+<tr><td>Header</td><td><code>Authorization: Bearer &lt;token&gt;</code></td><td>是</td><td>登录 token；AI 只读账号同样携带，后端按角色禁写</td></tr>
+<tr><td>Header</td><td><code>X-Device-Id</code></td><td>app 必填</td><td>如 PDA-03；绑定 equipment 白名单</td></tr>
+<tr><td>Header</td><td><code>X-Timestamp</code></td><td>是</td><td>毫秒时间戳，±5分钟外拒绝，防重放</td></tr>
+<tr><td>Header</td><td><code>X-Sign</code></td><td>app 写接口必填</td><td>HMAC(token+timestamp+body)，防篡改</td></tr>
+<tr><td>Header</td><td><code>Idempotency-Key</code></td><td>过账/提交必填</td><td>即 <code>idem_key=doc_no:line_no:biz</code> 口径，重复直接返原结果</td></tr>
+<tr><td>Query</td><td><code>page / page_size</code></td><td>列表必填</td><td>默认 1/20，最大 200；禁止自定义分页字段</td></tr></table></div>
+<div class="card"><h3>0.4 统一返回与错误码</h3>
+<pre>{
+  "code": 200,
+  "msg": "成功",
+  "data": {},
+  "total": 0
+}</pre>
+<table><tr><th>code</th><th>含义</th><th>业务码</th></tr>
+<tr><td>200</td><td>成功</td><td>—</td></tr>
+<tr><td>400</td><td>参数错误</td><td>CHECKLIST_EMPTY / DIFF_REASON_REQUIRED / OVER_ISSUE / INVALID_QTY / BOM_VERSION_REQUIRED</td></tr>
+<tr><td>401</td><td>未鉴权</td><td>TOKEN_INVALID / TOKEN_EXPIRED</td></tr>
+<tr><td>403</td><td>无权限/被护栏拦</td><td>SCOPE_DENIED / DUP_SCAN / AI_WRITE_DENIED / FLOW_STATE_DENIED</td></tr>
+<tr><td>404</td><td>不存在</td><td>DOC_NOT_FOUND / MATERIAL_NOT_FOUND / PRODUCT_NOT_FOUND</td></tr>
+<tr><td>409</td><td>幂等冲突（返回原结果）</td><td>IDEMPOTENT_REPLAY</td></tr>
+<tr><td>429</td><td>限流</td><td>RATE_LIMITED</td></tr>
+<tr><td>500</td><td>服务异常</td><td>—</td></tr></table>
+<div class="note">成功有数据、失败有说明、空值有兜底：<code>data</code> 无数据返 <code>{}</code>/<code>[]</code> 禁返 <code>null</code>；列表必返 <code>total</code>；金额 <code>DECIMAL(18,2)</code>、数量 <code>DECIMAL(18,3)</code>；单据 <code>unit</code> 必须等于物料 <code>base_unit</code> 或成品 <code>base_unit</code>，防米+件混加。</div></div>
+
+<div class="card"><h3>0.5 V2.2 四域关系速查（必看）</h3>
+<table><tr><th>线</th><th>表链</th><th>接口前缀</th></tr>
+<tr><td>物料线</td><td><code>mat_category</code> → <code>mat_master</code>（三计量base/pack/sub）→ <code>batch/material_item</code></td><td><code>masters/mat_categories・materials</code>、<code>stock/batches・items</code></td></tr>
+<tr><td>成品线</td><td><code>prod_category</code> → <code>product_master</code>（CP-独立编码）→ <code>wo_task</code> → CP/RK/JJ/TC单据</td><td><code>masters/prod_categories・products</code>、<code>wo_tasks</code></td></tr>
+<tr><td>BOM桥</td><td><code>bom_master</code>（一成品多版本启用仅一）→ <code>bom_line</code>（成品⇒物料+loss_rate）</td><td><code>masters/boms・bom-lines</code>，快照 <code>doc_line.bom_version</code></td></tr>
+<tr><td>仓储地点</td><td><code>warehouse</code>（stock_kind MAT/FIN/ALL）→ <code>location</code>；不管账，进出全走单据</td><td><code>masters/warehouses・locations</code></td></tr>
+<tr><td>单据账</td><td><code>doc_main</code> → <code>doc_line</code>（物料行/成品行二选一）→ <code>stock_ledger</code>（只增不改）→ <code>stock_onhand</code></td><td><code>docs</code>、<code>stock/onhand・ledger・trace</code></td></tr></table>
+<div class="note">SID 15个：10000 DJ物料登记 / 10100 RK物料入库 / 10400 LY领用 / 10410 TL调仓领用 / 10200 JS来料拒收 / 15000 TK物料退库 / 15050 TC成品退仓 / 19000 DB调仓 / 19100 TZ库存调整 / 13100 PD盘点 / 11200 CP成品登记 / 11300 RK成品入库 / 11400 JJ成品交付 / 11500 WO生产工单 / 11600 SQ送货单。单号=前缀[SERIAL:6]由 sys_sequence 发。</div></div>
+
+<h2 id="g1">1. 认证与编号中枢</h2>
+<div class="card" data-m="POST" data-k="login auth token"><button class="copybtn" onclick="copyCurl(this)">复制curl</button><h3><span class="badge POST">POST</span>/api/v1/web/auth/login</h3><div class="path">POST /api/v1/web/auth/login — 账号登录（sys_user.username自然键）</div>
+<table><tr><th>参数</th><th>位置</th><th>必填</th><th>说明</th></tr><tr><td>username</td><td>body</td><td>是</td><td>对应 sys_user.username</td></tr><tr><td>password</td><td>body</td><td>是</td><td>明文一次，后端比对 password_hash</td></tr><tr><td>device_id</td><td>body</td><td>否</td><td>回写 last_device</td></tr></table>
+<pre data-curl="POST|/api/v1/web/auth/login">curl -X POST http://10.8.0.12:8080/api/v1/web/auth/login -H "Content-Type: application/json" -d '{"username":"lixiaoming","password":"***"}'</pre>
+<pre>{"code":200,"msg":"成功","data":{"token":"Bearer xxx","name":"李小明","data_scope":"一监区/缝制一车间","roles":["chejian_lingliao"]},"total":1}</pre></div>
+<div class="card" data-m="GET" data-k="me user"><h3><span class="badge GET">GET</span>/api/v1/web/auth/me</h3><div class="path">GET /api/v1/web/auth/me — 当前用户信息＋角色＋数据范围</div></div>
+<div class="card" data-m="GET" data-k="biz_state sid"><h3><span class="badge GET">GET</span>/api/v1/web/meta/biz_states</h3><div class="path">GET /api/v1/web/meta/biz_states — 语义状态字典（sys_biz_state 15行，含 bill_no_format 前缀[SERIAL:6]、inc/dec标志）</div></div>
+<div class="card" data-m="GET" data-k="bill method"><h3><span class="badge GET">GET</span>/api/v1/web/meta/bill_methods</h3><div class="path">GET /api/v1/web/meta/bill_methods?sid=15000 — 方法字典（sys_bill_method，01/02/99；如TK:01余料回仓/02入库冲红/03损坏退还；JJ:01客户交付/02暂存转出）</div></div>
+<div class="card" data-m="GET" data-k="sequence"><h3><span class="badge GET">GET</span>/api/v1/web/meta/sequence_preview</h3><div class="path">GET /api/v1/web/meta/sequence_preview?seq_name=DOC_MAIN.DOC_NO_RK — 中央发号预览（sys_sequence，不占号；DOC_NO_CP/JJ、WO_NO已配）</div></div>
+
+<h2 id="g2">2. 物料线（mat_category / mat_master / batch / material_item）</h2>
+<div class="card" data-m="GET" data-k="mat_category 物料分类"><h3><span class="badge GET">GET</span>/api/v1/web/masters/mat_categories</h3><div class="path">GET /api/v1/web/masters/mat_categories — 物料分类树（mat_category autocode定长3位/级，如面料/辅料/五金/包装/耗材）</div></div>
+<div class="card" data-m="GET" data-k="material 物料"><h3><span class="badge GET">GET</span>/api/v1/web/masters/materials</h3><div class="path">GET /api/v1/web/masters/materials?keyword=&cat_code=&enabled=1&page=1&page_size=20 — 物料档案分页（仅物料，成品另查products；autocode排序）</div><pre>{"code":200,"msg":"成功","data":[{"material_code":"HD-OXF-001","name":"牛津布","base_unit":"米","pack_unit":"箱","pack_qty":50.000,"manage_mode":"QTY"}],"total":128}</pre></div>
+<div class="card" data-m="POST" data-k="material create"><h3><span class="badge POST">POST</span>/api/v1/web/masters/materials</h3><div class="path">POST /api/v1/web/masters/materials — 新建物料（base_unit必填；pack/sub计量；max_qty/min_qty写预警；初始库存必须0，期初走RK单）</div></div>
+<div class="card" data-m="GET" data-k="material detail"><h3><span class="badge GET">GET</span>/api/v1/web/masters/materials/{material_code}</h3><div class="path">GET /api/v1/web/masters/materials/{material_code} — 物料详情（含批次余量聚合）</div></div>
+<div class="card" data-m="PUT" data-k="material update"><h3><span class="badge PUT">PUT</span>/api/v1/web/masters/materials/{material_code}</h3><div class="path">PUT /api/v1/web/masters/materials/{material_code} — 全量更新物料</div></div>
+<div class="card" data-m="PATCH" data-k="material enabled"><h3><span class="badge PATCH">PATCH</span>/api/v1/web/masters/materials/{material_code}/enabled</h3><div class="path">PATCH /api/v1/web/masters/materials/{material_code}/enabled — 启用/停用（有库存禁物理删，只停用）</div></div>
+<div class="card" data-m="GET" data-k="batch 批次 BT"><h3><span class="badge GET">GET</span>/api/v1/web/stock/batches</h3><div class="path">GET /api/v1/web/stock/batches?material_code=&page= — 批次分页（batch，溯源到BT级）</div></div>
+<div class="card" data-m="GET" data-k="item barcode SB"><h3><span class="badge GET">GET</span>/api/v1/web/stock/items</h3><div class="path">GET /api/v1/web/stock/items?batch_no=&status=在库&page= — 单件条码（material_item SB级，status在库/出库/冻结）</div></div>
+
+<h2 id="g3">3. 成品线＋BOM桥＋生产工单</h2>
+<div class="card" data-m="GET" data-k="prod_category 成品分类"><h3><span class="badge GET">GET</span>/api/v1/web/masters/prod_categories</h3><div class="path">GET /api/v1/web/masters/prod_categories — 成品分类树（prod_category，与物料树独立）</div></div>
+<div class="card" data-m="GET" data-k="product 成品 CP"><h3><span class="badge GET">GET</span>/api/v1/web/masters/products</h3><div class="path">GET /api/v1/web/masters/products?keyword=&cat_code=&customer=&page= — 成品档案分页（product_master CP-独立编码，与物料平级；style款号/customer归属客户）</div><pre>{"code":200,"msg":"成功","data":[{"product_code":"CP-001","name":"作训服上衣","style":"ZX2026","customer":"恒达服饰","base_unit":"件"}],"total":36}</pre></div>
+<div class="card" data-m="POST" data-k="product create"><h3><span class="badge POST">POST</span>/api/v1/web/masters/products</h3><div class="path">POST /api/v1/web/masters/products — 新建成品（CP-开头独立编码，不先建物料码）</div></div>
+<div class="card" data-m="GET" data-k="bom 配方"><h3><span class="badge GET">GET</span>/api/v1/web/masters/boms</h3><div class="path">GET /api/v1/web/masters/boms?product_code=CP-001 — BOM头（bom_master一成品多版本，启用仅一；eff_date生效日期）</div><div class="path">GET /api/v1/web/masters/boms/{product_code}/{version}/lines — BOM行（bom_line成品⇒物料：material_code＋qty单位耗用＋loss_rate，unit=物料base_unit）</div><div class="path">POST /api/v1/web/masters/boms — 新建版本；POST /lines — 加配方行；PATCH /{…}/enable — 启用版本（自动停用同成品其他版本）</div></div>
+<div class="card" data-m="GET" data-k="wo_task 工单 WO"><h3><span class="badge GET">GET</span>/api/v1/web/wo_tasks</h3><div class="path">GET /api/v1/web/wo_tasks?product_code=&biz_status=&page= — 生产工单（wo_task：product_code＋bom_version＋qty_plan/qty_done，workshop取org叶子）</div><div class="path">POST /api/v1/web/wo_tasks — 下单（bom_version必填BOM_VERSION_REQUIRED；wo_no=WO[SERIAL:6]）</div><div class="path">POST /api/v1/web/wo_tasks/{wo_no}/issue — 按BOM展开领料（自动生成LY单行：material_code×qty_plan×qty×(1+loss_rate)）</div><div class="path">POST /api/v1/web/wo_tasks/{wo_no}/finish — 完工（qty_done累加，一轮完工汇总；触发成品RK入库单草稿）</div></div>
+
+<h2 id="g4">4. 仓储地点（warehouse / location）</h2>
+<div class="card" data-m="GET" data-k="warehouse 仓库"><h3><span class="badge GET">GET</span>/api/v1/web/masters/warehouses</h3><div class="path">GET /api/v1/web/masters/warehouses — 仓库（warehouse WH-A外仓/WH-B内仓1/WH-C内仓2；wh_type原料仓/成品仓/待检区/隔离区；stock_kind MAT/FIN/ALL；只管地点不管账）</div></div>
+<div class="card" data-m="GET" data-k="location 库位"><h3><span class="badge GET">GET</span>/api/v1/web/masters/locations</h3><div class="path">GET /api/v1/web/masters/locations?wh_code=WH-A — 库位（location loc_code结构化主键WH-ZONE-…＋qr_code；单据wh/loc只许选此表存在且stock_kind允许）</div></div>
+
+<h2 id="g5">5. 单据与账（doc / onhand / ledger / 调仓盘点交付）</h2>
+<div class="card" data-m="GET" data-k="onhand 快照"><h3><span class="badge GET">GET</span>/api/v1/web/stock/onhand</h3><div class="path">GET /api/v1/web/stock/onhand?material_code=&product_code=&wh=&loc=&page= — 现存快照（stock_onhand PK含material+product；物料行product为空串反之亦然；问答默认查此表）</div></div>
+<div class="card" data-m="GET" data-k="ledger 流水"><h3><span class="badge GET">GET</span>/api/v1/web/stock/ledger</h3><div class="path">GET /api/v1/web/stock/ledger?doc_no=&barcode=&batch_no=&biz=LY&product_code=&page= — 台账流水（stock_ledger只增不改；物料账/成品账二选一；差异仲裁以此为准只报警不锁）</div></div>
+<div class="card" data-m="GET" data-k="trace 溯源"><h3><span class="badge GET">GET</span>/api/v1/web/stock/trace</h3><div class="path">GET /api/v1/web/stock/trace?code= — 统一溯源（SB/BT/单号同一框；timeline＋suspect前后3笔＋缺关联标红）</div></div>
+<div class="card" data-m="POST" data-k="docs 建单"><button class="copybtn" onclick="copyCurl(this)">复制curl</button><h3><span class="badge POST">POST</span>/api/v1/web/docs</h3><div class="path">POST /api/v1/web/docs — 建单（一单一态type+sid+bmid；物料行填material_code，成品行填product_code+bom_version；单号前缀[SERIAL:6]）</div>
+<pre data-curl="POST|/api/v1/web/docs">curl -X POST http://10.8.0.12:8080/api/v1/web/docs -H "Content-Type: application/json" -H "Authorization: Bearer xxx" -H "Idempotency-Key: RK100001:1:RK" -d '{"type":"RK","sid":10100,"bmid":1,"handler":"李小明","lines":[{"material_code":"HD-OXF-001","qty":1200,"unit":"米","loc":"WH-A-01"}]}'</pre>
+<pre>{"code":200,"msg":"成功","data":{"doc_no":"RK100001","type":"RK","biz_status":"DRAFT"},"total":1}</pre>
+<div class="note">成品入库示例 lines 改为 <code>[{"product_code":"CP-001","bom_version":"V3","qty":500,"unit":"件","loc":"WH-B-01"}]</code>，sid=11300。领料按BOM展开走 <code>wo_tasks/{wo_no}/issue</code>。</div></div>
+<div class="card" data-m="GET" data-k="docs list detail"><h3><span class="badge GET">GET</span>/api/v1/web/docs · /docs/{doc_no}</h3><div class="path">GET /api/v1/web/docs?type=LY&biz_status=&page= — 单据列表（type白名单15前缀）</div><div class="path">GET /api/v1/web/docs/{doc_no} — 单据详情（含doc_line行＋o_qty/n_qty/o_loc/n_loc＋bom_version＋附件＋审批流）</div></div>
+<div class="card" data-m="POST" data-k="doc submit post approve"><h3><span class="badge POST">POST</span>/api/v1/web/docs/{doc_no}/submit · /post · /approve</h3><div class="path">POST /api/v1/web/docs/{doc_no}/submit — 提交（DRAFT→待审批，写flow_instance S1）</div><div class="path">POST /api/v1/web/docs/{doc_no}/post — 过账（唯一入口：改onhand/avail＋写ledger＋audit_log；LY超发拦OVER_ISSUE；JS拒收不动账；PD不动账；幂等409返原结果）</div><div class="path">POST /api/v1/web/docs/{doc_no}/approve — 审批（{action通过/退回,opinion}，S1..S6按flow_def）</div></div>
+<div class="card" data-m="GET" data-k="pd 盘点"><h3><span class="badge GET">GET</span>/api/v1/web/pd_tasks · lines · confirm</h3><div class="path">GET /api/v1/web/pd_tasks?wh_code=&biz_status=&page= — 盘点任务（pd_task 02:30自动/人工临时，范围冻结，sid=13100）</div><div class="path">GET /api/v1/web/pd_tasks/{pd_no}/lines — 盘点行（pd_line o_qty账面/n_qty实盘/diff_qty=N-O＋reason）</div><div class="path">POST /api/v1/web/pd_tasks/{pd_no}/confirm — 复核（PD不动账；确认后另生TK/RK单调账）</div></div>
+<div class="card" data-m="GET" data-k="transfer 调仓"><h3><span class="badge GET">GET</span>/api/v1/web/transfer_ships</h3><div class="path">GET /api/v1/web/transfer_ships?to_wh=&diff_status= — 调仓在途（transfer_ship DB单：o_qty申请/已发/n_qty实收＋carrier/plate/eta只读＋diff_status）</div><div class="path">POST /api/v1/web/transfer_ships — 新建调仓；PATCH /{doc_no}/receive — 收货确认</div></div>
+<div class="card" data-m="POST" data-k="deliver label fee"><h3><span class="badge POST">POST</span>交付·标签·对账</h3><div class="path">POST /api/v1/web/deliver_signs — 交付签收（deliver_sign PK即FK=doc_no，receiver＋sign_time＋proof_ref必填，JJ用）</div><div class="path">POST /api/v1/web/label_prints — 标签打印（label_print SB/BT/库区码，打印即记）</div><div class="path">GET /api/v1/web/fee_settles · /{settle_no}/lines — 对账头（period日/周/月，amount DECIMAL(18,2)）＋行（o_qty_send/n_qty_confirm订单级）</div><div class="path">GET/POST /api/v1/web/docs/{doc_no}/attachments — 附件（kind照片/签收/发票）；GET /api/v1/web/stock/doc_refs?doc_no= — 单据关联行（TL→LY/RK→DJ/PD→TK，加关系只加行）</div></div>
+
+<h2 id="g6">6. 审批流与报表大屏</h2>
+<div class="card" data-m="GET" data-k="flow 审批"><h3><span class="badge GET">GET</span>/api/v1/web/flows</h3><div class="path">GET /api/v1/web/flow_defs?doc_type=LY — 流程定义（flow_def.steps_cfg S1经办..S6仓管确认）</div><div class="path">GET /api/v1/web/flow_instances?cur_step=S3 — 流程实例（flow_status与biz_status分离）</div><div class="path">POST /api/v1/web/flow_instances/{doc_no}/approve — 审批（冲红默认高一档）</div></div>
+<div class="card" data-m="GET" data-k="dashboard"><h3><span class="badge GET">GET</span>/api/v1/web/dashboard</h3><div class="path">GET /api/v1/web/dashboard — 驾驶舱（PC三域聚合；异常卡直达docs?code=；手动刷新；无设备无人均）</div><pre>{"code":200,"msg":"成功","data":{"kpi":{"todo":3,"onhand":12500.000,"diff":2},"alerts":[{"doc":"PD100003","reason":"差异120米","link":"/docs.html?code=PD100003"}],"formula":"发料量Σledger biz=LY；成品入库Σledger biz=RK AND product_code LIKE 'CP-%'；退料率ΣTK/ΣLY"},"total":1}</pre></div>
+<div class="card" data-m="GET" data-k="rpt 报表"><h3><span class="badge GET">GET</span>/api/v1/web/rpts</h3><div class="path">GET /api/v1/web/rpt_configs — 报表配置（12类：收发存/余额/领退/调仓/退料/成品/差异/库龄/损耗/对账/日报/完工）</div><div class="path">POST /api/v1/web/rpt_instances/generate — 生成实例（草稿只读不改账）；POST /{rpt_no}/publish — 发布</div><div class="path">GET /api/v1/web/analysis_tpls · GET /api/v1/web/dashboards/{dash_id}/components — 分析模板/大屏组件（comp_id=父码派生）</div></div>
+
+<h2 id="g7">7. PDA端（/api/v1/app/*）</h2>
+<div class="card" data-m="GET" data-k="app todos"><h3><span class="badge GET">GET</span>/api/v1/app/todos</h3><div class="path">GET /api/v1/app/todos?mine=1 — 我的待办（仅本车间，服务端按data_scope过滤）</div></div>
+<div class="card" data-m="POST" data-k="app scan"><button class="copybtn" onclick="copyCurl(this)">复制curl</button><h3><span class="badge POST">POST</span>/api/v1/app/scan</h3><div class="path">POST /api/v1/app/scan — 扫码解析（SB必扫；DUP_SCAN/OVER_ISSUE/SCOPE_DENIED）</div>
+<pre data-curl="POST|/api/v1/app/scan">curl -X POST http://10.8.0.12:8080/api/v1/app/scan -H "Content-Type: application/json" -H "Authorization: Bearer DEMO-APP-TOKEN" -H "X-Device-Id: PDA-03" -d '{"code":"SB2026091201","orderId":"SL2026091209"}'</pre></div>
+<div class="card" data-m="GET" data-k="app checklist"><h3><span class="badge GET">GET</span>/api/v1/app/checklists · POST confirm</h3><div class="path">GET /api/v1/app/checklists?orderId= — 送货单清单（移动PC同以明细为基准）</div><div class="path">POST /api/v1/app/checklists/confirm — 逐行确认（CHECKLIST_EMPTY/INCOMPLETE/DIFF_REASON_REQUIRED；弱网进sync_queue）</div></div>
+<div class="card" data-m="POST" data-k="app submit ocr sync"><h3><span class="badge POST">POST</span>/api/v1/app/submit · /ocr · /sync/flush</h3><div class="path">POST /api/v1/app/submit — 提交（登录账号＋照片存证；离线进sync_queue幂等补传）</div><div class="path">POST /api/v1/app/ocr — 拍照OCR（APP压缩上传，只返候选不入单）</div><div class="path">POST /api/v1/app/sync/flush — 补传队列（PENDING→SENT/FAIL＋retries）</div></div>
+
+<h2 id="g8">8. AI网关（/api/v1/ai/* 只读禁过账）</h2>
+<div class="card" data-m="POST" data-k="ai ask"><button class="copybtn" onclick="copyCurl(this)">复制curl</button><h3><span class="badge POST">POST</span>/api/v1/ai/ask · /text2sql</h3><div class="path">POST /api/v1/ai/ask?model= — 问答编排（问题→Qwen出SQL→guards白名单→只读执行→回rows+sql+formula＋写ai_qa_log）</div>
+<pre data-curl="POST|/api/v1/ai/ask">curl -X POST http://127.0.0.1:8081/ai/ask -H "Content-Type: application/json" -d '{"question":"牛津布现存多少？"}'</pre>
+<table><tr><th>护栏</th><th>规则</th></tr><tr><td>只许单条SELECT</td><td>禁insert/update/delete/drop/alter/grant/post/过账/确认验收</td></tr><tr><td>表白名单</td><td>MVP先6表，上线按字典逐表放开；默认拒绝未登记表</td></tr><tr><td>方言</td><td>MySQL5.6：禁WITH/CTE/窗口OVER/JSON函数；LIMIT≤200</td></tr></table></div>
+<div class="card" data-m="POST" data-k="ai ocr"><h3><span class="badge POST">POST</span>/api/v1/ai/ocr</h3><div class="path">POST /api/v1/ai/ocr — OCR识别（Paddle；存ocr_document＋ocr_field_result；低置信标红，人工覆盖才入单）</div></div>
+<div class="card" data-m="GET" data-k="qa log ai前台 ds kb"><h3><span class="badge GET">GET</span>AI前台·集成·记忆</h3><div class="path">GET /api/v1/web/ai/logs?page= — 问答日志（ai_qa_log）</div><div class="path">GET /api/v1/web/ai/categories · shortcuts · prompt_tpls · conversations/{sess_id}/messages · feedbacks · favorites — 问答前台（ai_category树autocode＋gidx/idx排序分离）</div><div class="path">GET /api/v1/web/ds/sources · tables · fields — 数据源白名单（＋mask/row_scope）</div><div class="path">GET /api/v1/web/kb/memories · public_docs — 知识记忆（layer L1/L2＋hit_count）</div></div>
+
+<h2 id="g9">9. 系统与基础（user/role/perm/customer/org/template/logs）</h2>
+<div class="card" data-m="GET" data-k="user role perm"><h3><span class="badge GET">GET</span>/api/v1/web/system/users · roles · perms</h3><div class="path">GET /api/v1/web/system/users?page= · POST — 账号（sys_user username自然键＋data_scope仓库/客户/组织过滤）</div><div class="path">GET /api/v1/web/system/roles · POST — 角色（sys_role autocode树＋cat_allow/func_allow/data_scope）</div><div class="path">GET /api/v1/web/system/roles/{role_id}/perms — 角色动作矩阵（sys_perm行式：role_id×action→allowed，不加列）</div><div class="path">PUT /api/v1/web/system/roles/{role_id}/perms — 保存矩阵（[{action,allowed}]批量，单行异常进errors[]）</div><div class="path">POST /api/v1/web/system/user_roles · DELETE — 用户角色关联（物理删除）</div></div>
+<div class="card" data-m="GET" data-k="customer org template"><h3><span class="badge GET">GET</span>/api/v1/web/masters/customers · org_tree · doc_templates</h3><div class="path">GET /api/v1/web/masters/customers — 客户=供应商（cust_id如KH001恒达服饰）</div><div class="path">GET /api/v1/web/masters/org_tree — 组织树（org_node autocode定长3位/级：监区/楼栋/楼层/车间/班组/工位）</div><div class="path">GET /api/v1/web/masters/doc_templates?biz=RK — 单据模板（tpl_code如MB-SHD，TEXT存JSON）</div></div>
+<div class="card" data-m="GET" data-k="equipment sync scan audit"><h3><span class="badge GET">GET</span>/api/v1/web/system/equipment · sync_queue · scan_logs · audit_logs</h3><div class="path">GET /api/v1/web/system/equipment — 设备台账（PDA/扫描枪，不进驾驶舱）</div><div class="path">GET /api/v1/web/system/sync_queue?biz_status=PENDING — 离线队列（payload TEXT＋retries）</div><div class="path">GET /api/v1/web/system/scan_logs?code= — 扫码日志（只增不改：HIT/DUP_SCAN/OVER_ISSUE/SCOPE_DENIED）</div><div class="path">GET /api/v1/web/system/audit_logs?doc_no= — 审计日志（o_val/n_val快照＋device＋detail）</div></div>
+
+<div class="note">限流：单账号默认 60QPS/日10万次；AI问答 10QPS。脱敏：phone中间4位*、sn只返后4位。缓存：主档长缓存5分钟、onhand短缓存30秒、空结果缓存60秒防击穿；批量过账走队列削峰。V2.1文档保留（api-V2.1.html），V2.2新增成品/BOM/工单与15个SID，既有调用方无需改旧接口。</div>
+
+</main>
+</div>
+<script>
+var groups=[["g0","0 通用规范"],["g1","1 认证中枢"],["g2","2 物料线"],["g3","3 成品BOM工单"],["g4","4 仓储地点"],["g5","5 单据与账"],["g6","6 审批报表"],["g7","7 PDA"],["g8","8 AI网关"],["g9","9 系统基础"]];
+var nav=document.getElementById("nav");groups.forEach(function(g){var d=document.createElement("div");d.className="g";d.textContent=g[1];nav.appendChild(d);var a=document.createElement("a");a.href="#"+g[0];a.textContent="跳到 "+g[1];nav.appendChild(a);});
+document.querySelectorAll("main .card h3").forEach(function(h,i){var a=document.createElement("a");a.href="#c"+i;a.textContent=h.textContent.slice(0,44);h.id="c"+i;nav.appendChild(a);});
+var q=document.getElementById("q"),mf=document.getElementById("mfilter"),count=document.getElementById("count");
+function filt(){var k=(q.value||"").toLowerCase(),m=mf.value,n=0;document.querySelectorAll("main .card").forEach(function(c){var ok=(!m||c.getAttribute("data-m")===m)&&(!k||c.textContent.toLowerCase().indexOf(k)>=0);c.style.display=ok?"":"none";if(ok)n++;});count.textContent="命中 "+n+" 个接口";}
+q.addEventListener("input",filt);mf.addEventListener("change",filt);filt();
+function copyCurl(btn){var pre=btn.parentElement.querySelector("[data-curl]");if(!pre)return;var t=pre.textContent;navigator.clipboard&&navigator.clipboard.writeText(t);btn.textContent="已复制";setTimeout(function(){btn.textContent="复制curl"},1200);}
+</script>
+</body>
+</html>

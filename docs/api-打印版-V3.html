@@ -1,0 +1,428 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WMS 接口文档 打印版 V3</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:#111;background:#f0f0f3;font-size:13px;line-height:1.55}
+.page{max-width:900px;margin:0 auto;background:#fff;padding:34px 42px 60px}
+h1{font-size:24px;margin:0 0 4px;font-weight:800}
+.sub{color:#666;font-size:12.5px;margin-bottom:22px;border-bottom:2px solid #111;padding-bottom:12px}
+h2{font-size:17px;margin:30px 0 10px;padding:6px 0 6px 10px;border-left:4px solid #7c3aed;background:#f7f5ff}
+.cat{margin:0 0 8px}
+.ep{display:flex;gap:10px;align-items:baseline;padding:4px 0 4px 12px;border-bottom:1px dashed #eaeaea}
+.m{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:5px;flex-shrink:0;font-family:Consolas,monospace}
+.GET{background:#e7f7ee;color:#15803d}.POST{background:#e8efff;color:#2b4eff}.PUT{background:#fef3c7;color:#92400e}.PATCH{background:#f3e8ff;color:#6b21a8}.DELETE{background:#fee2e2;color:#991b1b}
+.ep .name{font-weight:600}.ep .path{color:#555;font-family:Consolas,monospace;font-size:11.5px;margin-left:auto}
+h3{font-size:15px;margin:22px 0 8px;padding-bottom:5px;border-bottom:2px solid #ddd}
+h4{font-size:13.5px;margin:14px 0 5px;color:#4f46e5}
+code{background:#f4f4f7;padding:1px 5px;border-radius:5px;font-family:Consolas,monospace;font-size:12px}
+pre{background:#0f172a;color:#dbe4ff;padding:11px 13px;border-radius:9px;overflow:auto;font-size:11.8px;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+th,td{border:1px solid #e2e2ea;padding:6px 8px;text-align:left;vertical-align:top}th{background:#fafaff}
+.sec{background:#f6fbff;border:1px solid #cfe6ff;border-radius:8px;padding:8px 12px;font-size:12.5px;margin:6px 0}
+.detail{border:1px solid #e6e6ee;border-radius:10px;padding:14px 16px;margin:12px 0;page-break-inside:avoid}
+.detail h3{margin-top:0;border-bottom:1px solid #eee}
+.legend{font-size:12px;color:#666;margin:8px 0 18px}
+@media print{
+body{background:#fff;font-size:12px}.page{max-width:none;padding:0;margin:0}
+h2{page-break-after:avoid}.detail{page-break-inside:avoid}pre{background:#f6f6f9;color:#111;border:1px solid #ddd}
+@page{margin:14mm 12mm}
+}
+</style></head><body><div class="page">
+<h1>WMS 开放接口文档 · 打印版 V3</h1>
+<div class="sub">真源 backend/sql/wms.sql v2.3（63表·MySQL5.6）｜字典 docs/数据字典-V2.3.md｜菜单 docs/菜单总览-V2.3.md｜全量分类 + 全量接口名；详情：仓储作业〔仓库库存/库存记录〕+ 物料管理〔全部〕</div>
+
+<div class="legend">图例：<span class="m GET">GET</span> 查询　<span class="m POST">POST</span> 新增/过账　<span class="m PUT">PUT</span> 全量改　<span class="m PATCH">PATCH</span> 局部改　<span class="m DELETE">DELETE</span> 删除。基础URL：<code>http://10.8.0.12:8080/api/v1</code>（AI网关 <code>http://127.0.0.1:8081</code>）；头：<code>Authorization: Bearer TOKEN</code>；响应统一 <code>{code,msg,data,total}</code>。</div>
+
+<h2>一、全部分类与接口清单</h2>
+
+<h3>1. 工作台（2）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">驾驶舱三域聚合</span><span class="path">/api/v1/web/dashboard</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">首页待办 + 交接</span><span class="path">/api/v1/web/todos/work</span></div>
+</div>
+
+<h3>2. 仓储作业（10）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">仓库库存</span><span class="path">/api/v1/web/stock/onhand</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">库存记录</span><span class="path">/api/v1/web/stock/ledger</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">仓库档案</span><span class="path">/api/v1/web/masters/warehouses</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">库区档案</span><span class="path">/api/v1/web/masters/locations</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">新建调仓 DB</span><span class="path">/api/v1/web/transfer_ships</span></div>
+<div class="ep"><span class="m PATCH">PATCH</span><span class="name">调仓收货</span><span class="path">/api/v1/web/transfer_ships/{doc_no}/receive</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">新建盘点 PD</span><span class="path">/api/v1/web/pd_tasks</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">盘点行</span><span class="path">/api/v1/web/pd_tasks/{pd_no}/lines</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">盘点复核</span><span class="path">/api/v1/web/pd_tasks/{pd_no}/confirm</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">统一溯源</span><span class="path">/api/v1/web/stock/trace?code=</span></div>
+</div>
+
+<h3>3. 物料管理（9）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">物料分类树</span><span class="path">/api/v1/web/masters/mat_categories</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">物料明细分页</span><span class="path">/api/v1/web/masters/materials</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">新建物料</span><span class="path">/api/v1/web/masters/materials</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">批次 BT</span><span class="path">/api/v1/web/stock/batches</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">单件 SB</span><span class="path">/api/v1/web/stock/items</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">建单 SQ申请/DJ登记/JS拒收/RK入库/LY领用/TK退库</span><span class="path">/api/v1/web/docs</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">提交</span><span class="path">/api/v1/web/docs/{doc_no}/submit</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">过账</span><span class="path">/api/v1/web/docs/{doc_no}/post</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">审批</span><span class="path">/api/v1/web/docs/{doc_no}/approve</span></div>
+</div>
+
+<h3>4. 成品管理（9）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">成品分类</span><span class="path">/api/v1/web/masters/prod_categories</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">成品明细</span><span class="path">/api/v1/web/masters/products</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">新建成品</span><span class="path">/api/v1/web/masters/products</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">BOM 头</span><span class="path">/api/v1/web/masters/boms</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">BOM 行</span><span class="path">/api/v1/web/masters/boms/{code}/{ver}/lines</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">下生产工单 WO</span><span class="path">/api/v1/web/wo_tasks</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">按 BOM 领料</span><span class="path">/api/v1/web/wo_tasks/{wo_no}/issue</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">完工</span><span class="path">/api/v1/web/wo_tasks/{wo_no}/finish</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">交付签收 JJ</span><span class="path">/api/v1/web/deliver_signs</span></div>
+</div>
+
+<h3>5. 基础资料（5）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">客户档案</span><span class="path">/api/v1/web/masters/customers</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">组织车间树</span><span class="path">/api/v1/web/masters/org_tree</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">单据模板</span><span class="path">/api/v1/web/masters/doc_templates</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">SID 15 个</span><span class="path">/api/v1/web/meta/biz_states</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">方法 01/02/99</span><span class="path">/api/v1/web/meta/bill_methods</span></div>
+</div>
+
+<h3>6. 单据中心（6）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">单据统一检索</span><span class="path">/api/v1/web/docs</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">单据详情</span><span class="path">/api/v1/web/docs/{doc_no}</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">附件</span><span class="path">/api/v1/web/docs/{doc_no}/attachments</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">单据关联</span><span class="path">/api/v1/web/stock/doc_refs</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">标签打印</span><span class="path">/api/v1/web/label_prints</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">加工费对账</span><span class="path">/api/v1/web/fee_settles</span></div>
+</div>
+
+<h3>7. 异常与审计（3）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">扫码日志</span><span class="path">/api/v1/web/system/scan_logs</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">操作审计</span><span class="path">/api/v1/web/system/audit_logs</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">流程实例</span><span class="path">/api/v1/web/flow_instances</span></div>
+</div>
+
+<h3>8. 报表中心（3）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">报表配置 12 类</span><span class="path">/api/v1/web/rpt_configs</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">生成报表</span><span class="path">/api/v1/web/rpt_instances/generate</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">发布报表</span><span class="path">/api/v1/web/rpt_instances/{no}/publish</span></div>
+</div>
+
+<h3>9. 系统管理（7）</h3>
+<div class="cat">
+<div class="ep"><span class="m POST">POST</span><span class="name">登录</span><span class="path">/api/v1/web/auth/login</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">当前用户</span><span class="path">/api/v1/web/auth/me</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">用户</span><span class="path">/api/v1/web/system/users</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">角色</span><span class="path">/api/v1/web/system/roles</span></div>
+<div class="ep"><span class="m PUT">PUT</span><span class="name">权限矩阵</span><span class="path">/api/v1/web/system/roles/{id}/perms</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">设备</span><span class="path">/api/v1/web/system/equipment</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">离线队列</span><span class="path">/api/v1/web/system/sync_queue</span></div>
+</div>
+
+<h3>10. PDA 端（6）</h3>
+<div class="cat">
+<div class="ep"><span class="m GET">GET</span><span class="name">我的待办</span><span class="path">/api/v1/app/todos</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">扫码</span><span class="path">/api/v1/app/scan</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">送货单清单</span><span class="path">/api/v1/app/checklists</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">清单确认</span><span class="path">/api/v1/app/checklists/confirm</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">提交</span><span class="path">/api/v1/app/submit</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">补传</span><span class="path">/api/v1/app/sync/flush</span></div>
+</div>
+
+<h3>11. AI 网关（4）</h3>
+<div class="cat">
+<div class="ep"><span class="m POST">POST</span><span class="name">问答编排</span><span class="path">/api/v1/ai/ask</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">Text2SQL</span><span class="path">/api/v1/ai/text2sql</span></div>
+<div class="ep"><span class="m POST">POST</span><span class="name">OCR 识别</span><span class="path">/api/v1/ai/ocr</span></div>
+<div class="ep"><span class="m GET">GET</span><span class="name">问答日志</span><span class="path">/api/v1/web/ai/logs</span></div>
+</div>
+
+<h2>二、接口详情 · 仓储作业</h2>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 仓库库存</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权必带；按 <code>data_scope</code>（仓库范围）过滤，越权 403 SCOPE_DENIED；只读不写账；快照 30 秒短缓存；<code>phone/sn</code> 等敏感字段脱敏，本口不返敏感字段。</div>
+<h4>请求</h4>
+<table>
+<tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/stock/onhand</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>X-Timestamp</code>（±5min 防重放）</td></tr>
+<tr><td>Query 参数</td><td><code>wh</code> 仓库（可选，限 data_scope 内）；<code>loc</code> 库位（可选）；<code>material_code</code> 物料（可选）；<code>product_code</code> 成品（可选，与 material 二选一）；<code>page</code> 页码默认 1；<code>page_size</code> 每页默认 20 最大 200</td></tr>
+</table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/stock/onhand?wh=WH-A&amp;page=1&amp;page_size=20" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "X-Timestamp: 1758355200000"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {"material_code":"HD-OXF-001","product_code":"","batch_no":"MB2026091003",
+     "wh":"WH-A","loc":"WH-A-01","on_hand":1200.000,"avail":1000.000,
+     "pending":0.000,"quarantine":0.000,"frozen":0.000,"unit":"米"}
+  ],
+  "total": 1
+}</pre>
+<h4>字段说明</h4>
+<table>
+<tr><th>字段</th><th>含义</th></tr>
+<tr><td>material_code</td><td>物料编码，物料行为值，成品行为空串</td></tr>
+<tr><td>product_code</td><td>成品编码 CP-，成品行为值，物料行为空串</td></tr>
+<tr><td>batch_no</td><td>批次号 BT 级</td></tr>
+<tr><td>wh / loc</td><td>仓库编码 / 库位编码</td></tr>
+<tr><td>on_hand</td><td>账面现存数量 DECIMAL(18,3)</td></tr>
+<tr><td>avail</td><td>可用数量（领用上限）</td></tr>
+<tr><td>pending / quarantine / frozen</td><td>待发 / 隔离 / 冻结</td></tr>
+</table>
+<h4>错误码</h4>
+<p>400 参数错（分页越界）/ 401 未鉴权 / 403 SCOPE_DENIED（查非授权仓库）/ 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 库存记录</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；<code>data_scope</code> 过滤；只增不改台账，禁止任何写操作；差异仲裁以本表为准，不平只报警不锁；只读。</div>
+<h4>请求</h4>
+<table>
+<tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/stock/ledger</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>X-Timestamp</code></td></tr>
+<tr><td>Query 参数</td><td><code>doc_no</code> 单号；<code>barcode</code> 条码 SB；<code>batch_no</code> 批次 BT；<code>biz</code> 业务前缀（LY/TK/…）；<code>product_code</code> 成品；<code>page</code>/<code>page_size</code></td></tr>
+</table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/stock/ledger?doc_no=LY100008&amp;page=1&amp;page_size=50" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "X-Timestamp: 1758355200000"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {"id":10000023,"doc_no":"LY100008","line_no":1,"sid":10400,
+     "material_code":"HD-OXF-001","product_code":"","batch_no":"MB2026091003",
+     "barcode":"SB2026091201","wh":"WH-A","loc":"WH-A-01","qty":200.000,
+     "unit":"米","dir":"-","biz":"LY","by_user":"李小明","device":"PDA-03",
+     "at":"2026-09-12 09:12:00","idem_key":"LY100008:1:LY"}
+  ],
+  "total": 1
+}</pre>
+<h4>字段说明</h4>
+<table>
+<tr><th>字段</th><th>含义</th></tr>
+<tr><td>id</td><td>流水代理键 BIGINT 自增</td></tr>
+<tr><td>doc_no / line_no</td><td>来源单号 / 行号</td></tr>
+<tr><td>sid</td><td>语义动作码（10400=领用）</td></tr>
+<tr><td>qty / unit</td><td>变动数量 / 单位（数量必带单位）</td></tr>
+<tr><td>dir</td><td>方向：1 入 / -1 出</td></tr>
+<tr><td>biz</td><td>业务前缀，中文只做显示映射</td></tr>
+<tr><td>idem_key</td><td>幂等键 <code>doc_no:line_no:biz</code> 唯一</td></tr>
+</table>
+<h4>错误码</h4>
+<p>400 参数错 / 401 未鉴权 / 403 SCOPE_DENIED / 429 限流 / 500 异常。</p>
+</div>
+
+<h2>三、接口详情 · 物料管理（全部）</h2>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 物料分类树</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；主数据只读，仅基础数据管理员可写；长缓存 5 分钟。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/masters/mat_categories</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code></td></tr>
+<tr><td>Query 参数</td><td><code>enabled</code>（可选，1/0）；<code>keyword</code>（可选，按名称模糊）</td></tr></table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/masters/mat_categories" \
+  -H "Authorization: Bearer YOUR_TOKEN"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200, "msg": "成功",
+  "data": [
+    {"cat_code":"MAT-FAB","parent_code":"","autocode":"001","lowest":0,"name":"面料","enabled":1},
+    {"cat_code":"MAT-FAB-01","parent_code":"MAT-FAB","autocode":"001001","lowest":1,"name":"牛津布","enabled":1}
+  ],
+  "total": 2
+}</pre>
+<h4>错误码</h4>
+<p>401 未鉴权 / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 物料明细分页</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；主数据只读，仅管理员可写；长缓存 5 分钟；不返敏感字段。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/masters/materials</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code></td></tr>
+<tr><td>Query 参数</td><td><code>keyword</code>（名称/编码模糊）；<code>cat_code</code> 分类；<code>enabled</code> 1/0；<code>page</code>/<code>page_size</code></td></tr></table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/masters/materials?keyword=牛津布&amp;enabled=1&amp;page=1&amp;page_size=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200, "msg": "成功",
+  "data": [
+    {"material_code":"HD-OXF-001","cat_code":"MAT-FAB-01","autocode":"001001","name":"牛津布",
+     "spec":"150D","base_unit":"米","pack_unit":"箱","pack_qty":50.000,
+     "sub_unit":"","sub_qty":null,"manage_mode":"QTY","price_ref":12.50,
+     "max_qty":2000.000,"min_qty":100.000,"enabled":1,"status":"启用"}
+  ],
+  "total": 1
+}</pre>
+<h4>错误码</h4>
+<p>400 参数错 / 401 未鉴权 / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m POST">POST</span> 新建物料</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权 + 仅基础数据管理员角色（否则 403 SCOPE_DENIED）；<code>base_unit</code> 必填且后续单据 unit 必须等于它（防米+件混加）；新建物料初始库存必须 0，期初走 RK 单，禁带期初。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>POST /api/v1/web/masters/materials</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>Content-Type: application/json</code></td></tr>
+<tr><td>Body</td><td><code>material_code</code> 唯一；<code>name</code>；<code>base_unit</code>；<code>cat_code</code>；<code>spec</code>；<code>pack_unit</code>/<code>pack_qty</code>；<code>sub_unit</code>/<code>sub_qty</code>；<code>manage_mode</code> QTY/CODE；<code>price_ref</code>；<code>max_qty</code>/<code>min_qty</code>；<code>shelf_life_days</code></td></tr></table>
+<h4>请求示例</h4>
+<pre>curl -X POST "http://10.8.0.12:8080/api/v1/web/masters/materials" \
+  -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" \
+  -d '{"material_code":"HD-OXF-002","name":"牛津布B","base_unit":"米",
+       "cat_code":"MAT-FAB-01","pack_unit":"箱","pack_qty":50,
+       "manage_mode":"QTY","max_qty":2000,"min_qty":100}'</pre>
+<h4>响应示例</h4>
+<pre>{"code":200,"msg":"成功","data":{"material_code":"HD-OXF-002","enabled":1},"total":1}</pre>
+<h4>错误码</h4>
+<p>400 INVALID_QTY（缺 base_unit / 数量格式错）/ 401 未鉴权 / 403 SCOPE_DENIED（非管理员）/ 409 编码重复 / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 批次 BT</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；只读；按 data_scope 过滤。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/stock/batches</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code></td></tr>
+<tr><td>Query 参数</td><td><code>material_code</code>（可选）；<code>page</code>/<code>page_size</code></td></tr></table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/stock/batches?material_code=HD-OXF-001&amp;page=1" \
+  -H "Authorization: Bearer YOUR_TOKEN"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200, "msg": "成功",
+  "data": [
+    {"batch_no":"MB2026091003","material_code":"HD-OXF-001","partner_id":"KH001",
+     "source_doc_no":"RK100001","created_at":"2026-09-10 09:00:00","created_by":"李小明"}
+  ],
+  "total": 1
+}</pre>
+<h4>错误码</h4>
+<p>400 参数错 / 401 未鉴权 / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m GET">GET</span> 单件 SB</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；只读；CODE 模式一物一码，按 data_scope 过滤。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>GET /api/v1/web/stock/items</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code></td></tr>
+<tr><td>Query 参数</td><td><code>batch_no</code>（可选）；<code>status</code> 在库/出库/冻结；<code>page</code>/<code>page_size</code></td></tr></table>
+<h4>请求示例</h4>
+<pre>curl "http://10.8.0.12:8080/api/v1/web/stock/items?batch_no=MB2026091003&amp;status=在库" \
+  -H "Authorization: Bearer YOUR_TOKEN"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200, "msg": "成功",
+  "data": [
+    {"barcode":"SB2026091201","material_code":"HD-OXF-001","batch_no":"MB2026091003",
+     "source_doc_no":"RK100001","status":"在库"}
+  ],
+  "total": 1
+}</pre>
+<h4>错误码</h4>
+<p>400 参数错 / 401 未鉴权 / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m POST">POST</span> 建单（SQ 申请 / DJ 登记 / JS 拒收 / RK 入库 / LY 领用 / TK 退库）</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权 + <code>Idempotency-Key</code> 必填（= <code>idem_key=doc_no:line_no:biz</code>，重复 409 返原结果）；<code>type</code> 走 15 前缀白名单，非白名单 400；<code>unit</code> 必须等于档案 <code>base_unit</code>；SQ 申请 / JS 拒收只登记不动账，由后端强制不写 ledger；建单只落 DRAFT，过账另调 <code>/post</code>。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>POST /api/v1/web/docs</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>Content-Type: application/json</code>、<code>Idempotency-Key</code></td></tr>
+<tr><td>Body</td><td><code>type</code>（SQ/DJ/JS/RK/LY/TK…）；<code>sid</code>（10000 DJ/10200 JS/10100 RK/10400 LY/15000 TK/11600 SQ）；<code>bmid</code> 方法；<code>handler</code> 经办人；<code>lines[]</code>：物料行 <code>material_code</code>、成品行 <code>product_code + bom_version</code>、<code>qty</code>、<code>unit</code>、<code>loc</code>、<code>batch_no</code></td></tr></table>
+<h4>请求示例</h4>
+<pre>curl -X POST "http://10.8.0.12:8080/api/v1/web/docs" \
+  -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: RK100001:1:RK" \
+  -d '{"type":"RK","sid":10100,"bmid":1,"handler":"李小明",
+       "lines":[{"material_code":"HD-OXF-001","qty":1200,"unit":"米","loc":"WH-A-01"}]}'</pre>
+<h4>响应示例</h4>
+<pre>{"code":200,"msg":"成功","data":{"doc_no":"RK100001","type":"RK","biz_status":"DRAFT"},"total":1}</pre>
+<h4>错误码</h4>
+<p>400 参数错 / type 非白名单 / unit≠base_unit / 401 未鉴权 / 403 SCOPE_DENIED / 409 IDEMPOTENT_REPLAY（重复建单返原单）/ 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m POST">POST</span> 提交</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；状态机 DRAFT→待审批；写 <code>flow_instance S1</code>；不可提交已过账单，违者 403 FLOW_STATE_DENIED；审计留痕。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>POST /api/v1/web/docs/{doc_no}/submit</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code></td></tr>
+<tr><td>Path / Body</td><td><code>doc_no</code> 单号；Body 可空</td></tr></table>
+<h4>请求示例</h4>
+<pre>curl -X POST "http://10.8.0.12:8080/api/v1/web/docs/RK100001/submit" \
+  -H "Authorization: Bearer YOUR_TOKEN"</pre>
+<h4>响应示例</h4>
+<pre>{"code":200,"msg":"成功","data":{"doc_no":"RK100001","biz_status":"APPROVING","cur_step":"S1"},"total":1}</pre>
+<h4>错误码</h4>
+<p>401 未鉴权 / 403 FLOW_STATE_DENIED（状态不允许）/ 404 DOC_NOT_FOUND / 429 限流 / 500 异常。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m POST">POST</span> 过账</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权 + <code>Idempotency-Key</code> 必填；<b>唯一记账入口</b>，事务写（状态 + ledger + onhand + audit）；重复 409 返原结果不重复记账；LY 实发＞可用 403 OVER_ISSUE；SQ/JS/PD 拒绝动账；unit≠base_unit 400。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>POST /api/v1/web/docs/{doc_no}/post</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>Idempotency-Key</code></td></tr>
+<tr><td>Path / Body</td><td><code>doc_no</code> 单号；Body 可空（LY 校验可用，JS/PD 强制不动账）</td></tr></table>
+<h4>请求示例</h4>
+<pre>curl -X POST "http://10.8.0.12:8080/api/v1/web/docs/RK100001/post" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Idempotency-Key: RK100001:1:RK"</pre>
+<h4>响应示例</h4>
+<pre>{
+  "code": 200, "msg": "成功",
+  "data": {"doc_no":"RK100001","biz_status":"POSTED",
+           "ledger_ids":[10000023],"onhand":"updated"},
+  "total": 1
+}</pre>
+<h4>错误码</h4>
+<p>400 unit≠base_unit / 401 未鉴权 / 403 OVER_ISSUE（超发）/ SCOPE_DENIED / FLOW_STATE_DENIED（未审批）/ 404 DOC_NOT_FOUND / 409 IDEMPOTENT_REPLAY（返原结果）/ 429 限流 / 500 异常（事务全回滚）。</p>
+</div>
+
+<div class="detail">
+<h3><span class="m POST">POST</span> 审批</h3>
+<div class="sec"><b>安全：</b>Bearer 鉴权；按 <code>flow_def</code> 步骤 S1..S6 走，当前审批人匹配才可操作，否则 403；冲红默认高一档权限；审批写 <code>flow_instance.hist</code> + <code>audit_log</code>。</div>
+<h4>请求</h4>
+<table><tr><th>项</th><th>说明</th></tr>
+<tr><td>Method + Path</td><td><code>POST /api/v1/web/docs/{doc_no}/approve</code></td></tr>
+<tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code>、<code>Content-Type: application/json</code></td></tr>
+<tr><td>Body</td><td><code>action</code>（通过 / 退回）；<code>opinion</code> 意见（退回必填）</td></tr></table>
+<h4>请求示例</h4>
+<pre>curl -X POST "http://10.8.0.12:8080/api/v1/web/docs/RK100001/approve" \
+  -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" \
+  -d '{"action":"通过","opinion":"数量核对无误"}'</pre>
+<h4>响应示例</h4>
+<pre>{"code":200,"msg":"成功","data":{"doc_no":"RK100001","cur_step":"S2","flow_status":"审批中"},"total":1}</pre>
+<h4>错误码</h4>
+<p>400 参数错（退回缺意见）/ 401 未鉴权 / 403 FLOW_STATE_DENIED（非当前审批人）/ 404 DOC_NOT_FOUND / 429 限流 / 500 异常。</p>
+</div>
+
+</div></body></html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WMS 开放接口文档 - API 参考</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Inter,sans-serif;color:#1a1d26;background:#fff}
+.top{display:flex;align-items:center;gap:16px;padding:14px 28px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:20}
+.top h1{font-size:22px;margin:0;font-weight:800}.search{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:7px 12px;color:#888;font-size:13px;min-width:260px}.search input{border:0;outline:0;flex:1;font-size:13px}
+.tabs{display:flex;gap:22px;padding:0 28px;border-bottom:1px solid #eee;font-size:14px;color:#666}.tabs b{padding:12px 2px;border-bottom:2px solid #7c3aed;color:#111}
+.wrap{display:flex;max-width:1500px;margin:0 auto}.side{width:300px;flex-shrink:0;border-right:1px solid #eee;padding:18px 12px;height:calc(100vh - 110px);position:sticky;top:110px;overflow:auto}
+.side .gi{font-size:13px;font-weight:800;margin:16px 6px 6px}.side a{display:flex;gap:8px;align-items:center;font-size:13px;color:#333;text-decoration:none;padding:6px 8px;border-radius:8px}.side a:hover,.side a.act{background:#f1eafe}
+.m{font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px}.GET{background:#e7f7ee;color:#15803d}.POST{background:#e8efff;color:#2b4eff}.PUT{background:#fef3c7;color:#92400e}.PATCH{background:#f3e8ff;color:#6b21a8}.DELETE{background:#fee2e2;color:#991b1b}
+.main{flex:1;padding:26px 40px;min-width:0}.main h2{font-size:26px;margin:6px 0}.eyebrow{color:#7c3aed;font-size:13px;font-weight:700}
+.card{border:1px solid #eee;border-radius:12px;padding:14px 16px;margin:14px 0}.card h4{margin:0 0 8px;font-size:16px}
+code{background:#f4f4f7;padding:1px 6px;border-radius:6px;font-size:12px}pre{background:#0f172a;color:#dbe4ff;padding:14px;border-radius:12px;overflow:auto;font-size:12.5px;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{border:1px solid #e8e8ef;padding:7px 9px;text-align:left;vertical-align:top}th{background:#fafaff}
+.req{font-family:Consolas,monospace;background:#f8f8fc;border:1px solid #e8e8ef;border-radius:10px;padding:8px 12px;display:block;margin:8px 0;word-break:break-all}
+.sec{background:#f6fbff;border:1px solid #cfe6ff;border-radius:10px;padding:10px 14px;font-size:13px;margin:10px 0}
+.warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:13px;margin:10px 0}
+.ep{border-top:1px solid #eee;padding:26px 0}.ep h3{font-size:20px;margin:0 0 4px}.d{color:#555;font-size:14px}
+.toc2{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+</style></head><body>
+<div class="top"><h1>WMS 开放接口文档</h1><div class="search">🔍 <input id="q" placeholder="Search... 搜索接口 / 菜单 / 表名"></div></div>
+<div class="tabs"><span>使用指南</span><b>API 参考</b><span>工作流管理</span><span>大模型网关</span></div>
+<div class="wrap"><div class="side" id="nav"></div><div class="main" id="main">
+<div class="eyebrow">API 介绍</div><h2>API 参考</h2><p class="d">WMS 开放 API 接口文档（对齐 9 大菜单 42 二级｜真源 backend/sql/wms.sql v2.3 63表｜字典 docs/数据字典-V2.3.md）</p>
+
+<div class="card" id="base"><h4>基础信息</h4>
+<h4>API 基础URL</h4><span class="req">http://10.8.0.12:8080/api/v1 &nbsp;（网关 http://127.0.0.1:8081/ai）</span>
+<h4>认证方式</h4><p class="d">所有接口 HTTP 头携带认证信息：</p><pre>Authorization: Bearer YOUR_TOKEN
+X-Device-Id: PDA-03            # app 端必填，绑定 equipment 白名单
+X-Timestamp: 1758355200000     # 毫秒戳，±5分钟外拒绝，防重放
+X-Sign: HMAC(token+timestamp+body)  # app 写接口必填，防篡改
+Idempotency-Key: RK100001:1:RK # 过账/提交必填 = idem_key，重复直接返原结果</pre>
+<h4>请求格式</h4><ul><li>Content-Type：<code>application/json</code></li><li>字符编码：UTF-8</li><li>请求方法：GET、POST、PUT、PATCH、DELETE（RESTful：GET查 / POST新增过账 / PUT全量改 / PATCH局部改 / DELETE逻辑删优先）</li><li>分页：<code>page/page_size</code>，默认1/20，最大200</li></ul>
+<h4>响应格式</h4><p class="d">所有 API 统一 JSON：</p><pre>{"code":200,"msg":"成功","data":{},"total":0}</pre>
+<p class="d">code：200成功 / 400参数错 / 401未鉴权 / 403无权限或护栏拦截 / 404不存在 / 409幂等重放返原结果 / 429限流 / 500异常。data 无数据返 {} / [] 禁 null；列表必返 total。数量 DECIMAL(18,3)、金额 DECIMAL(18,2)。</p></div>
+
+<div class="card"><h4>安全总则（每个接口通用，未逐条重复）</h4><div class="sec">鉴权：Bearer 必校验，过期/伪造 401；AI 只读账号调写接口 403 AI_WRITE_DENIED。授权：按 sys_role/sys_perm + data_scope（仓库/车间/客户）过滤，越权 403 SCOPE_DENIED。防重放：X-Timestamp ±5min + X-Sign。幂等：写接口 Idempotency-Key，409 返原结果不重复记账。校验：unit 必须等于档案 base_unit；LY 实发≤可用；JS/PD/SQ 不动账由后端强制。脱敏：phone 中间4位*、sn 只返后4位。限流：单账号 60QPS/日10万，AI 问答 10QPS，429 带 Retry-After。审计：过账/审批/签收全写 audit_log(o_val/n_val+device)。</div></div>
+
+<div id="eps"></div>
+<div class="card"><h4>状态码说明</h4><table><tr><th>HTTP</th><th>业务码</th><th>说明</th></tr>
+<tr><td>200</td><td>—</td><td>成功</td></tr><tr><td>400</td><td>INVALID_QTY / CHECKLIST_EMPTY / DIFF_REASON_REQUIRED / BOM_VERSION_REQUIRED</td><td>参数错误，details 给字段</td></tr>
+<tr><td>401</td><td>TOKEN_INVALID / TOKEN_EXPIRED</td><td>认证失败</td></tr>
+<tr><td>403</td><td>SCOPE_DENIED / DUP_SCAN / OVER_ISSUE / AI_WRITE_DENIED / FLOW_STATE_DENIED</td><td>权限/护栏/超发拦截</td></tr>
+<tr><td>404</td><td>DOC_NOT_FOUND / MATERIAL_NOT_FOUND / PRODUCT_NOT_FOUND</td><td>资源不存在</td></tr>
+<tr><td>409</td><td>IDEMPOTENT_REPLAY</td><td>幂等重放，data 为原结果</td></tr>
+<tr><td>429</td><td>RATE_LIMITED</td><td>限流</td></tr>
+<tr><td>500</td><td>—</td><td>服务器异常，带 request_id 查日志</td></tr></table>
+<pre>{"code":403,"msg":"超发拦截","data":{"error":"OVER_ISSUE","details":"实发 1200 > 可用 1000","field":"qty"}}</pre>
+<div class="warn">安全建议：Token 存环境变量不硬编码；定期轮换；PDA 绑定设备 ID；AI Key 永不落地前端；生产只开 HTTPS。</div></div>
+</div></div>
+<script>
+var G=[
+["工作台",["GET|/api/v1/web/dashboard|驾驶舱三域聚合","GET|/api/v1/web/todos/work|首页待办+交接"]],
+["仓储作业",["GET|/api/v1/web/stock/onhand|仓库库存","GET|/api/v1/web/stock/ledger|库存记录","GET|/api/v1/web/masters/warehouses|仓库档案","GET|/api/v1/web/masters/locations|库区档案","POST|/api/v1/web/transfer_ships|新建调仓DB","PATCH|/api/v1/web/transfer_ships/{doc_no}/receive|调仓收货","POST|/api/v1/web/pd_tasks|新建盘点PD","GET|/api/v1/web/pd_tasks/{pd_no}/lines|盘点行","POST|/api/v1/web/pd_tasks/{pd_no}/confirm|盘点复核","GET|/api/v1/web/stock/trace?code=|统一溯源"]],
+["物料管理",["GET|/api/v1/web/masters/mat_categories|物料分类树","GET|/api/v1/web/masters/materials|物料明细分页","POST|/api/v1/web/masters/materials|新建物料","GET|/api/v1/web/stock/batches|批次BT","GET|/api/v1/web/stock/items|单件SB","POST|/api/v1/web/docs|建单SQ申请/DJ登记/JS拒收/RK入库/LY领用/TK退库","POST|/api/v1/web/docs/{doc_no}/submit|提交","POST|/api/v1/web/docs/{doc_no}/post|过账","POST|/api/v1/web/docs/{doc_no}/approve|审批"]],
+["成品管理",["GET|/api/v1/web/masters/prod_categories|成品分类","GET|/api/v1/web/masters/products|成品明细","POST|/api/v1/web/masters/products|新建成品","GET|/api/v1/web/masters/boms|BOM头","GET|/api/v1/web/masters/boms/{code}/{ver}/lines|BOM行","POST|/api/v1/web/wo_tasks|下生产工单WO","POST|/api/v1/web/wo_tasks/{wo_no}/issue|按BOM领料","POST|/api/v1/web/wo_tasks/{wo_no}/finish|完工","POST|/api/v1/web/deliver_signs|交付签收JJ"]],
+["基础资料",["GET|/api/v1/web/masters/customers|客户档案","GET|/api/v1/web/masters/org_tree|组织车间树","GET|/api/v1/web/masters/doc_templates|单据模板","GET|/api/v1/web/meta/biz_states|SID15个","GET|/api/v1/web/meta/bill_methods|方法01/02/99"]],
+["单据中心",["GET|/api/v1/web/docs|单据统一检索","GET|/api/v1/web/docs/{doc_no}|单据详情","GET|/api/v1/web/docs/{doc_no}/attachments|附件","GET|/api/v1/web/stock/doc_refs|单据关联","POST|/api/v1/web/label_prints|标签打印","GET|/api/v1/web/fee_settles|加工费对账"]],
+["异常与审计",["GET|/api/v1/web/system/scan_logs|扫码日志","GET|/api/v1/web/system/audit_logs|操作审计","GET|/api/v1/web/flow_instances|流程实例"]],
+["报表中心",["GET|/api/v1/web/rpt_configs|报表配置12类","POST|/api/v1/web/rpt_instances/generate|生成报表","POST|/api/v1/web/rpt_instances/{no}/publish|发布报表"]],
+["系统管理",["POST|/api/v1/web/auth/login|登录","GET|/api/v1/web/auth/me|当前用户","GET|/api/v1/web/system/users|用户","GET|/api/v1/web/system/roles|角色","PUT|/api/v1/web/system/roles/{id}/perms|权限矩阵","GET|/api/v1/web/system/equipment|设备","GET|/api/v1/web/system/sync_queue|离线队列"]],
+["PDA端",["GET|/api/v1/app/todos|我的待办","POST|/api/v1/app/scan|扫码","GET|/api/v1/app/checklists|送货单清单","POST|/api/v1/app/checklists/confirm|清单确认","POST|/api/v1/app/submit|提交","POST|/api/v1/app/sync/flush|补传"]],
+["AI网关",["POST|/api/v1/ai/ask|问答编排","POST|/api/v1/ai/text2sql|Text2SQL","POST|/api/v1/ai/ocr|OCR识别","GET|/api/v1/web/ai/logs|问答日志"]]
+];
+var SPEC={
+"/api/v1/web/dashboard":{auth:"Bearer（PC角色）",req:"Query：无（服务端按 data_scope 过滤）",res:'{"kpi":{"todo":3,"onhand":12500.000,"diff":2},"alerts":[{"doc":"PD100003","link":"/docs.html?code=PD100003"}],"formula":"..."}',sec:"只读聚合，不新增表；手动刷新；异常卡直达 docs?code=。"},
+"/api/v1/web/stock/onhand":{auth:"Bearer",req:"Query：wh/loc/material_code/product_code（二选一）/page",res:'[{"material_code":"HD-OXF-001","wh":"WH-A","on_hand":1200.000,"avail":1000.000}]',sec:"按 data_scope 过滤仓库；问答默认查此表，30秒短缓存。"},
+"/api/v1/web/stock/ledger":{auth:"Bearer",req:"Query：doc_no/barcode/batch_no/biz/product_code/page",res:'[{"doc_no":"LY100008","qty":200.000,"unit":"米","biz":"LY"}]',sec:"只增不改；仲裁以此为准，只报警不锁。"},
+"/api/v1/web/docs":{auth:"Bearer + Idempotency-Key（POST）",req:'Body：{type(15前缀白名单),sid,bmid,handler,lines:[{material_code或product_code+bom_version,qty,unit=base_unit,loc}]}',res:'{"doc_no":"RK100001","biz_status":"DRAFT"}',sec:"一单一态；SQ/JS 建单不动账由后端强制；unit≠base_unit 400；15前缀：DJ/JS/RK/LY/TK/TC/DB/TZ/PD/CP/RK-FIN/JJ/WO/SQ。"},
+"/api/v1/web/docs/{doc_no}/post":{auth:"Bearer + Idempotency-Key 必填",req:"Path：doc_no；Body：{}（LY 校验可用，JS/PD 拒绝动账）",res:'{"ledger_ids":[...],"onhand":"updated"}',sec:"唯一记账入口；事务（状态+流水+现存+审计）；重复 409 返原结果；LY 超发 OVER_ISSUE 403。"},
+"/api/v1/app/scan":{auth:"Bearer + X-Device-Id + X-Sign",req:'Body：{code(SB/BT/库位码),orderId}',res:'{"material":"HD-OXF-001 牛津布","qty":200.000,"result":"OK|DUPLICATE|INVALID"}',sec:"设备白名单；重复 DUP_SCAN、超领 OVER_ISSUE、无范围 SCOPE_DENIED；先扫库位再扫物料。"},
+"/api/v1/ai/ask":{auth:"Bearer（AI只读账号）",req:'Body：{question}；Query：?model=（调试覆盖）',res:'{"sql":"SELECT ... LIMIT 200","rows":[...],"formula":"..."}',sec:"只许单条SELECT；禁insert/update/delete/drop/alter/post/过账；表白名单 doc_main/doc_line/stock_onhand/stock_ledger/material_item/batch(+成品4表)；MySQL5.6禁CTE/窗口/JSON；LIMIT≤200；写 ai_qa_log。"}
+};
+function detail(m,p,t){
+var s=SPEC[p]||SPEC[Object.keys(SPEC).find(k=>p.indexOf(k.split("{")[0])===0)]||{auth:"Bearer",req:"见参数表（page/page_size；id 走 path）",res:'{"code":200,"msg":"成功","data":{},"total":1}',sec:"通用安全：鉴权+授权(data_scope)+幂等(写接口)+审计；脱敏 phone/sn；限流 60QPS。"};
+return '<div class="ep" data-k="'+(m+" "+p+" "+t).toLowerCase()+'"><div class="eyebrow">'+t+'</div><h3><span class="m '+m+'">'+m+'</span> '+p+'</h3><p class="d">'+t+'｜真源 wms.sql v2.3</p>'
++'<h4>认证与安全</h4><div class="sec">'+s.auth+'；'+s.sec+'</div>'
++'<h4>请求</h4><table><tr><th>项</th><th>说明</th></tr><tr><td>Method + Path</td><td><code>'+m+' '+p+'</code></td></tr><tr><td>Headers</td><td><code>Authorization: Bearer TOKEN</code> / <code>X-Timestamp</code> / 写接口加 <code>Idempotency-Key</code>，app 加 <code>X-Device-Id + X-Sign</code></td></tr><tr><td>参数</td><td>'+s.req+'</td></tr></table>'
++'<h4>请求示例</h4><pre>curl -X '+m+' http://10.8.0.12:8080'+p.split("{")[0].split("?")[0]+' -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json"</pre>'
++'<h4>响应示例</h4><pre>'+s.res+'</pre>'
++'<h4>错误码</h4><p class="d">400 参数错 / 401 未鉴权 / 403 越权或护栏拦截（OVER_ISSUE / SCOPE_DENIED / AI_WRITE_DENIED）/ 404 不存在 / 409 幂等重放 / 429 限流 / 500 异常</p></div>';
+}
+var nav=document.getElementById("nav"),eps=document.getElementById("eps"),html="";
+G.forEach(function(g,i){nav.innerHTML+='<div class="gi">'+g[0]+'</div>';g[1].forEach(function(s){var a=s.split("|");nav.innerHTML+='<a href="#e'+html.length+'"><span class="m '+a[0]+'">'+a[0]+'</span>'+a[2]+'</a>';html+=detail(a[0],a[1],a[2]);});});
+eps.innerHTML=html;
+document.querySelectorAll(".side a").forEach(function(a,i){a.href="#e"+i;});
+document.querySelectorAll("#eps .ep").forEach(function(e,i){e.id="e"+i;});
+var q=document.getElementById("q");
+q.addEventListener("input",function(){var k=q.value.toLowerCase();document.querySelectorAll("#eps .ep").forEach(function(e){e.style.display=!k||e.getAttribute("data-k").indexOf(k)>=0?"":"none";});});
+</script></body></html>
