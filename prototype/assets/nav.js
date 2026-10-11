@@ -1,6 +1,7 @@
 /* 全系统统一导航：完整一/二级菜单，可点击切换，一级可收缩展开
  * 菜单对照《监狱公司物料系统-菜单与页面数据库设计表》总表 */
 (function(){
+  /* menu-config.js 由各页面显式引入（nav.js 之前），此处不再 document.write 补齐 */
   function qtyUnit(q,u){return '<span class="qty-value">'+String(q==null?'':q)+'</span><span class="qty-unit">'+esc(u||'')+'</span>';}
   /* Keep quantity and unit as separate DOM fields even for legacy/static page copy. */
   function splitQuantityText(root){
@@ -29,93 +30,18 @@
   if(!document.getElementById('wms-shared-theme')){
     var theme=document.createElement('link'); theme.id='wms-shared-theme'; theme.rel='stylesheet'; theme.href=SPA_SHELL?'assets/theme.css':'../assets/theme.css'; document.head.appendChild(theme);
   }
-  var FILE = {
-    login:'login.html', home:'home.html', dashboard:'dashboard.html', location:'location.html', materialCode:'material-workbench.html',
-    transfer:'transfer.html', approveFlow:'approve-flow.html',
-    finished:'finished.html',
-    base:'base.html', warehouseArchive:'warehouse-archive.html', locationArchive:'location-archive.html', customerArchive:'customer-archive.html', docs:'docs.html', ocr:'ocr.html', scanlog:'scanlog.html', qrcode:'qrcode.html',
-    stocktake:'stocktake.html', report:'report.html', reportConfig:'report-config.html', audit:'audit.html', processingFee:'processing-fee.html', ai:'ai.html', users:'users.html', equipment:'equipment.html', ocrResult:'ocr-result.html',
-    materialRequest:'material-workbench.html', materialRegister:'material-workbench.html', materialReject:'material-workbench.html', materialInbound:'material-workbench.html', materialIssue:'material-workbench.html', materialWReturn:'material-workbench.html', materialReturn:'material-workbench.html', materialStock:'material-workbench.html',
-    inventoryOnhand:'material-workbench.html', inventoryLedger:'material-workbench.html',
-    finishedDetail:'finished.html', finishedRegister:'finished.html', finishedInbound:'finished.html', finishedReturn:'finished.html', finishedDeliver:'finished.html', finishedOut:'finished.html', finishedSign:'finished.html',
-    fieldApp:'../mobile-app/index.html',
-    baseBom:'base.html', baseMat:'base.html', baseOrg:'base.html', baseLoc:'base.html', baseProd:'base.html', baseTpl:'base.html'
-  };
-  var SECTION = {
-    login:'login', home:'home', dashboard:'dashboard', location:'location', materialCode:'materialCode',
-    transfer:'transfer', workshop:'materialRequest', workshopReceive:'materialIssue', return:'materialWReturn',
-     finished:'finished', base:'base', baseBom:'baseBom', baseMat:'baseMat', baseOrg:'baseOrg', baseLoc:'baseLoc', baseProd:'baseProd', baseTpl:'baseTpl', warehouseArchive:'warehouseArchive', locationArchive:'locationArchive', customerArchive:'customerArchive', docs:'docs', ocr:'ocr', scanlog:'scanlog', qrcode:'qrcode',
-    stocktake:'stocktake', report:'report', reportConfig:'reportConfig', audit:'audit', processingFee:'processingFee', ai:'ai', users:'users', equipment:'equipment', ocrResult:'ocrResult',
-    materialRequest:'materialRequest', materialRegister:'materialRegister', materialReject:'materialReject', materialInbound:'materialInbound', materialIssue:'materialIssue', materialWReturn:'materialWReturn', materialReturn:'materialReturn', materialStock:'materialStock',
-    inventoryOnhand:'inventoryOnhand', inventoryLedger:'inventoryLedger',
-    finishedDetail:'finishedDetail', finishedRegister:'finishedRegister', finishedInbound:'finishedInbound', finishedReturn:'finishedReturn', finishedDeliver:'finishedDeliver', finishedOut:'finishedOut', finishedSign:'finishedSign'
-  };
-  var GROUPS = [
-    {id:'g0', label:'工作台', icon:'fa-gauge', children:[
-      {id:'home', label:'首页', tab:''},
-      {id:'dashboard', label:'业务运营驾驶舱', tab:''},
-      {id:'fieldApp', label:'现场作业APP', tab:''},
-      {id:'ai', label:'AI问数', tab:''}]},
-    /* 与 app.html 主菜单保持一致：g1 仓储作业含仓库库存/库存记录/库区管理/库存调仓/库存盘点；物料管理 8 个工单+明细 */
-    {id:'g1', label:'仓储作业', icon:'fa-warehouse', children:[
-      {id:'inventoryOnhand', label:'仓库库存', tab:'onhand'},
-      {id:'inventoryLedger', label:'库存记录', tab:'ledger'},
-      {id:'location', label:'库区管理', tab:''},
-      {id:'transfer', label:'库存调仓', tab:''},
-      {id:'stocktake', label:'库存盘点', tab:''}]},
-    {id:'g2', label:'物料管理', icon:'fa-boxes-stacked', children:[
-      {id:'materialCode', label:'物料明细', tab:'detail'},
-      {id:'materialRequest', label:'申请领料', tab:'request'},
-      {id:'materialRegister', label:'物料登记', tab:'register'},
-      {id:'materialReject', label:'来料拒收', tab:'reject'},
-      {id:'materialInbound', label:'物料入库', tab:'inbound'},
-      {id:'materialIssue', label:'物料领用', tab:'issue'},
-      {id:'materialWReturn', label:'车间退料', tab:'wreturn'},
-      {id:'materialReturn', label:'物料退库', tab:'return'}]},
-    {id:'g4', label:'成品管理', icon:'fa-flag-checkered', children:[
-      {id:'finishedDetail', label:'成品明细', tab:'detail'},
-      {id:'finishedRegister', label:'成品登记', tab:'register'},
-      {id:'finishedInbound', label:'成品入库', tab:'inbound'},
-      {id:'finishedReturn', label:'成品退仓', tab:'wreturn'},
-      {id:'finishedDeliver', label:'成品交付', tab:'deliver'}]},
-    {id:'g5', label:'基础资料', icon:'fa-cubes', children:[
-      {id:'baseBom', label:'BOM管理', tab:''},
-      {id:'baseMat', label:'物料档案', tab:'2'},
-      {id:'baseOrg', label:'组织架构·车间', tab:'3'},
-      {id:'baseLoc', label:'库区·客户档案', tab:'4'},
-      {id:'baseProd', label:'成品档案', tab:'5'},
-      {id:'baseTpl', label:'单据模板·拍照/AI', tab:'6'}]},
-    {id:'g6', label:'单据中心', icon:'fa-file-lines', children:[
-      {id:'docs', label:'业务记录查询', tab:''},
-      {id:'qrcode', label:'二维码中心', tab:''},
-      {id:'ocr', label:'OCR工作台', tab:''},
-      {id:'scanlog', label:'设备扫码记录', tab:''},
-      {id:'processingFee', label:'加工费对账', tab:''}]},
-    {id:'g7', label:'异常与审计', icon:'fa-triangle-exclamation', children:[
-      {id:'audit', label:'操作审计', tab:''}]},
-    {id:'g8', label:'报表中心', icon:'fa-chart-line', children:[
-      {id:'report', label:'报表中心', tab:''},
-      {id:'reportConfig', label:'报表配置', tab:''}]},
-    {id:'g9', label:'系统管理', icon:'fa-gear', children:[
-      {id:'users', label:'用户管理', tab:''},
-      {id:'equipment', label:'设备管理', tab:''},
-      {id:'approveFlow', label:'审批流配置', tab:''}]}
-  ];
+  /* 菜单/路由唯一数据源：assets/menu-config.js（window.WMS_MENU），本文件只消费不定义 */
+  var FILE = (window.WMS_MENU||{}).FILE || {};
+  var SECTION = (window.WMS_MENU||{}).SECTION || {};
+  if(!window.WMS_MENU && typeof console!=='undefined' && console.warn){console.warn('[nav] 缺少 assets/menu-config.js（须在 nav.js 之前引入），菜单将为空');}
+  var GROUPS = (window.WMS_MENU||{}).GROUPS || [];
 
   /* 口径（用户确认）：申请领料=进仓前不动账；车间接收=物料领用签收；车间退料=回仓进项；物料退库=出库/冲红 */
   /* 兼容映射：旧 id workshop → 申请领料，workshopReceive → 物料领用，return → 车间退料（tab 一律 view key） */
-  var MATERIAL_ALIAS={workshop:['materialRequest','request'],workshopReceive:['materialIssue','issue'],return:['materialWReturn','wreturn'],receipt:['materialInbound','inbound'],issue:['materialIssue','issue'],inventory:['inventoryOnhand','onhand'],finished:['finishedRegister','register'],finishedOut:['finishedRegister','register'],finishedSign:['finishedDeliver','deliver']};
-  var reportGroup=GROUPS.find(function(group){return group.id==='g8';});
-  if(reportGroup&&!reportGroup.children.some(function(item){return item.id==='reportConfig';})) reportGroup.children.push({id:'reportConfig',label:'报表配置',tab:''});
-  var baseGroup=GROUPS.find(function(group){return group.id==='g5';});
-  if(baseGroup) baseGroup.children=[
-    {id:'baseBom',label:'BOM管理',tab:''},{id:'baseMat',label:'物料档案',tab:'2'},{id:'baseOrg',label:'组织架构·车间',tab:'3'},
-    {id:'warehouseArchive',label:'仓库档案',tab:''},{id:'locationArchive',label:'库区档案',tab:''},{id:'customerArchive',label:'客户档案',tab:''},
-    {id:'baseProd',label:'成品档案',tab:'5'},{id:'baseTpl',label:'单据模板',tab:'6'}
-  ];
+  var MATERIAL_ALIAS=((window.WMS_MENU||{}).MATERIAL_ALIAS||{});
 
   function currentFile(){ if(SPA_SHELL&&window.__WMS_PAGE_CONTEXT)return window.__WMS_PAGE_CONTEXT.file; return (location.pathname.split('/').pop()||'').split('?')[0].split('#')[0]; }
-  function currentTab(){ try{if(SPA_SHELL&&window.__WMS_PAGE_CONTEXT){var c=window.__WMS_PAGE_CONTEXT;if(/^base/.test(c.route||'')||c.file==='base.html')return ({"baseBom":"","baseMat":"2","baseOrg":"3","baseLoc":"4","baseProd":"5","baseTpl":"6"}[c.route]||c.tab||'');return c.tab||'';}var u=new URLSearchParams(location.search);return u.get('view')||u.get('tab')||''}catch(e){ return ''; } }
+  function currentTab(){ try{if(SPA_SHELL&&window.__WMS_PAGE_CONTEXT){var c=window.__WMS_PAGE_CONTEXT;if(/^base/.test(c.route||'')||c.file==='base.html')return (((window.WMS_MENU||{}).BASE_TAB||{})[c.route]||c.tab||'');return c.tab||'';}var u=new URLSearchParams(location.search);return u.get('view')||u.get('tab')||''}catch(e){ return ''; } }
   function isRecordFilter(id, tab){ return id==='docs' && !!tab && !/^(onhand|ledger|detail|request|register|reject|inbound|issue|wreturn|return|sign|deliver)$/.test(tab); }
   var inFrame=false; try{ inFrame = window.parent!==window; }catch(e){ inFrame=true; }
   var inApp = SPA_SHELL || /from=app/.test(location.search);
@@ -126,13 +52,13 @@
     var m=collapsedMap(); m[gid]=v?1:0;
     try{ localStorage.setItem('jm_wms_nav_collapsed', JSON.stringify(m)); }catch(e){}
   }
-  var MATERIAL_TAB={materialRequest:'request',materialRegister:'register',materialReject:'reject',materialInbound:'inbound',materialIssue:'issue',materialWReturn:'wreturn',materialReturn:'return',materialCode:'detail',inventoryOnhand:'onhand',inventoryLedger:'ledger',inventory:'onhand'};
+  var MATERIAL_TAB=((window.WMS_MENU||{}).MATERIAL_TAB||{});
 
   function navTo(id, tab){
     /* 口径：workshop → 申请领料，workshopReceive → 物料领用，return → 车间退料（tab 一律 view key） */
     if(MATERIAL_ALIAS[id]&&!tab){id=MATERIAL_ALIAS[id][0];tab=MATERIAL_ALIAS[id][1]}
     /* 基础资料 6 个子页共用 base.html：用独立 id 避免“同一文件+空tab”互相覆盖 */
-    var BASE_TAB={baseBom:'',baseMat:'2',baseOrg:'3',baseLoc:'4',baseProd:'5',baseTpl:'6'};
+    var BASE_TAB=((window.WMS_MENU||{}).BASE_TAB||{});
     if(id in BASE_TAB){tab=BASE_TAB[id];if(SPA_SHELL&&typeof window.__WMS_APP_GO==='function'){window.__WMS_APP_GO(id,tab);return;}if(!FILE[id])return;var u2=FILE[id]+(tab?('?tab='+tab):'');if(currentFile()!==FILE[id]||currentTab()!==tab)location.href=u2;return;}
     if(!FILE[id]) return; tab = tab||'';
     if(MATERIAL_TAB[id] && !tab) tab = MATERIAL_TAB[id];
@@ -406,7 +332,7 @@
     filters.forEach(function(pair){var btn=document.createElement('button');btn.type='button';btn.setAttribute('data-record-filter',pair[0]);btn.setAttribute('aria-pressed','false');btn.className='min-h-[36px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 hover:border-blue-300';btn.textContent=pair[1];btn.addEventListener('click',function(){applyFilter(pair[0]);showRecords();});toolbar.appendChild(btn);});
     var status=document.createElement('span'); status.id='record-filter-status'; status.className='text-slate-400'; status.setAttribute('role','status'); status.setAttribute('aria-live','polite'); toolbar.appendChild(status);
     var listHead=document.createElement('div'); listHead.className='docs-list-head'; listHead.setAttribute('aria-labelledby','docs-list-title');
-    listHead.innerHTML='<div><h2 id="docs-list-title" class="docs-list-title">业务记录列表</h2><p class="docs-list-meta">进入页面即可查看全量记录；支持筛选、查看详情和新建记录。</p></div><div class="docs-list-actions"><button type="button" aria-label="刷新记录列表" class="docs-secondary-action" data-record-refresh><i class="fa-solid fa-rotate mr-1" aria-hidden="true"></i>刷新列表</button><button type="button" aria-label="新建业务记录" class="docs-primary-action" data-record-new><i class="fa-solid fa-plus mr-1" aria-hidden="true"></i>新建记录</button></div>';
+    listHead.innerHTML='<div><h2 id="docs-list-title" class="docs-list-title wms-card-title">业务记录列表</h2><p class="docs-list-meta wms-card-meta">进入页面即可查看全量记录；支持筛选、查看详情和新建记录。</p></div><div class="docs-list-actions wms-card-actions"><button type="button" aria-label="刷新记录列表" class="docs-secondary-action" data-record-refresh><i class="fa-solid fa-rotate mr-1" aria-hidden="true"></i>刷新列表</button><button type="button" aria-label="新建业务记录" class="docs-primary-action" data-record-new><i class="fa-solid fa-plus mr-1" aria-hidden="true"></i>新建记录</button></div>';
     var state=document.createElement('section'); state.id='record-state'; state.className='wms-state'; state.hidden=true; state.setAttribute('aria-label','记录查询状态');
     var tableWrap=table.parentNode;
     var listCard=tableWrap.classList.contains('wms-table-scroll')?tableWrap.parentNode:tableWrap;
@@ -433,8 +359,8 @@
     var queryBtn=document.querySelector('button.bg-slate-900');
     if(!queryBtn){queryBtn=[].slice.call(document.querySelectorAll('button')).find(function(b){return b.textContent.indexOf('查询')>-1;});}
     if(queryBtn){queryBtn.addEventListener('click',function(e){e.preventDefault();runQuery();});}
-    var recordDialog=document.createElement('div'); recordDialog.className='record-dialog'; recordDialog.hidden=true; recordDialog.setAttribute('role','dialog'); recordDialog.setAttribute('aria-modal','true'); recordDialog.setAttribute('aria-labelledby','record-dialog-title');
-    recordDialog.innerHTML='<div class="record-dialog-panel"><div class="record-dialog-header"><div><h2 id="record-dialog-title" class="record-dialog-title">新建业务记录</h2><p class="record-dialog-subtitle">创建后会立即出现在当前记录列表，可继续查看详情。</p></div><button type="button" data-record-close aria-label="关闭新建记录" title="关闭" class="text-slate-500 px-2"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button></div><form id="record-create-form" novalidate><div class="record-form-grid"><label class="record-form-field">记录类型<select id="record-type" aria-label="记录类型"><option value="receipt">送料/入库</option><option value="issue">出库/直送</option><option value="transfer">调拨</option><option value="workshop">领料/退料</option><option value="finished">成品记录</option><option value="stocktake">盘点/异常</option></select></label><label class="record-form-field">状态<select id="record-status" aria-label="记录状态"><option value="处理中">处理中</option><option value="待处理">待处理</option><option value="已完成">已完成</option></select></label><label class="record-form-field">来源 <input id="record-source" aria-label="记录来源" required aria-describedby="record-form-error" placeholder="例如：恒达服饰或外仓 WH-A" /></label><label class="record-form-field">去向/目标 <input id="record-target" aria-label="记录去向或目标" required aria-describedby="record-form-error" placeholder="例如：内仓1或缝制一车间" /></label><label class="record-form-field full">物料/数量 <input id="record-material" aria-label="物料和数量" required aria-describedby="record-form-error" placeholder="例如：牛津布 800米" /></label><label class="record-form-field">数量 <input id="record-qty" aria-label="记录数量" type="number" min="0.001" step="0.001" value="1" required aria-describedby="record-form-error" /></label><label class="record-form-field">备注 <input id="record-note" aria-label="记录备注" placeholder="可选" /></label></div><p id="record-form-error" class="record-form-error" role="alert" aria-live="assertive"></p><div class="record-dialog-actions"><button type="button" data-record-close class="docs-secondary-action">取消</button><button type="submit" class="docs-primary-action">创建记录</button></div></form></div>';
+    var recordDialog=document.createElement('div'); recordDialog.className='record-dialog wms-dialog'; recordDialog.hidden=true; recordDialog.setAttribute('role','dialog'); recordDialog.setAttribute('aria-modal','true'); recordDialog.setAttribute('aria-labelledby','record-dialog-title');
+    recordDialog.innerHTML='<div class="record-dialog-panel wms-dialog-panel"><div class="record-dialog-header wms-dialog-head"><div><h2 id="record-dialog-title" class="record-dialog-title wms-dialog-title">新建业务记录</h2><p class="record-dialog-subtitle wms-dialog-sub">创建后会立即出现在当前记录列表，可继续查看详情。</p></div><button type="button" data-record-close aria-label="关闭新建记录" title="关闭" class="wms-dialog-close"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button></div><form id="record-create-form" novalidate><div class="record-form-grid"><label class="record-form-field">记录类型<select id="record-type" aria-label="记录类型"><option value="receipt">送料/入库</option><option value="issue">出库/直送</option><option value="transfer">调拨</option><option value="workshop">领料/退料</option><option value="finished">成品记录</option><option value="stocktake">盘点/异常</option></select></label><label class="record-form-field">状态<select id="record-status" aria-label="记录状态"><option value="处理中">处理中</option><option value="待处理">待处理</option><option value="已完成">已完成</option></select></label><label class="record-form-field">来源 <input id="record-source" aria-label="记录来源" required aria-describedby="record-form-error" placeholder="例如：恒达服饰或外仓 WH-A" /></label><label class="record-form-field">去向/目标 <input id="record-target" aria-label="记录去向或目标" required aria-describedby="record-form-error" placeholder="例如：内仓1或缝制一车间" /></label><label class="record-form-field full">物料/数量 <input id="record-material" aria-label="物料和数量" required aria-describedby="record-form-error" placeholder="例如：牛津布 800米" /></label><label class="record-form-field">数量 <input id="record-qty" aria-label="记录数量" type="number" min="0.001" step="0.001" value="1" required aria-describedby="record-form-error" /></label><label class="record-form-field">备注 <input id="record-note" aria-label="记录备注" placeholder="可选" /></label></div><p id="record-form-error" class="record-form-error" role="alert" aria-live="assertive"></p><div class="record-dialog-actions"><button type="button" data-record-close class="docs-secondary-action">取消</button><button type="submit" class="docs-primary-action">创建记录</button></div></form></div>';
     document.body.appendChild(recordDialog);
     var recordTrigger=listHead.querySelector('[data-record-new]'),recordForm=recordDialog.querySelector('#record-create-form'),recordError=recordDialog.querySelector('#record-form-error'),recordLastFocus=null;
     function closeRecordDialog(){recordDialog.hidden=true;document.body.style.overflow='';if(recordLastFocus)recordLastFocus.focus();}
@@ -542,8 +468,8 @@
       body.querySelectorAll('[data-bom-select]').forEach(function(btn){btn.addEventListener('click',function(){selectedId=btn.getAttribute('data-bom-select');renderList();renderDetail(boms.find(function(x){return x.id===selectedId;}));});});
     }
     renderList(); renderDetail(boms[0]);
-    var dialog=document.createElement('div'); dialog.className='bom-dialog'; dialog.hidden=true; dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true'); dialog.setAttribute('aria-labelledby','bom-dialog-title');
-    dialog.innerHTML='<div class="bom-dialog-panel"><div class="bom-dialog-header"><div><h2 id="bom-dialog-title" class="bom-dialog-title">新建 BOM</h2><p class="bom-dialog-subtitle">先建立产品版本，再补充物料用量。</p></div><button type="button" data-bom-close aria-label="关闭新建 BOM" title="关闭" class="text-slate-500 px-2"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button></div><form id="bom-create-form" novalidate><div class="bom-form-grid"><label class="bom-form-field full">成品/款号 <input id="bom-product" aria-label="成品或款号" required aria-describedby="bom-form-error" placeholder="例如：HD-JK-25款" /></label><label class="bom-form-field">版本 <input id="bom-version" aria-label="BOM 版本" required aria-describedby="bom-form-error" placeholder="例如：V1" /></label><label class="bom-form-field">状态 <select id="bom-status" aria-label="BOM 状态"><option value="draft">草稿</option><option value="active">启用</option></select></label><label class="bom-form-field full">首个物料 <select id="bom-material" aria-label="首个物料"><option>HD-OXF-001 牛津布 · 米</option><option>HD-ZP-011 拉链 · 条</option><option>HD-NK-005 纽扣 · 个</option></select></label><label class="bom-form-field">单耗 <input id="bom-qty" aria-label="单耗" type="number" min="0.001" step="0.001" value="1" required aria-describedby="bom-form-error" /></label><label class="bom-form-field">损耗率 <input id="bom-loss" aria-label="损耗率" type="number" min="0" max="100" step="0.1" value="0" aria-describedby="bom-form-error" /></label></div><p id="bom-form-error" class="bom-form-error" role="alert" aria-live="assertive"></p><div class="bom-dialog-actions"><button type="button" data-bom-close class="border border-slate-200 rounded-lg px-4 py-2 text-xs">取消</button><button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 text-xs font-bold">创建 BOM</button></div></form></div>';
+    var dialog=document.createElement('div'); dialog.className='bom-dialog wms-dialog'; dialog.hidden=true; dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true'); dialog.setAttribute('aria-labelledby','bom-dialog-title');
+    dialog.innerHTML='<div class="bom-dialog-panel wms-dialog-panel"><div class="bom-dialog-header wms-dialog-head"><div><h2 id="bom-dialog-title" class="bom-dialog-title wms-dialog-title">新建 BOM</h2><p class="bom-dialog-subtitle wms-dialog-sub">先建立产品版本，再补充物料用量。</p></div><button type="button" data-bom-close aria-label="关闭新建 BOM" title="关闭" class="wms-dialog-close"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button></div><form id="bom-create-form" novalidate><div class="bom-form-grid"><label class="bom-form-field full">成品/款号 <input id="bom-product" aria-label="成品或款号" required aria-describedby="bom-form-error" placeholder="例如：HD-JK-25款" /></label><label class="bom-form-field">版本 <input id="bom-version" aria-label="BOM 版本" required aria-describedby="bom-form-error" placeholder="例如：V1" /></label><label class="bom-form-field">状态 <select id="bom-status" aria-label="BOM 状态"><option value="draft">草稿</option><option value="active">启用</option></select></label><label class="bom-form-field full">首个物料 <select id="bom-material" aria-label="首个物料"><option>HD-OXF-001 牛津布 · 米</option><option>HD-ZP-011 拉链 · 条</option><option>HD-NK-005 纽扣 · 个</option></select></label><label class="bom-form-field">单耗 <input id="bom-qty" aria-label="单耗" type="number" min="0.001" step="0.001" value="1" required aria-describedby="bom-form-error" /></label><label class="bom-form-field">损耗率 <input id="bom-loss" aria-label="损耗率" type="number" min="0" max="100" step="0.1" value="0" aria-describedby="bom-form-error" /></label></div><p id="bom-form-error" class="bom-form-error" role="alert" aria-live="assertive"></p><div class="bom-dialog-actions wms-dialog-actions"><button type="button" data-bom-close class="border border-slate-200 rounded-lg px-4 py-2 text-xs">取消</button><button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 text-xs font-bold">创建 BOM</button></div></form></div>';
     document.body.appendChild(dialog);
     var trigger=document.querySelector('[data-bom-new]'),form=dialog.querySelector('#bom-create-form'),product=dialog.querySelector('#bom-product'),version=dialog.querySelector('#bom-version'),error=dialog.querySelector('#bom-form-error'),lastFocus=null;
     function closeDialog(){dialog.hidden=true;document.body.style.overflow='';if(lastFocus)lastFocus.focus();}
@@ -741,6 +667,8 @@
 
   function enhancePage(){
     normalizePageTop();
+    /* Toast 收敛：各页自建 #t/#toast 药丸统一挂载共享 .wms-toast（视觉与行为以 theme.css 为准） */
+    try{document.querySelectorAll('#t,#toast').forEach(function(el){el.classList.add('wms-toast');});}catch(e){}
     document.querySelectorAll('main h1,main h2,.p-6 h1,.p-6 h2').forEach(function(heading){
       var explanation=heading.nextElementSibling;
       if(explanation&&explanation.tagName==='P'&&!explanation.closest('[role="dialog"],dialog')) explanation.remove();

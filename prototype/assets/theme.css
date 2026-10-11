@@ -1,4 +1,5 @@
 :root{
+  /* ---- WMS 设计令牌（唯一来源）：主色 1 个、圆角 6/8/12 三档、表头 1 套 ---- */
   --wms-bg:#eaf7ff;
   --wms-surface:#ffffff;
   --wms-border:#cde8f7;
@@ -7,16 +8,45 @@
   --wms-muted:#648eaa;
   --wms-primary:#1689e8;
   --wms-primary-hover:#0875d2;
+  --wms-primary-deep:#0b4770;
   --wms-sidebar:#10345a;
   --wms-radius:8px;
+  --wms-radius-sm:6px;
+  --wms-radius-lg:12px;
+  --wms-table-head-bg:#eaf7ff;
+  --wms-table-head-text:#4e7da1;
+  --wms-btn-h:36px;
+  --wms-field-h:40px;
+  --wms-z-dialog:90;
+  --wms-z-toast:100;
   --wms-shadow:0 1px 2px rgba(15,23,42,.05),0 8px 24px rgba(15,23,42,.04);
+  --wms-dialog-shadow:0 24px 70px rgba(15,23,42,.25);
 }
+/* ---- 共享组件：卡片标题（14px/700 + 可选副标题 + 右侧操作区）---- */
+.wms-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wms-card-title{font-size:14px;font-weight:700;color:var(--wms-text)}
+.wms-card-meta{margin-top:3px;font-size:11px;color:var(--wms-muted)}
+.wms-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+/* ---- 共享组件：弹窗（全系统唯一弹窗形态，z-index 统一 90）---- */
+.wms-dialog{position:fixed;inset:0;z-index:var(--wms-z-dialog);display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.46)}
+.wms-dialog[hidden]{display:none}
+.wms-dialog-panel{width:min(620px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border-radius:var(--wms-radius-lg);box-shadow:var(--wms-dialog-shadow);padding:20px}
+.wms-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.wms-dialog-title{font-size:16px;font-weight:700;color:var(--wms-text)}
+.wms-dialog-sub{margin-top:3px;font-size:11px;color:var(--wms-muted)}
+.wms-dialog-body{margin-top:16px}
+.wms-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.wms-dialog-close{border:1px solid var(--wms-border);border-radius:var(--wms-radius);background:#fff;color:var(--wms-muted);padding:6px 10px;font-size:12px}
+@media(max-width:560px){.wms-dialog{padding:10px}.wms-dialog-panel{max-height:calc(100dvh - 20px);padding:16px}.wms-dialog-actions{display:grid;grid-template-columns:1fr 1fr}.wms-dialog-actions button{width:100%}}
+/* ---- 共享组件：Toast（全系统唯一提示形态，深色药丸，禁止再自建）---- */
+.wms-toast{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:var(--wms-z-toast);max-width:calc(100vw - 32px);background:var(--wms-toast-bg);color:#fff;font-size:12px;padding:10px 18px;border-radius:99px;box-shadow:0 8px 30px rgba(0,0,0,.3);text-align:center}
+.wms-toast[hidden],.wms-toast.hide{display:none}
 html{color-scheme:light;scroll-behavior:smooth}
-body{background:linear-gradient(180deg,#e1f4ff 0,#f5fbff 250px,#edf7fc 100%)!important;color:var(--wms-text);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.5}
+body{background:linear-gradient(180deg,#e1f4ff 0,#f5fbff 250px,#edf7fc 100%);color:var(--wms-text);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.5}
 .qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px;font-variant-numeric:tabular-nums}.qty-unit{color:#5f7488;font-weight:600}
 h1,h2,h3{color:var(--wms-text);text-wrap:balance}
 p{text-wrap:pretty}
-.card{background:rgba(250,253,255,.94)!important;border:1px solid var(--wms-border)!important;border-radius:var(--wms-radius)!important;box-shadow:0 8px 24px rgba(30,117,171,.08)}
+.card{background:rgba(250,253,255,.94);border:1px solid var(--wms-border);border-radius:var(--wms-radius);box-shadow:0 8px 24px rgba(30,117,171,.08)}
 .p-6{padding:20px!important}
 .p-6.space-y-4>*+*{margin-top:16px!important}
 header{min-height:48px;border-color:var(--wms-border)!important}
@@ -24,13 +54,14 @@ button,a,input,select,textarea{font:inherit}
 button,a{transition:background-color 160ms ease-out,border-color 160ms ease-out,color 160ms ease-out,box-shadow 160ms ease-out,transform 100ms ease-out}
 button:active{transform:translateY(1px)}
 button[disabled],button[aria-disabled="true"]{cursor:not-allowed;opacity:.55;transform:none}
-button.rounded-full:not(.step),a.rounded-full{border-radius:var(--wms-radius)!important}
+/* 药丸按钮（rounded-full）保留原始形态，不再强制改为方角 */
 input,select,textarea,.field{border-color:var(--wms-border-strong)!important;border-radius:var(--wms-radius)!important;background:#fff;color:var(--wms-text)}
 input:hover,select:hover,textarea:hover,.field:hover{border-color:#94a3b8!important}
 input:focus,select:focus,textarea:focus,.field:focus{border-color:var(--wms-primary)!important;box-shadow:0 0 0 3px rgba(37,99,235,.12);outline:0}
 input::placeholder,textarea::placeholder{color:#94a3b8}
 table{font-variant-numeric:tabular-nums;border-collapse:separate;border-spacing:0}
-thead th{font-weight:600;color:#4e7da1!important;background:#eaf7ff}
+body:has(#scanBody) table[data-fields-split="true"] th:nth-child(6),body:has(#scanBody) table[data-fields-split="true"] td:nth-child(6),body:has(#scanBody) table:not([data-fields-split="true"]) th:nth-child(5),body:has(#scanBody) table:not([data-fields-split="true"]) td:nth-child(5){text-align:center!important}
+thead th{font-weight:600;color:var(--wms-table-head-text);background:var(--wms-table-head-bg)}
 thead th:first-child{padding-left:10px}
 tbody td:first-child{padding-left:10px}
 tbody tr{transition:background-color 140ms ease-out}
@@ -39,13 +70,14 @@ tbody tr:hover{background:#e8f6ff!important}
 .font-mono,[class*="font-extrabold"],table b{font-variant-numeric:tabular-nums}
 .wms-table-scroll{border-radius:6px}
 .wms-table-scroll:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
-.wms-state{border-radius:var(--wms-radius)!important;background:#f8fafc!important;box-shadow:none!important}
-.wms-state-action{border-radius:var(--wms-radius)!important;background:var(--wms-primary)!important}
+.wms-state{border-radius:var(--wms-radius);background:#f8fafc;box-shadow:none}
+.wms-state-action{border-radius:var(--wms-radius);background:var(--wms-primary)}
 .wms-state-action:hover{background:var(--wms-primary-hover)!important}
 .bom-list{grid-column:1/-1;background:#fff;border:1px solid var(--wms-border);border-radius:var(--wms-radius);box-shadow:var(--wms-shadow);padding:16px}
 .bom-list-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.bom-list-title{font-size:14px;font-weight:700;color:var(--wms-text)}
-.bom-list-meta{margin-top:3px;font-size:11px;color:var(--wms-muted)}
+/* 卡片标题统一规格：14px/700 + 副标题 11px/muted + 右侧操作区（bom/docs 旧类名保留为别名） */
+.wms-card-title,.bom-list-title,.docs-list-title{font-size:14px;font-weight:700;color:var(--wms-text)}
+.wms-card-meta,.bom-list-meta,.docs-list-meta{margin-top:3px;font-size:11px;color:var(--wms-muted)}
 .bom-list-table{margin-top:10px;width:100%;font-size:12px}
 .bom-list-table th,.bom-list-table td{padding:9px 8px;text-align:left;border-bottom:1px solid #e8edf2;vertical-align:middle}
 .bom-list-table th{font-size:11px;color:#64748b;font-weight:600;background:#f8fafc}
@@ -56,12 +88,9 @@ tbody tr:hover{background:#e8f6ff!important}
 .bom-list-select:hover{background:#eff6ff}
 .bom-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:5px;font-size:11px;white-space:nowrap}
 .bom-status.active{background:#dcfce7;color:#166534}.bom-status.draft{background:#fef3c7;color:#92400e}.bom-status.stopped{background:#f1f5f9;color:#64748b}
-.bom-dialog{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.46)}
-.bom-dialog[hidden]{display:none}
-.bom-dialog-panel{width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border-radius:10px;box-shadow:0 24px 70px rgba(15,23,42,.25);padding:20px}
-.bom-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.bom-dialog-title{font-size:16px;font-weight:700;color:var(--wms-text)}
-.bom-dialog-subtitle{margin-top:3px;font-size:11px;color:var(--wms-muted)}
+/* bom/record/config/fee/dash/workbench 六套弹窗已收敛为共享 .wms-dialog；以下仅保留各页特有的面板宽度 */
+.bom-dialog-panel{width:min(560px,100%)}
+.record-dialog-panel{width:min(620px,100%)}
 .bom-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 .bom-form-field{display:grid;gap:5px;font-size:11px;color:#475569;font-weight:600}
 .bom-form-field.full{grid-column:1/-1}
@@ -69,8 +98,6 @@ tbody tr:hover{background:#e8f6ff!important}
 .bom-form-error{min-height:18px;margin-top:10px;color:#b91c1c;font-size:12px}
 .bom-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .docs-list-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--wms-border)}
-.docs-list-title{font-size:14px;font-weight:700;color:var(--wms-text)}
-.docs-list-meta{margin-top:3px;font-size:11px;color:var(--wms-muted)}
 .docs-list-actions{display:flex;gap:8px;flex-wrap:wrap}
 .docs-list-actions button{min-height:36px;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700}
 .docs-primary-action{background:#2563eb;color:#fff}.docs-primary-action:hover{background:#1d4ed8}
@@ -79,12 +106,7 @@ tbody tr:hover{background:#e8f6ff!important}
 .docs-record-table{width:max(100%,720px)!important;min-width:720px}
 .docs-record-action{min-height:32px!important;padding:5px 9px;border:1px solid #bfdbfe;border-radius:6px;background:#fff;color:#1d4ed8;font-size:11px;font-weight:700}
 .docs-record-action:hover{background:#eff6ff}
-.record-dialog{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.46)}
-.record-dialog[hidden]{display:none}
-.record-dialog-panel{width:min(620px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border-radius:10px;box-shadow:0 24px 70px rgba(15,23,42,.25);padding:20px}
-.record-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.record-dialog-title{font-size:16px;font-weight:700;color:var(--wms-text)}
-.record-dialog-subtitle{margin-top:3px;font-size:11px;color:var(--wms-muted)}
+/* .record-dialog 形态已收敛为共享 .wms-dialog（见文件顶部），此处只保留表单特有样式 */
 .record-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 .record-form-field{display:grid;gap:5px;font-size:11px;color:#475569;font-weight:600}
 .record-form-field.full{grid-column:1/-1}
@@ -97,10 +119,6 @@ tbody tr:hover{background:#e8f6ff!important}
   .docs-list-actions button{width:100%}
   .record-form-grid{grid-template-columns:1fr}
   .record-form-field.full{grid-column:auto}
-  .record-dialog{padding:10px}
-  .record-dialog-panel{max-height:calc(100dvh - 20px);padding:16px}
-  .record-dialog-actions{display:grid;grid-template-columns:1fr 1fr}
-  .record-dialog-actions button{width:100%}
 }
 @media(max-width:560px){
   .bom-list{padding:12px}
@@ -108,10 +126,6 @@ tbody tr:hover{background:#e8f6ff!important}
   .bom-list-scroll{overflow-x:auto;margin-inline:-4px;padding-inline:4px}
   .bom-form-grid{grid-template-columns:1fr}
   .bom-form-field.full{grid-column:auto}
-  .bom-dialog{padding:10px}
-  .bom-dialog-panel{max-height:calc(100dvh - 20px);padding:16px}
-  .bom-dialog-actions{display:grid;grid-template-columns:1fr 1fr}
-  .bom-dialog-actions button{width:100%}
 }
 .wms-state-skeleton{width:min(100%,520px);display:grid;gap:9px;margin-bottom:8px}
 .wms-state-skeleton span{display:block;height:12px;border-radius:4px;background:#e2e8f0}
@@ -120,7 +134,8 @@ tbody tr:hover{background:#e8f6ff!important}
 .wms-skip-link:focus{transform:translateY(0)}
 #drawer,#d{border-color:var(--wms-border)!important;box-shadow:-14px 0 36px rgba(15,23,42,.14)!important}
 #modal>div,#m>div{border-radius:10px!important;box-shadow:0 24px 70px rgba(15,23,42,.22)}
-#toast,#t,#wms-toast{border-radius:var(--wms-radius)!important}
+/* 各页自建 Toast（#toast/#t 药丸形态）保留页面自身圆角，不再强制覆盖；新代码统一用 .wms-toast */
+#wms-toast{border-radius:99px}
 .wms-app-shell{background:#edf1f5!important}
 .wms-app-shell .app-layout{height:100dvh}
 .wms-app-shell aside{background:linear-gradient(180deg,#eaf7ff 0%,#f7fcff 55%,#ffffff 100%)!important;border-right:1px solid #cde8f7!important}
@@ -132,8 +147,7 @@ tbody tr:hover{background:#e8f6ff!important}
 .wms-app-shell .shell-header{box-shadow:0 1px 0 rgba(15,23,42,.04)}
 .wms-app-shell .global-search{border:1px solid var(--wms-border);border-radius:8px!important;background:#f8fafc!important}
 .wms-app-shell .global-search:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.10)}
-.wms-app-shell .shell-header button.bg-violet-600{background:#fff!important;color:#334155!important;border:1px solid var(--wms-border)!important;border-radius:7px!important}
-.wms-app-shell .shell-header button.bg-violet-600:hover{background:#f8fafc!important}
+/* 顶栏 AI 问数按钮保留紫色强调设计，不做降级覆盖 */
 .wms-app-shell .shell-footer{background:#d8effc!important;color:#3c6a8a!important;border-top:1px solid #cde8f7}
 .wms-app-shell .shell-footer b{color:#16456f!important}
 .wms-app-shell .shell-footer a{color:#0875d2!important}

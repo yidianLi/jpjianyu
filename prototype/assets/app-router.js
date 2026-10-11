@@ -195,6 +195,8 @@
     if(!header)header=flex&&flex.querySelector(':scope > header');
     var keepPageHeader=/(?:^|\/)ai\.html(?:\?|$)/i.test(file||'');
     if(header&&!keepPageHeader)header.remove();
+    /* 壳内统一由顶栏面包屑呈现位置：剥离页内自带 .crumb，避免双面包屑与 #crumb 重复 ID */
+    body.querySelectorAll('.crumb').forEach(function(crumbEl){crumbEl.remove();});
     if(flex){
       flex.classList.add('wms-page-layout');
       flex.style.width='100%';
