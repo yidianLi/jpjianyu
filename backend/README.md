@@ -4,7 +4,8 @@
 
 - Python 3.11 / MySQL 5.6（`wms.sql V2.3` 为真源，不换库）
 - 每文件 ≤300 行（阿里规约），命名见名知意；当前最长 `routers/web.py` 178 行，全员达标
-- `python -m compileall -q app smoke.py` 全量编译通过，`python smoke.py` 8/8 通过
+- `python -m compileall -q app smoke.py` 全量编译通过，`python smoke.py` 9/9 通过
+- 依赖以 `requirements.txt` 实测版本为准（2026-10-11 本机验证）
 
 ## 启动
 
@@ -16,6 +17,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
 Docker 一键起：`docker compose up -d`（`mysql:5.6` + `wms-api`，`sql/wms.sql` 自动初始化，需先启动 Docker Desktop 守护进程）。
+
+注意：新版 FastAPI（≥0.141）把 `include_router` 改为懒挂载，`app.routes` 里显示为
+`_IncludedRouter` 占位、服务启动时才展开——属正常行为，不是路由丢失。
+`smoke.py` 的 `routes-59` 项直接数九模块 `router.routes` 求和，不受此影响。
 
 ## 路由总表（九路由，对齐 api-V3 打印版 11 组）
 
@@ -46,3 +51,4 @@ Docker 一键起：`docker compose up -d`（`mysql:5.6` + `wms-api`，`sql/wms.s
 - step13（2026-10-11）：全文件行数核查——23 个 py 文件最长 138 行（`routers/web.py`），300 行红线全员通过；`compileall` 全过；冒烟 8/8（护栏/幂等/分页/返回体/驾驶舱公式）。
 - step16（2026-10-11）：路由表补至八路由（+transfer/produce 10 口）；推送链路曾间歇中断（ICMP 通、`443` 时断时续），积压 3 提交一次补推成功。
 - step20（2026-10-11）：路由表补至九路由（+docparts 4 口+batches/items/doc_templates/bill_methods 4 口）；`web.py` 178 行仍达标；原型 `dashboard/docs/ocr/scan` 4 页已接真接口（无后端自动回 Mock）。
+- step22（2026-10-11）：`requirements.txt` 刷新为本机实测版本（fastapi 0.141.1/sqlalchemy 2.0.52/pydantic 2.13.5 等 7 包）；确认新版懒挂载无异常并记入本文档；冒烟 9/9。
