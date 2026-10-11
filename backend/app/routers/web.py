@@ -1,13 +1,13 @@
 """PC端 web 路由:单据/库存/主档/驾驶舱.单文件<=300行,按域拆函数."""
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, idem, queries
+from app.core import resp, auth, idem, queries, posting
 from app.core.db import get_db
 
 router = APIRouter()
 
-DOC_TYPES = {"DJ", "JS", "RK", "LY", "TK", "TC", "DB", "TZ", "PD",
-             "CP", "JJ", "WO", "SQ"}
+DOC_TYPES = set(posting.TYPE_SID.keys())
 
 
 @router.get("/stock/onhand")
@@ -65,41 +65,69 @@ def doc_detail(doc_no: str, authed: dict = Depends(auth.need_auth),
 
 
 @router.post("/docs")
-def create_doc(body: dict,
-               authed: dict = Depends(auth.need_auth),
+def create_doc(body: dict, authed: dict = Depends(auth.need_auth),
+               db: Session = Depends(get_db),
                key: str = Depends(idem.idem_key)):
-    if body.get("type") not in DOC_TYPES:
+    dtype = str(body.get("type") or "")
+    if dtype not in DOC_TYPES:
         return resp.fail(400, "单据类型非白名单")
     lines = body.get("lines") or []
+    if not lines:
+        return resp.fail(400, "单据行不能为空")
     for line in lines:
-        unit = str(line.get("unit") or "")
-        if not unit:
+        if not str(line.get("unit") or ""):
             return resp.fail(400, "INVALID_QTY:数量必带单位")
-    made = {"doc_no": "RK100001", "biz_status": "DRAFT"}
-    out = idem.replay_or_put(key, lambda: made)
+        if not line.get("material_code") and not line.get("product_code"):
+            return resp.fail(400, "物料行/成品行二选一必填")
+    with db.begin():
+        doc_no = posting.create(db, dtype, str(body.get("handler") or ""),
+                                lines)
+    out = idem.replay_or_put(key, lambda: {"doc_no": doc_no,
+                                           "biz_status": "DRAFT"})
     return resp.ok(out["data"])
 
 
 @router.post("/docs/{doc_no}/submit")
-def submit(doc_no: str, authed: dict = Depends(auth.need_auth)):
-    return resp.ok({"doc_no": doc_no, "biz_status": "APPROVING"})
+def submit(doc_no: str, authed: dict = Depends(auth.need_auth),
+           db: Session = Depends(get_db)):
+    with db.begin():
+        state = posting.submit(db, doc_no)
+    if not state:
+        return resp.fail(403, "FLOW_STATE_DENIED:仅草稿可提交")
+    return resp.ok({"doc_no": doc_no, "biz_status": state})
 
 
 @router.post("/docs/{doc_no}/post")
 def post(doc_no: str, authed: dict = Depends(auth.need_auth),
+         db: Session = Depends(get_db),
          key: str = Depends(idem.idem_key)):
-    made = {"doc_no": doc_no, "biz_status": "POSTED"}
-    out = idem.replay_or_put(key, lambda: made)
+    head, _ = queries.fetch_doc_detail(db, doc_no)
+    if not head:
+        return resp.fail(404, "DOC_NOT_FOUND:单据不存在")
+    try:
+        with db.begin():
+            state = posting.post(db, doc_no, str(head.get("type") or ""),
+                                 "web-user", "")
+    except ValueError as err:
+        return resp.fail(403, str(err))
+    out = idem.replay_or_put(key, lambda: {"doc_no": doc_no,
+                                           "biz_status": state})
     return resp.ok(out["data"])
 
 
 @router.post("/docs/{doc_no}/approve")
 def approve(doc_no: str, body: dict,
-            authed: dict = Depends(auth.need_auth)):
+            authed: dict = Depends(auth.need_auth),
+            db: Session = Depends(get_db)):
     if body.get("action") not in ("通过", "退回"):
         return resp.fail(400, "审批动作非法")
     if body.get("action") == "退回" and not body.get("opinion"):
         return resp.fail(400, "退回必须填意见")
+    with db.begin():
+        db.execute(text("UPDATE flow_instance SET cur_step='S2',"
+                        "flow_status=:s,approver='web-user' WHERE doc_no=:d"),
+                   {"s": "通过" if body.get("action") == "通过" else "退回",
+                    "d": doc_no})
     return resp.ok({"doc_no": doc_no, "action": body["action"]})
 
 
