@@ -30,7 +30,7 @@
       {id:'dashboard', label:'业务运营驾驶舱', tab:''},
       {id:'fieldApp', label:'现场作业APP', tab:''},
       {id:'ai', label:'AI问数', tab:''}]},
-    /* C方案:一级按对象(物料/仓储/成品),二级按流程排,到货验收置顶 */
+    /* g1 仓储作业含仓库库存/库存记录/库区管理/库存调仓/库存盘点；物料管理 8 个工单+明细（登记/入库/拒收三口并为到货验收） */
     {id:'g1', label:'仓储作业', icon:'fa-warehouse', children:[
       {id:'inventoryOnhand', label:'仓库库存', tab:'onhand'},
       {id:'inventoryLedger', label:'库存记录', tab:'ledger'},
@@ -38,12 +38,12 @@
       {id:'transfer', label:'库存调仓', tab:''},
       {id:'stocktake', label:'库存盘点', tab:''}]},
     {id:'g2', label:'物料管理', icon:'fa-boxes-stacked', children:[
-      {id:'materialReceive', label:'到货验收', tab:'receive'},
+      {id:'materialCode', label:'物料明细', tab:'detail'},
       {id:'materialRequest', label:'申请领料', tab:'request'},
+      {id:'materialReceive', label:'到货验收', tab:'receive'},
       {id:'materialIssue', label:'物料领用', tab:'issue'},
       {id:'materialWReturn', label:'车间退料', tab:'wreturn'},
-      {id:'materialReturn', label:'物料退库', tab:'return'},
-      {id:'materialCode', label:'物料明细', tab:'detail'}]},
+      {id:'materialReturn', label:'物料退库', tab:'return'}]},
     {id:'g4', label:'成品管理', icon:'fa-flag-checkered', children:[
       {id:'finishedDetail', label:'成品明细', tab:'detail'},
       {id:'finishedRegister', label:'成品登记', tab:'register'},
