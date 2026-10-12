@@ -3,27 +3,67 @@
 <div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">数据查询</b><span class="ml-auto text-[11px] text-slate-400">只读 · 张建国范围</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
 <div class="bg-red-50 border border-red-200 rounded-xl p-2.5 flex gap-2 items-center text-[11px] text-red-800"><i class="fa-solid fa-lock text-amber-700"></i>本页只查不改。要办事请去工作台 / 扫码。</div>
-<div class="flex gap-1.5 overflow-x-auto"><button class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-[#10233f] text-white whitespace-nowrap">库存</button><button class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">单据</button><button class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">流水</button><button class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">档案</button></div>
+<div class="flex gap-1.5 overflow-x-auto" id="dTabs"><button data-tab="stock" class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-[#10233f] text-white whitespace-nowrap">库存</button><button data-tab="docs" class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">单据</button><button data-tab="ledger" class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">流水</button><button data-tab="masters" class="px-4 py-1.5 rounded-full text-[12px] font-bold bg-white border-[1.5px] border-slate-200 text-slate-500 whitespace-nowrap">档案</button></div>
 <input id="dKw" placeholder="搜索 物料/成品/批次/仓库/库区/条码" class="w-full h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 bg-white">
-<p class="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 rounded-[10px] px-3 py-2">共 <b class="text-blue-600">6</b> 条 · 无可用 <b class="text-blue-600">0</b> · 待检 <b class="text-blue-600">1</b></p>
+<div id="tabMeta" class="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 rounded-[10px] px-3 py-2">加载中…</div>
 <div id="traceCard" class="hidden bg-blue-50 border border-blue-200 rounded-[13px] p-2.5 text-[11px] leading-relaxed"></div>
-<p class="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 rounded-[10px] px-3 py-2">共 <b class="text-blue-600">6</b> 条 · 无可用 <b class="text-blue-600">0</b> · 待检 <b class="text-blue-600">1</b></p>
-<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5 flex gap-2 items-center"><img src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=60&auto=format&fit=crop" class="w-12 h-12 rounded-xl object-cover"><div class="flex-1 min-w-0"><b class="text-[13px]">牛津布 藏青</b><p class="text-[10px] text-slate-500">成品仓A · 第1栏第1格 · BT2026091501</p><p class="text-[11px]">账面 4200米 · 可用 <b>3980米</b></p></div><span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">待检</span></div>
-<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5 flex gap-2 items-center"><img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=200&q=60&auto=format&fit=crop" class="w-12 h-12 rounded-xl object-cover"><div class="flex-1 min-w-0"><b class="text-[13px]">HD-JK-24秋 工装夹克</b><p class="text-[10px] text-slate-500">成品库 · F01 · CP2026091201</p><p class="text-[11px]">账面 600件 · 可用 <b>600件</b></p></div><span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">正常</span></div>
-<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5 flex gap-2 items-center"><img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&q=60&auto=format&fit=crop" class="w-12 h-12 rounded-xl object-cover"><div class="flex-1 min-w-0"><b class="text-[13px]">拉链 黑色</b><p class="text-[10px] text-slate-500">成品仓B · A区-01 · BT2026091503</p><p class="text-[11px]">账面 9000件 · 可用 <b>9000件</b></p></div><span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">正常</span></div>
-</div>
+<div id="tabBody" class="space-y-2"></div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="register.html?biz=DJ"><i class="fa-solid fa-barcode text-[19px] block mb-0.5"></i>登记</a><a href="data.html" class="text-blue-600"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
 <script src="../pda-scan.js"></script>
 <script src="../app-data.js"></script>
+<script src="../api-client.js"></script>
+<script>
+(function(){
+  var cur='stock',cache={};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  var PATHS={stock:'/web/stock/onhand?page_size=100',docs:'/web/docs?page_size=100&with_lines=0',ledger:'/web/stock/ledger?page_size=100',masters:'/web/masters/materials?page_size=100'};
+  function paint(){
+    var kw=(document.getElementById('dKw').value||'').trim();
+    var rows=(cache[cur]&&cache[cur].rows)||[];
+    if(kw)rows=rows.filter(function(r){return JSON.stringify(r).indexOf(kw)>-1;});
+    var meta=document.getElementById('tabMeta'),body=document.getElementById('tabBody');
+    if(cache[cur]&&cache[cur].offline){meta.innerHTML='后端不可达 · 离线无缓存';body.innerHTML='';return;}
+    meta.innerHTML='共 <b class="text-blue-600">'+rows.length+'</b> 条 · 接口实时';
+    body.innerHTML=rows.map(function(r){
+      if(cur==='stock')return '<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5"><b class="text-[13px] font-mono">'+esc(r.material_code||r.product_code||'')+'</b><p class="text-[10px] text-slate-500">'+esc((r.wh||'')+' · '+(r.loc||'')+' · '+(r.batch_no||''))+'</p><p class="text-[11px]">账面 '+esc(r.on_hand)+ ' · 可用 <b>'+esc(r.avail)+'</b></p></div>';
+      if(cur==='docs')return '<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5"><b class="text-[13px] font-mono">'+esc(r.doc_no||'')+'</b> <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">'+esc(r.type||'')+'</span><p class="text-[10px] text-slate-500">'+esc((r.handler||'')+' · '+String(r.at||'').slice(0,16))+'</p><p class="text-[11px]">'+esc(r.biz_status||'')+'</p></div>';
+      if(cur==='ledger')return '<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5"><b class="text-[13px] font-mono">'+esc(r.doc_no||'')+'</b><p class="text-[10px] text-slate-500">'+esc((r.material_code||r.product_code||'')+' · '+(r.batch_no||''))+'</p><p class="text-[11px]">'+esc(r.dir==='1'||r.dir===1?'入 ':'出 ')+esc(r.qty)+esc(r.unit||'')+'</p></div>';
+      return '<div class="bg-white border-[1.5px] border-slate-200 rounded-[13px] p-2.5"><b class="text-[13px]">'+esc(r.name||'')+'</b><p class="text-[10px] text-slate-500 font-mono">'+esc(r.material_code||'')+' · '+esc(r.base_unit||'')+'</p></div>';
+    }).join('')||'<p class="text-[11px] text-slate-400 text-center py-6">暂无数据</p>';
+  }
+  function load(t){
+    cur=t;
+    document.querySelectorAll('#dTabs button').forEach(function(b){
+      var on=b.dataset.tab===t;
+      b.className='px-4 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap '+(on?'bg-[#10233f] text-white':'bg-white border-[1.5px] border-slate-200 text-slate-500');
+    });
+    if(cache[t]){paint();return;}
+    document.getElementById('tabMeta').textContent='加载中…';
+    if(!window.AppApi){cache[t]={rows:[],offline:true};paint();return;}
+    var base=AppApi.cfg.baseUrl;
+    var gate=(window.WmsAi&&window.WmsAi.ready)||Promise.resolve();
+    gate.then(function(){
+      return fetch(base+PATHS[t],{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_app_token')||localStorage.getItem('wms_token')||'')}});
+    }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(j){
+      cache[t]={rows:((j&&j.data)||[]),offline:false};paint();
+    }).catch(function(){cache[t]={rows:[],offline:true};paint();});
+  }
+  document.querySelectorAll('#dTabs button').forEach(function(b){b.onclick=function(){load(b.dataset.tab);};});
+  document.getElementById('dKw').addEventListener('input',paint);
+  load('stock');
+})();
+</script>
 <script>
 (function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function trace(code){
     code=String(code||'').trim();
     if(!code)return;
-    var db=FieldDB.get(),hit=(db.barcodes||{})[code];
     var card=document.getElementById('traceCard');
     var kw=document.getElementById('dKw');
+    function show(html){card.classList.remove('hidden');card.innerHTML=html;if(kw)kw.value=code;card.scrollIntoView({block:'nearest'});}
+    function local(){
+    var db=FieldDB.get(),hit=(db.barcodes||{})[code];
     if(hit){ // 条码→批次→去向
       card.classList.remove('hidden');
       card.innerHTML='<b>'+esc(code)+' · '+esc(hit.name)+' '+esc(hit.qty+hit.unit)+'</b><br>批次 '+esc(hit.batch_no)+' · 库位 '+esc(hit.loc)+'<br>轨迹：DJ→RK入库→LY领用（最后变动 LY2026091608 · 李小明）<br><span class="text-slate-500">断链检查 Σledger=on_hand ✓ · 同批其余在库见库存行</span>';
@@ -34,6 +74,15 @@
       if(kw)kw.value=code;
     }
     card.scrollIntoView({block:'nearest'});
+    }
+    if(window.AppApi){
+      var base=AppApi.cfg.baseUrl;
+      fetch(base+'/web/stock/ledger?code='+encodeURIComponent(code),{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_app_token')||localStorage.getItem('wms_token')||'')}}).then(function(r){if(!r.ok)throw new Error('no');return r.json();}).then(function(j){
+        var rows=(j&&j.data)||[];
+        if(!rows.length){local();return;}
+        show('<b>'+esc(code)+'</b> · 接口轨迹 '+rows.length+' 笔<br>'+rows.slice(0,8).map(function(x){return esc(x.doc_no||'')+' '+(String(x.dir)==='1'?'入':'出')+esc(x.qty)+esc(x.unit||'')+' · '+esc(String(x.at||'').slice(0,16));}).join('<br>'));
+      }).catch(local);
+    }else{local();}
   }
   try{var q=new URLSearchParams(location.search).get('code');if(q)trace(q);}catch(e){}
   PdaScan.bind('#dKw',trace);
