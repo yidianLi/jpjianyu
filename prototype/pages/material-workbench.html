@@ -238,6 +238,24 @@ function seed(){
 }
 var DB;try{DB=JSON.parse(localStorage.getItem(KEY)||'null')||seed()}catch(e){DB=seed()}
 if(!DB.material||!DB.doc||!DB.seq||!DB.stock)DB=seed();
+function mergeDocs(){
+ if(mergeDocs.busy)return;mergeDocs.busy=1;
+ if(!window.WmsDoc)return;
+ WmsDoc.pullDocs().then(function(rows){
+  var changed=false;
+  (rows||[]).forEach(function(x){
+   if(!x.doc_no)return;
+   var row=WmsDoc.toLocal(x);
+   if(!row)return;
+   var ex=DB.doc.find(function(d){return d.no===row.no||d.srv_no===row.no;});
+   if(ex){ex.status=row.status;ex.srv=1;}
+   else{DB.doc.unshift(row);changed=true;}
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+  mergeDocs.busy=0;
+ }).catch(function(){mergeDocs.busy=0;});
+}
+mergeDocs();
 function mergeSrvMasters(){
  if(mergeSrvMasters.done)return;mergeSrvMasters.done=1;
  if(!window.WmsMaster)return;
@@ -1128,7 +1146,7 @@ var ACT={
     ApproveFlow.ensureFlow(d,d.type);
     var r=ApproveFlow.submit(d,d.type,d.handler||'经办人');if(!r.ok){toast(r.msg,1);return}
     audit(d,'提交(S1=1)','');save();render();toast(d.no+' '+r.msg);
-    if(window.WmsDoc){WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.submitSrv(srv);}).then(function(){d.srv_status='APPROVING';save();render();toast(d.no+' 后端提审OK('+d.srv_no+')');}).catch(function(e){d.srv_pending=1;save();toast('后端提审失败,本地已保存待补:'+e.message,1);});}},
+    if(window.WmsDoc){WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.submitSrv(srv);}).then(function(){d.srv_status='APPROVING';save();render();toast(d.no+' 后端提审OK('+d.srv_no+')');try{mergeDocs.busy=0;mergeDocs();}catch(e){}}).catch(function(e){d.srv_pending=1;save();toast('后端提审失败,本地已保存待补:'+e.message,1);});}},
   audit:function(){var d=cur();if(!d)return;var f=ApproveFlow.ensureFlow(d,d.type);
     if(!f||!f.submitted){toast('请先点“提交”(S1=1) 后再审核',1);return}
     if(ApproveFlow.needPost(d,d.type)){toast('各节点已通过，请点“仓管确认”完成过账');return}

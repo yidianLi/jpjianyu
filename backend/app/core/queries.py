@@ -18,7 +18,7 @@ def fetch_onhand(db, wh="", mat="", prod="", page=1, size=20):
     args.update({"off": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT material_code,product_code,batch_no,wh,loc,"
                            "on_hand,avail,pending,quarantine,frozen FROM stock_onhand"
-                           " WHERE " + where + " LIMIT :off,:n"), args).mappings().all()
+                           " WHERE " + where + " LIMIT :n OFFSET :off"), args).mappings().all()
     return [dict(r) for r in rows], int(total)
 
 
@@ -36,11 +36,11 @@ def fetch_ledger(db, doc_no="", code="", page=1, size=50):
     rows = db.execute(text("SELECT id,doc_no,line_no,sid,material_code,product_code,"
                            "batch_no,barcode,wh,loc,qty,unit,dir,biz,by_user,"
                            "device,`at`,idem_key FROM stock_ledger"
-                           " WHERE " + where + " ORDER BY id DESC LIMIT :off,:n"), args).mappings().all()
+                           " WHERE " + where + " ORDER BY id DESC LIMIT :n OFFSET :off"), args).mappings().all()
     return [dict(r) for r in rows], int(total)
 
 
-def fetch_docs(db, dtype="", status="", page=1, size=20):
+def fetch_docs(db, dtype="", status="", page=1, size=20, with_lines=False):
     cond, args = ["1=1"], {}
     if dtype:
         cond.append("type=:t")
@@ -53,8 +53,22 @@ def fetch_docs(db, dtype="", status="", page=1, size=20):
     args.update({"off": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT doc_no,type,sid,bmid,biz_status,handler,`at`"
                            " FROM doc_main WHERE " + where +
-                           " ORDER BY `at` DESC LIMIT :off,:n"), args).mappings().all()
-    return [dict(r) for r in rows], int(total)
+                           " ORDER BY `at` DESC LIMIT :n OFFSET :off"), args).mappings().all()
+    out = [dict(r) for r in rows]
+    if with_lines and out:
+        nos = [r["doc_no"] for r in out]
+        ph = ",".join([":n%d" % i for i in range(len(nos))])
+        par = {"n%d" % i: v for i, v in enumerate(nos)}
+        lrows = db.execute(text("SELECT doc_no,line_no,material_code,"
+                                "product_code,bom_version,batch_no,qty,unit,loc,"
+                                "qc_result,reason FROM doc_line WHERE doc_no IN ("
+                                + ph + ") ORDER BY doc_no,line_no"), par).mappings().all()
+        by = {}
+        for lr in lrows:
+            by.setdefault(lr["doc_no"], []).append(dict(lr))
+        for r in out:
+            r["lines"] = by.get(r["doc_no"], [])
+    return out, int(total)
 
 
 def fetch_doc_detail(db, doc_no):

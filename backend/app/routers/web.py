@@ -111,9 +111,10 @@ def trace(code: str, authed: dict = Depends(auth.need_auth),
 def list_docs(dtype: str = "", biz_status: str = "",
               authed: dict = Depends(auth.need_auth),
               db: Session = Depends(get_db), page: int = 1,
-              page_size: int = 20):
+              page_size: int = 20, with_lines: int = 0):
     page, size = resp.page_args(page, page_size)
-    rows, total = queries.fetch_docs(db, dtype, biz_status, page, size)
+    rows, total = queries.fetch_docs(db, dtype, biz_status, page, size,
+                                     bool(with_lines))
     return resp.ok(rows, total=total)
 
 

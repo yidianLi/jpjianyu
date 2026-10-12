@@ -34,9 +34,35 @@
   /* 8工单类型→后端type白名单:DJ登记/JS拒收/RK入库/LY领用/TK退料/DB调仓/SQ申请/CP成品 */
   var TYPE_MAP = {request: 'SQ', register: 'DJ', reject: 'JS', inbound: 'RK',
     issue: 'LY', wreturn: 'TK', wReturn: 'TK', 'return': 'TK', detail: 'DJ'};
+  var TYPE_BACK = {SQ: 'request', DJ: 'register', JS: 'reject', RK: 'inbound',
+    LY: 'issue', TK: 'wreturn'};
+  var STATUS_BACK = {DRAFT: '草稿', APPROVING: '已保存', POSTED: '已审批',
+    VOID: '已作废'};
+  function toLocalDoc(x){
+    if(!x || !x.doc_no || !TYPE_BACK[x.type]) return null;
+    return {no: x.doc_no, type: TYPE_BACK[x.type],
+      status: STATUS_BACK[x.biz_status] || '草稿',
+      date: String(x.at || '').slice(0, 10),
+      handler: x.handler || '', dept: '', wh: '', loc: '',
+      remark: '', files: 0, srv: 1,
+      flow: {submitted: x.biz_status === 'APPROVING' ? 1 : 0},
+      lines: ((x.lines) || []).map(function(l, i){
+        return {code: l.material_code || l.product_code || '',
+          name: '', unit: l.unit || '', qty: Number(l.qty) || 0,
+          qty_src: Number(l.qty) || 0, batch: l.batch_no || '',
+          loc: l.loc || '', region: l.loc || '', qc: l.qc_result || '合格',
+          price: 0, reason: l.reason || ''};
+      })};
+  }
   window.WmsDoc = {
     base: BASE,
     toType: function(tab){ return TYPE_MAP[tab] || 'DJ'; },
+    toLocal: toLocalDoc,
+    pullDocs: function(){
+      return get('/web/docs?page_size=100&with_lines=1').then(function(j){
+        return (j && j.data) || [];
+      }).catch(function(){ return []; });
+    },
     submitDoc: function(type, lines, handler){
       var key = idemKey(type + Date.now(), 1, type);
       return post('/web/docs', {type: type, lines: lines, handler: handler}, key)
