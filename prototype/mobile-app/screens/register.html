@@ -19,7 +19,9 @@
   var biz='DJ';
   try{biz=(new URLSearchParams(location.search).get('biz')||'DJ').toUpperCase();}catch(e){}
   if('DJRKLYTLTKRJ'.indexOf(biz)<0||biz.length!==2)biz='DJ';
+  var cat='';try{cat=(new URLSearchParams(location.search).get('cat')||'').toUpperCase();}catch(e){}
   var NAMES={DJ:'物料登记 DJ',RK:'物料入库 RK',LY:'物料领用 LY',TL:'车间退料 TL',TK:'物料退库 TK',RJ:'来料拒收 RJ'};
+  if(cat==='CP'&&biz==='DJ')NAMES.DJ='成品登记 CP';
   document.getElementById('bizTitle').textContent=NAMES[biz];
   // LY超发拦截(qty<=avail)为P1保留校验;TL校验src_doc;缺关联标红待处理
   var miss=[];
