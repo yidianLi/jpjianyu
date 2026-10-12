@@ -14,10 +14,10 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
 .fee-table th{font-size:11px;color:#4e7da1;font-weight:600;background:#eaf7ff;text-align:left;white-space:nowrap}
 .fee-table th,.fee-table td{padding:10px 9px;vertical-align:top;border-bottom:1px solid #e8f0f7}
 .fee-table tr:last-child td{border-bottom:0}.fee-table td{font-size:12px;color:#334155}.fee-action{color:#0875d2;font-weight:700;white-space:nowrap}
-.fee-modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(15,30,58,.42)}
-.fee-modal[hidden]{display:none}.fee-modal-panel{width:min(680px,100%);max-height:min(82vh,720px);overflow:auto;background:#fff;border:1px solid #dbeafe;border-radius:12px;box-shadow:0 18px 48px rgba(15,30,58,.24)}
-.fee-modal-header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid #e8f0f7}.fee-modal-header h2{margin:0;font-size:14px;color:#1e293b}.fee-modal-body{padding:18px}.fee-modal-close{border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:12px;background:#fff;color:#334155}.fee-modal-close:focus-visible,.fee-modal-panel button:focus-visible,.fee-modal-panel input:focus-visible,.fee-modal-panel select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
-@media(max-width:520px){.fee-modal{padding:10px}.fee-modal-panel{max-height:90vh;border-radius:10px}.fee-modal-body{padding:14px}.fee-modal-body form{grid-template-columns:1fr!important}.fee-modal-body form .col-span-2{grid-column:span 1 / span 1}}
+/* 弹窗形态已收敛为共享 .wms-dialog（assets/theme.css），此处只保留本页面板宽度与内容样式 */
+.fee-modal-panel{width:min(680px,100%)}
+.fee-modal-header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid #e8f0f7}.fee-modal-body{padding:18px}.fee-modal-close:focus-visible,.fee-modal-panel button:focus-visible,.fee-modal-panel input:focus-visible,.fee-modal-panel select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
+@media(max-width:520px){.fee-modal-body{padding:14px}.fee-modal-body form{grid-template-columns:1fr!important}.fee-modal-body form .col-span-2{grid-column:span 1 / span 1}}
 </style>
 <script src="../assets/store.js"></script>
 <script src="../assets/link.js"></script>
@@ -64,7 +64,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
   </div>
 </div>
 <div id="fee-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg" role="status" aria-live="polite" aria-atomic="true"></div>
-<div id="fee-modal" class="fee-modal" hidden role="dialog" aria-modal="true" aria-labelledby="fee-modal-title"><div class="fee-modal-panel" role="document"><div class="fee-modal-header"><h2 id="fee-modal-title">对账详情</h2><button type="button" class="fee-modal-close" aria-label="关闭对账详情" onclick="closeFeeDetail()">关闭</button></div><div id="fee-modal-body" class="fee-modal-body"></div></div></div>
+<div id="fee-modal" class="fee-modal wms-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="fee-modal-title"><div class="fee-modal-panel wms-dialog-panel" role="document"><div class="fee-modal-header wms-dialog-head"><h2 id="fee-modal-title" class="wms-dialog-title">对账详情</h2><button type="button" class="fee-modal-close wms-dialog-close" aria-label="关闭对账详情" onclick="closeFeeDetail()">关闭</button></div><div id="fee-modal-body" class="fee-modal-body wms-dialog-body"></div></div></div>
 <script>
 var FEES=[
  {id:'DZ2026091201',customer:'恒达服饰',order:'HD20260908-03',workshop:'缝制一车间',qty:'1,480 件',price:'¥2.50/件',amount:'¥3,700',status:'待核对',date:'2026-09-12',time:'09:10',note:'送料 5,000 米 · 领料 3,200 米 · 成品 1,500 件',dirty:false},

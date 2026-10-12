@@ -8,6 +8,7 @@
 <link id="wms-shared-theme" rel="stylesheet" href="assets/theme.css">
 <script src="assets/store.js"></script>
 <script>window.__WMS_APP_SHELL=true;</script>
+<script src="assets/menu-config.js"></script>
 <script src="assets/nav.js"></script>
 <script src="assets/app-router.js"></script>
 <style>
@@ -198,24 +199,24 @@ stocktake:{file:'pages/stocktake.html',title:'仓储作业 / 库存盘点'},
 report:{file:'pages/report.html',title:'报表中心 / 报表列表'},
 audit:{file:'pages/audit.html',title:'异常与审计 / 操作审计'},
 processingFee:{file:'pages/processing-fee.html',title:'单据中心 / 加工费对账'},
+scanlog:{file:'pages/scanlog.html',title:'单据中心 / 设备扫码记录'},
+reportConfig:{file:'pages/report-config.html',title:'报表中心 / 报表配置'},
+warehouseArchive:{file:'pages/warehouse-archive.html',title:'基础资料 / 仓库档案'},
+locationArchive:{file:'pages/location-archive.html',title:'基础资料 / 库区档案'},
+customerArchive:{file:'pages/customer-archive.html',title:'基础资料 / 客户档案'},
   users:{file:'pages/users.html',title:'系统管理 / 用户管理'},
   equipment:{file:'pages/equipment.html',title:'系统管理 / 设备管理'},
   approveFlow:{file:'pages/approve-flow.html',title:'系统管理 / 审批流配置'},
   login:{file:'pages/login.html',title:'登录与安全'},
-  transferFlow:{file:'pages/transfer.html',title:'仓储作业 / 调拨执行'},
-  finished:{file:'pages/finished.html',title:'成品管理 / 成品登记'}
+  transferFlow:{file:'pages/transfer.html',title:'仓储作业 / 调拨执行'}
   };
-var GROUPS=[
-{id:'g0',label:'工作台',icon:'fa-gauge',children:[['home','首页'],['dashboard','业务运营驾驶舱'],['fieldApp','现场作业APP'],['ai','AI问数']]},
-{id:'g1',label:'仓储作业',icon:'fa-warehouse',children:[['inventoryOnhand','仓库库存','stock:onhand'],['inventoryLedger','库存记录','stock:ledger'],['location','库区管理'],['transfer','库存调仓'],['stocktake','库存盘点']]},
-{id:'g2',label:'物料管理',icon:'fa-boxes-stacked',children:[['materialCode','物料明细','detail'],['materialRequest','申请领料','request'],['materialRegister','物料登记','register'],['materialReject','来料拒收','reject'],['materialInbound','物料入库','inbound'],['materialIssue','物料领用','issue'],['materialWReturn','车间退料','wreturn'],['materialReturn','物料退库','return']]},
-{id:'g4',label:'成品管理',icon:'fa-flag-checkered',children:[['finishedDetail','成品明细','detail'],['finishedRegister','成品登记','register'],['finishedInbound','成品入库','inbound'],['finishedReturn','成品退仓','wreturn'],['finishedDeliver','成品交付','deliver']]},
-{id:'g5',label:'基础资料',icon:'fa-cubes',children:[['baseBom','BOM管理',''],['baseMat','物料档案','2'],['baseOrg','组织架构·车间','3'],['baseLoc','库区·客户档案','4'],['baseProd','成品档案','5'],['baseTpl','单据模板·拍照/AI','6']]},
-{id:'g6',label:'单据中心',icon:'fa-file-lines',children:[['docs','业务记录查询'],['qrcode','二维码中心'],['ocr','OCR工作台'],['processingFee','加工费对账']]},
-{id:'g7',label:'异常与审计',icon:'fa-triangle-exclamation',children:[['audit','操作审计']]},
-{id:'g8',label:'报表中心',icon:'fa-chart-line',children:[['report','报表中心'],['reportConfig','报表配置']]},
-{id:'g9',label:'系统管理',icon:'fa-gear',children:[['users','用户管理'],['equipment','设备管理'],['approveFlow','审批流配置']]}
-];
+/* 菜单唯一数据源在 assets/menu-config.js（window.WMS_MENU_GROUPS），此处仅做格式与 tab 口径转换，禁止再维护菜单副本 */
+var GROUPS=(window.WMS_MENU_GROUPS||[]).map(function(g){return {id:g.id,label:g.label,icon:g.icon,children:g.children.map(function(c){
+  var tab=c.tab||'';
+  if(c.id==='inventoryOnhand')tab='stock:onhand';
+  else if(c.id==='inventoryLedger')tab='stock:ledger';
+  return [c.id,c.label,tab];
+})};});
 function navCollapsed(){ try{ return JSON.parse(localStorage.getItem('jm_wms_nav_collapsed')||'{}'); }catch(e){ return {}; } }
 function navOpenGroup(){ try{ return localStorage.getItem('jm_wms_nav_open')||''; }catch(e){ return ''; } }
 function navSetOpen(gid){ try{ localStorage.setItem('jm_wms_nav_open',gid||''); }catch(e){} }
@@ -317,11 +318,7 @@ function go(id, tab, options){
   var dashboardMode=id==='dashboard';
   document.body.classList.toggle('ai-route',id==='ai');
   document.body.classList.toggle('dashboard-mode',dashboardMode);
-  if(dashboardMode&&!document.fullscreenElement&&document.documentElement.requestFullscreen){
-    document.documentElement.requestFullscreen().catch(function(){});
-  }else if(!dashboardMode&&document.fullscreenElement&&document.exitFullscreen){
-    document.exitFullscreen().catch(function(){});
-  }
+  /* 全屏由驾驶舱页内按钮主动触发，路由不再自动抢全屏 */
   document.getElementById('crumb').textContent=r.title;
   document.title=r.title+' · 物料管理系统';
   try{localStorage.setItem('jm_wms_last',id);}catch(e){}
@@ -383,7 +380,7 @@ else if(/仓库库存|仓库库存|余额/.test(kw)) go('inventoryOnhand');
 else if(/库存记录|流水|库存记录/.test(kw)) go('inventoryLedger');
 else if(/仓库管理|库存/.test(kw)) go('inventoryOnhand');
 else if(/库区/.test(kw)) go('location');
-else go('docs');
+else{ go('docs'); Store.toast('全局搜索“'+kw+'”：未找到精确匹配，已打开业务记录查询'); return; }
 Store.toast('全局搜索“'+kw+'”：已跨页定位到 '+ROUTES[cur].title);
 }
 /* 角色切换（权限验证） */
@@ -432,22 +429,11 @@ window.addEventListener('popstate',function(){
 go(q||'home',qTab,{replace:true});
 </script>
 <script>
-/* 兜底块：只补缺失的 ROUTES / GROUPS，不覆盖顶部已定义的菜单（杜绝第二个物料管理） */
+/* 兜底块：只做旧数据兼容清理（菜单/路由以顶部 GROUPS/ROUTES 为唯一来源，禁止在此覆盖） */
 document.addEventListener('DOMContentLoaded',function(){
-ROUTES.scanlog=ROUTES.scanlog||{file:'pages/scanlog.html',title:'单据中心 / 设备扫码记录'};
-ROUTES.reportConfig={file:'pages/report-config.html',title:'报表中心 / 报表配置'};
-ROUTES.audit={file:'pages/audit.html',title:'异常与审计 / 操作审计'};
-ROUTES.processingFee={file:'pages/processing-fee.html',title:'单据中心 / 加工费对账'};
-ROUTES.warehouseArchive={file:'pages/warehouse-archive.html',title:'基础资料 / 仓库档案'};
-ROUTES.locationArchive={file:'pages/location-archive.html',title:'基础资料 / 库区档案'};
-ROUTES.customerArchive={file:'pages/customer-archive.html',title:'基础资料 / 客户档案'};
 var groups={};GROUPS.forEach(function(group){groups[group.id]=group;});
-/* g1 即仓储作业（仓库库存/库存记录/库区管理/库存调仓/库存盘点）；旧 g3 如残留则合并回 g1 后移除 */
-if(groups.g3){(groups.g3.children||[]).forEach(function(c){if(!groups.g1.children.some(function(x){return x[0]===c[0]}))groups.g1.children.push(c);});GROUPS=GROUPS.filter(function(g){return g.id!=='g3';});groups={};GROUPS.forEach(function(group){groups[group.id]=group;});}
-if(groups.g6)groups.g6.children=[['docs','业务记录查询'],['ocr','OCR工作台'],['scanlog','设备扫码记录'],['processingFee','加工费对账']];
-if(groups.g7)groups.g7.children=[['audit','操作审计']];
-if(groups.g8)groups.g8.children=[['report','报表中心'],['reportConfig','报表配置']];
-if(groups.g5)groups.g5.children=[['baseBom','BOM管理',''],['baseMat','物料档案','2'],['baseOrg','组织架构·车间','3'],['warehouseArchive','仓库档案'],['locationArchive','库区档案'],['customerArchive','客户档案'],['baseProd','成品档案','5'],['baseTpl','单据模板','6']];
+/* 旧 g3 如残留则合并回 g1（仓储作业）后移除 */
+if(groups.g3){(groups.g3.children||[]).forEach(function(c){if(!groups.g1.children.some(function(x){return x[0]===c[0]}))groups.g1.children.push(c);});GROUPS=GROUPS.filter(function(g){return g.id!=='g3';});}
 renderMenu();markMenu();
 var requested=new URLSearchParams(location.search).get('page'),requestedTab=new URLSearchParams(location.search).get('tab')||'';
 if(requested&&ROUTES[requested]&&(cur!==requested||curTab!==requestedTab))go(requested,requestedTab);

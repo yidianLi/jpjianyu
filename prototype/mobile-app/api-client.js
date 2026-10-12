@@ -5,7 +5,7 @@
  * 对齐 backend/app/routers/app_.py：Bearer + X-Device-Id + X-Sign，扫码先库位后物料 */
 (function(){
   var CFG = { baseUrl: localStorage.getItem('wms_app_base') || 'http://10.8.0.12:8080/api/v1',
-    token: localStorage.getItem('wms_app_token') || 'DEMO-APP-TOKEN-LIXIAOMING',
+    token: localStorage.getItem('wms_app_token') || '',
     deviceId: 'PDA-03', timeout: 1800 };
   var QUEUE_KEY='wms_app_offline_q_v1';
   /* 演示自动登录:无token时以demo免密登录换真token,失败保留Demo走Mock */

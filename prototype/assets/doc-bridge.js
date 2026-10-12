@@ -4,7 +4,7 @@
 (function(){
   var BASE = (window.WmsAi && window.WmsAi.base) ||
     localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
-  function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
+  function token(){ return localStorage.getItem('wms_token') || ''; }
   function idemKey(docNo, lineNo, biz){
     return (docNo || 'NEW') + ':' + (lineNo || 1) + ':' + (biz || 'DOC');
   }

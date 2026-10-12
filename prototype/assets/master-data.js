@@ -3,7 +3,7 @@
 (function(){
   var BASE = (window.WmsAi && window.WmsAi.base) ||
     localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
-  function token(){ return localStorage.getItem('wms_token') || 'DEMO-WEB-TOKEN'; }
+  function token(){ return localStorage.getItem('wms_token') || ''; }
   function gate(){ return (window.WmsAi && window.WmsAi.ready) || Promise.resolve(); }
   function get(path){
     return gate().then(function(){

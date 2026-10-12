@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登录 · 物料管理系统</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei"}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script></head>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登录 · 物料管理系统</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei"}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/menu-config.js"></script><script src="../assets/nav.js"></script></head>
 <body class="bg-[#0b1428] min-h-screen flex items-center justify-center p-6">
 <div class="w-[1080px] max-w-full bg-white rounded-2xl overflow-hidden grid grid-cols-2 shadow-2xl">
 <div class="relative bg-gradient-to-br from-[#123a8f] via-[#1a56c9] to-[#0aa7c2] p-10 text-white flex flex-col justify-between overflow-hidden">
@@ -7,7 +7,7 @@
 <div class="grid grid-cols-3 gap-3 mt-6 text-center"><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">3</div><div class="text-[11px]">独立仓库账</div></div><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">16</div><div class="text-[11px]">流程节点</div></div><div class="bg-white/15 rounded-xl p-3"><div class="text-xl font-bold">02:30</div><div class="text-[11px]">凌晨自动盘点</div></div></div></div></div>
 <div class="relative text-[11px] text-blue-100 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> 内网环境 · 操作全程审计 · 涉密数据不出域</div></div>
 <div class="p-10">
-<h2 class="font-extrabold text-xl text-slate-800">安全登录</h2><p class="text-xs text-slate-500 mt-1">识别账号岗位与数据范围 · 失败不暴露账号是否存在</p>
+<h1 class="font-extrabold text-xl text-slate-800">安全登录</h1><p class="text-xs text-slate-500 mt-1">识别账号岗位与数据范围 · 失败不暴露账号是否存在</p>
 <div class="flex gap-2 mt-4 text-[11px] flex-wrap"><button onclick="setState('default')" class="px-2.5 py-1 rounded-full bg-blue-600 text-white">默认</button><button onclick="setState('err')" class="px-2.5 py-1 rounded-full bg-slate-100">密码错误</button><button onclick="setState('lock')" class="px-2.5 py-1 rounded-full bg-slate-100">账号锁定</button><button onclick="setState('net')" class="px-2.5 py-1 rounded-full bg-slate-100">网络不可用</button><button onclick="setState('first')" class="px-2.5 py-1 rounded-full bg-slate-100">首次确认</button></div>
 <label class="text-xs text-slate-600 font-bold mt-5 block">账号</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-regular fa-user text-slate-400"></i><input id="acc" value="wai_cang_zhang" class="flex-1 px-2 py-2.5 text-sm outline-none"></div>
 <label class="text-xs text-slate-600 font-bold mt-3 block">密码</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-solid fa-lock text-slate-400"></i><input id="pwd" type="password" value="12345678" class="flex-1 px-2 py-2.5 text-sm outline-none"><i class="fa-regular fa-eye text-slate-400"></i></div>
@@ -41,6 +41,15 @@ function enterDashboard(){
   location.href='dashboard.html';
 }
 function login(){
+  var username=(document.getElementById('acc').value||'demo').trim();
+  var password=document.getElementById('pwd').value||'';
+  var base=localStorage.getItem('wms_api_base')||'http://10.8.0.12:8080/api/v1';
+  showToast('正在验证账号…');
+  fetch(base+'/web/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,password:password})})
+    .then(function(r){return r.json().then(function(j){if(!r.ok||!j.data||!j.data.token)throw new Error(j.msg||'登录失败');return j;});})
+    .then(function(j){localStorage.setItem('wms_token',j.data.token);localStorage.setItem('wms_user',JSON.stringify(j.data));showToast('登录成功，正在进入驾驶舱');setTimeout(enterDashboard,450);})
+    .catch(function(){showToast('后端暂不可用，已进入演示模式');localStorage.removeItem('wms_token');setTimeout(enterDashboard,450);});
+  return;
   showToast('登录成功 · 欢迎回来，张建国');
   setTimeout(function(){
     showToast('岗位已加载，正在进入 01 业务运营驾驶舱…');

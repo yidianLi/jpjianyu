@@ -18,6 +18,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .t tr:hover td{background:#f7fbff}
 .t .num{text-align:right}.qty-value,.qty-unit{display:inline-block}.qty-value{margin-right:4px}.qty-unit{color:#5f7488;font-weight:600}
 .t thead th:nth-child(n+5):nth-child(-n+9){text-align:right}
+.t th.column-center,.t td.column-center{text-align:center!important}
 .t th:nth-child(5),.t td:nth-child(5){min-width:76px}.t th:nth-child(6),.t td:nth-child(6){min-width:88px}.t th:nth-child(7),.t td:nth-child(7),.t th:nth-child(8),.t td:nth-child(8),.t th:nth-child(9),.t td:nth-child(9){min-width:76px}
 .f{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:12px;min-height:40px}
 .f[readonly]{background:#f4f7fa;color:#5f7488}
@@ -57,7 +58,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .x{border:0;background:transparent;font-size:20px;color:var(--muted)}
 .errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
 @media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/nav.js" defer></script></head>
+</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script></head>
 <body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
 <div class="wrap space-y-4">
@@ -106,7 +107,8 @@ function num(v){var x=Number(v);return isFinite(x)?x:0}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function now(){var d=new Date();return today()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function toast(m,bad){var t=document.getElementById('t');t.textContent=m;t.style.background=bad?'#b42318':'#0f172a';t.classList.remove('hide');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hide')},2600);try{if(window.Store)Store.toast(m)}catch(e){}}
-function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide')}
+function centerRelevantColumns(root,title){if(!root)return;var labels=['批次','批次 / 库区','来源单','操作人','操作','预警','最后变动'];if(String(title||'').indexOf('审批日志')===0)labels.push('说明');Array.prototype.forEach.call(root.querySelectorAll('table.t'),function(table){Array.prototype.forEach.call(table.querySelectorAll('thead th'),function(header,index){if(labels.indexOf(header.textContent.trim())<0)return;header.classList.add('column-center');Array.prototype.forEach.call(table.tBodies,function(body){Array.prototype.forEach.call(body.rows,function(row){if(row.cells[index])row.cells[index].classList.add('column-center')})})})})}
+function dialog(title,body,foot){var r=document.getElementById('dlgRoot');document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgBody').innerHTML=body;centerRelevantColumns(document.getElementById('dlgBody'),title);document.getElementById('dlgFoot').innerHTML=foot||'<button class="b" data-close>关闭</button>';r.classList.remove('hide')}
 document.getElementById('dlgX').onclick=function(){document.getElementById('dlgRoot').classList.add('hide')};
 document.getElementById('dlgRoot').addEventListener('click',function(e){if(e.target===this||e.target.closest('[data-close]'))this.classList.add('hide')});
 function finTag(s){var m={'草稿':'g1','已保存':'g2','已审批':'g4','已作废':'g1'};return '<span class="tag '+(m[s]||'g1')+'">'+esc(s)+'</span>'}
@@ -174,12 +176,12 @@ function renderDetail(){
   var last=uniq(ss,'at').sort().reverse()[0]||'—';
   var alert=ss.some(function(s){return num(s.qua)>0})?'隔离待处理':ss.some(function(s){return num(s.avail)<=0})?'无可用':'正常';
   return '<tr><td><b>'+esc(code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||first.spec||'—')+'</td>'
-  +'<td><span class="link" onclick="finBatches(\''+esc(code)+'\')">共 '+batches.length+' 条 · 点击查看</span></td>'
+  +'<td><span class="link" onclick="finBatches(\''+esc(code)+'\')">共 '+batches.length+' 条</span></td>'
   +'<td class="num"><b>'+ss.length+'</b></td><td>'+esc(first.unit==='个'?'袋':'箱')+'</td>'
   +'<td class="num"><b>'+fmt(tot(ss,'on'))+'</b></td><td>'+esc(first.unit||'件')+'</td><td class="num grn"><b>'+fmt(tot(ss,'avail'))+'</b></td>'
   +'<td class="num '+(tot(ss,'qua')?'red':'')+'"><b>'+fmt(tot(ss,'qua'))+'</b></td><td class="num org">'+fmt(tot(ss,'pending'))+'</td>'
   +'<td>'+finAlertTag({qua:tot(ss,'qua'),avail:tot(ss,'avail')})+'</td><td class="num">'+ledn+'</td>'
-  +'<td class="sm">'+(srcs.length?'<span class="link" onclick="finSourcesDlg(\''+esc(code)+'\')">共 '+srcs.length+' 张 · 查看来源</span>':'<span class="mut">—</span>')+'</td>'
+  +'<td class="sm">'+(srcs.length?'<span class="link" onclick="finSourcesDlg(\''+esc(code)+'\')">共 '+srcs.length+' 张</span>':'<span class="mut">—</span>')+'</td>'
   +'<td class="sm mut">'+esc(last)+'</td>'
   +'<td><span class="link" onclick="finFlowDlg(\''+esc(code)+'\',\'\')">流水</span> <span class="link" onclick="goDeliverByCode(\''+esc(code)+'\')">交付</span></td></tr>';
  }).join('');
@@ -469,19 +471,20 @@ function finEditorHTML(d){
 }
 /* ---- 全局动作 ---- */
 window.render=function(){
- document.getElementById('crumb').textContent=NAMES[VIEW]||NAMES.register;
+ var crumbEl=document.getElementById('crumb');if(crumbEl)crumbEl.textContent=NAMES[VIEW]||NAMES.register;
  notifyParent();
- if(VIEW==='detail'){curNo='';renderDetail();return}
+ if(VIEW==='detail'){curNo='';renderDetail();centerRelevantColumns(document.getElementById('main'));return}
  var t=VIEW==='return'?'wreturn':VIEW;
  var d=curNo?docBy(curNo):null;
  if(d&&(d.type!==t)){d=null;curNo=''}
- if(t==='deliver'){
+  if(t==='deliver'){
   if(deliverMode==='edit'&&d){document.getElementById('main').innerHTML=finEditorHTML(d);return}
   if(deliverMode==='edit'&&!d){var nd=blankFinDoc('deliver');FDB.doc.unshift(nd);fsave();curNo=nd.no;document.getElementById('main').innerHTML=finEditorHTML(nd);return}
-  document.getElementById('main').innerHTML=finListHTML('deliver');return;
+  document.getElementById('main').innerHTML=finListHTML('deliver');centerRelevantColumns(document.getElementById('main'));return;
  }
  if(d){document.getElementById('main').innerHTML=finEditorHTML(d);return}
  document.getElementById('main').innerHTML=finListHTML(t);
+ centerRelevantColumns(document.getElementById('main'));
 };
 window.newFinDoc=function(t){var d=blankFinDoc(t);FDB.doc.unshift(d);fsave();curNo=d.no;if(t==='deliver')deliverMode='edit';render();toast('已创建 '+d.no+'（草稿）')};
 window.deliverNew=function(){var d=blankFinDoc('deliver');FDB.doc.unshift(d);fsave();curNo=d.no;deliverMode='edit';render();toast('已创建 '+d.no+'（独立新建页）')};
