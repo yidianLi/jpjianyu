@@ -48,7 +48,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
         </div>
         <div class="flex items-end gap-2 flex-wrap mt-4" role="search" aria-label="筛选加工费对账记录">
           <label class="grid gap-1 text-[11px] text-slate-500">关键词<input id="fee-q" type="search" class="border rounded-lg px-3 py-2 w-56" placeholder="对账单 / 客户 / 工单" aria-label="搜索对账单、客户或工单"></label>
-          <label class="grid gap-1 text-[11px] text-slate-500">客户<select id="fee-customer" class="border rounded-lg px-2 py-2" aria-label="按客户筛选"><option value="">全部客户</option><option>恒达服饰</option><option>宏远纺织</option><option>雅致制衣</option></select></label>
+          <label class="grid gap-1 text-[11px] text-slate-500">客户<select id="fee-customer" data-master="customers" class="border rounded-lg px-2 py-2" aria-label="按客户筛选"><option value="">全部客户</option><option>恒达服饰</option><option>宏远纺织</option><option>雅致制衣</option></select></label>
           <label class="grid gap-1 text-[11px] text-slate-500">车间<select id="fee-workshop" class="border rounded-lg px-2 py-2" aria-label="按车间筛选"><option value="">全部车间</option><option>缝制一车间</option><option>裁剪车间</option><option>缝制二车间</option></select></label>
           <label class="grid gap-1 text-[11px] text-slate-500">状态<select id="fee-status" class="border rounded-lg px-2 py-2" aria-label="按对账状态筛选"><option value="">全部状态</option><option>待核对</option><option>已核对</option><option>有差异</option></select></label>
           <label class="grid gap-1 text-[11px] text-slate-500">开始日期<input id="fee-from" type="date" value="2026-09-01" class="border rounded-lg px-2 py-2" aria-label="对账开始日期"></label>
@@ -89,6 +89,36 @@ document.getElementById('fee-modal').addEventListener('click',function(event){if
 document.addEventListener('keydown',function(event){var modal=document.getElementById('fee-modal');if(modal.hidden)return;if(event.key==='Escape'){event.preventDefault();closeFeeDetail();return;}if(event.key==='Tab'){var focusables=modal.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])');if(!focusables.length)return;var first=focusables[0],last=focusables[focusables.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 ['fee-q','fee-customer','fee-workshop','fee-status','fee-from','fee-to'].forEach(function(id){document.getElementById(id).addEventListener('input',renderFees);document.getElementById(id).addEventListener('change',renderFees);});
 renderFees();
+</script>
+<script src="../assets/ai-gateway.js"></script>
+<script src="../assets/master-data.js"></script>
+<script>
+/* 对账真数据:fee_settles覆盖FEES同单号行,确认动作仍只落本地(后端无写口) */
+document.addEventListener('DOMContentLoaded', function(){
+  if(!window.WmsAi) return;
+  function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
+  window.WmsAi.ready.then(function(){
+    return fetch(window.WmsAi.base + '/fee_settles?page_size=50',
+      {headers: {'Authorization': 'Bearer ' + (localStorage.getItem('wms_token') || '')}});
+  }).then(function(r){ if(!r.ok) throw new Error('no backend'); return r.json(); })
+  .then(function(j){
+    var rows = (j && j.data) || [];
+    if(!rows.length || !window.FEES) return;
+    rows.forEach(function(x){
+      if(!x.settle_no) return;
+      var period = String(x.period || '');
+      var date = period.length === 7 ? period + '-12' : (period || '');
+      var row = {id: x.settle_no, customer: x.customer || '', order: period,
+        workshop: '', qty: '送' + num(x.qty_send) + ' · 发' + num(x.qty_issue) + ' · 成' + num(x.qty_fin),
+        price: '', amount: '¥' + num(x.amount), status: x.biz_status || '草稿',
+        date: date, time: '', note: '后端对账', dirty: false, srv: 1};
+      var ex = window.FEES.filter(function(f){ return f.id === row.id; })[0];
+      if(ex){ Object.keys(row).forEach(function(k){ ex[k] = row[k]; }); }
+      else{ window.FEES.unshift(row); }
+    });
+    if(typeof renderFees === 'function') renderFees();
+  }).catch(function(){});
+});
 </script>
 </body>
 </html>

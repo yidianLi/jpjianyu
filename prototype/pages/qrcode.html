@@ -52,4 +52,32 @@ if(G_TYPE==='fin'){var n2=Math.max(1,Math.min(50,parseInt(document.getElementByI
 var n=Math.max(1,Math.min(50,parseInt(document.getElementById('gN').value||'1',10)));var base='BX20260916'+String(Math.floor(100+Math.random()*900));var mv=document.getElementById('gMat').value;var qty=document.getElementById('gQty').disabled?'':(' · '+document.getElementById('gQty').value+'/箱');for(var i=0;i<n;i++){ROWS.unshift([base+'-'+(i+1),'物料箱贴',(mv||'未绑定物料 · 移动端扫码对应')+' · '+genSub()+qty,'已打印','刚刚']);}try{window.__WMS_BOXES=window.__WMS_BOXES||[];for(var j=0;j<n;j++){window.__WMS_BOXES.push({box_code:base+'-'+(j+1),material_code:mv?mv.split(' ')[0]:'UNBOUND',customer:genSub(),src:(document.querySelector('input[name=gSrc]:checked')||{}).value||'cust'});}}catch(e){}document.getElementById('genDlg').close();render();toast('已生成 '+n+' 枚物料码：'+base+'-01 起（'+genSub()+'）');}
 function goScanlog(){if(window.WMSView&&WMSView.navigateFile){WMSView.navigateFile('scanlog.html');return;}if(window.goPage){goPage('scanlog');return;}location.href='scanlog.html';}
 render();
+</script>
+<script src="../assets/ai-gateway.js"></script>
+<script>
+/* 标签打印留痕:genOk新增行同步POST/label_prints,失败只提示不拦本地 */
+(function(){
+  if(typeof genOk !== 'function') return;
+  var _genOk = genOk;
+  genOk = function(){
+    var before = (window.ROWS || []).length;
+    _genOk.apply(this, arguments);
+    try{
+      var fresh = (window.ROWS || []).slice(0, (window.ROWS || []).length - before);
+      if(!fresh.length || !window.WmsAi) return;
+      window.WmsAi.ready.then(function(){
+        var by = '';
+        try{ by = (JSON.parse(localStorage.getItem('wms_user') || '{}').username) || ''; }catch(e){}
+        return Promise.all(fresh.map(function(r){
+          return fetch(window.WmsAi.base + '/label_prints', {method: 'POST',
+            headers: {'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (localStorage.getItem('wms_token') || '')},
+            body: JSON.stringify({code: r[0], kind: r[1], content: r[2], printed_by: by})})
+            .then(function(resp){ if(!resp.ok) throw new Error('HTTP ' + resp.status); return resp.json(); });
+        }));
+      }).then(function(){ if(typeof toast === 'function') toast('标签已留痕后端'); })
+      .catch(function(){});
+    }catch(e){}
+  };
+})();
 </script></body></html>

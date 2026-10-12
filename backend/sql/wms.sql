@@ -791,6 +791,11 @@ INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
 ('PDA-03','PDA','SN202600000003','张建国','启用'),
 ('PDA-04','PDA','SN202600000004','李小明','启用')
 ON DUPLICATE KEY UPDATE holder=VALUES(holder);
+-- 演示加工费对账(与前端Demo同名客户)
+INSERT INTO fee_settle(settle_no,customer,period,qty_send,qty_issue,qty_fin,amount,biz_status) VALUES
+('DZ2026091201','恒达服饰','2026-09',5000.000,3200.000,1500.000,3700.00,'待核对'),
+('DZ2026091103','宏远纺织','2026-09',2000.000,1350.000,1280.000,3200.00,'确认')
+ON DUPLICATE KEY UPDATE amount=VALUES(amount);
 -- 演示设备(与鉴权白名单一致):PDA-03/04
 INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
 ('PDA-03','PDA','SN-PDA03-2026','张建国','启用'),
