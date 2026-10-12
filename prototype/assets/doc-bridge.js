@@ -3,7 +3,8 @@
  * WmsDoc.submitDoc(type, lines, handler) 供页面“提交/过账”按钮渐进接入. */
 (function(){
   var BASE = (window.WmsAi && window.WmsAi.base) ||
-    localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+    localStorage.getItem('wms_api_base') ||
+    (location.protocol + '//' + location.host + '/api/v1');
   function token(){ return localStorage.getItem('wms_token') || ''; }
   function idemKey(docNo, lineNo, biz){
     return (docNo || 'NEW') + ':' + (lineNo || 1) + ':' + (biz || 'DOC');

@@ -4,7 +4,8 @@
  * 后端统一: /api/v1/app/* 移动端专用，/api/v1/web/* PC专用，共用业务库+审计
  * 对齐 backend/app/routers/app_.py：Bearer + X-Device-Id + X-Sign，扫码先库位后物料 */
 (function(){
-  var CFG = { baseUrl: localStorage.getItem('wms_app_base') || 'http://10.8.0.12:8080/api/v1',
+  var CFG = { baseUrl: localStorage.getItem('wms_app_base') ||
+      (location.protocol + '//' + location.host + '/api/v1'),
     token: localStorage.getItem('wms_app_token') || '',
     deviceId: 'PDA-03', timeout: 1800 };
   var QUEUE_KEY='wms_app_offline_q_v1';

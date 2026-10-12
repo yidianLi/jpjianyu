@@ -31,6 +31,10 @@ if not os.path.isdir(PROTO):
 if os.path.isdir(PROTO):
     app.mount("/proto", StaticFiles(directory=PROTO, html=True), name="proto")
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> RedirectResponse:
+        return RedirectResponse("/proto/assets/icon-192.png")
+
 
 @app.get("/")
 def index() -> RedirectResponse:

@@ -1,7 +1,8 @@
 /* AI网关前端统一客户端:问答/OCR只读禁过账,接后端 /api/v1/ai/*.
  * 用法:WmsAi.ask(q).then(...) / WmsAi.ocr(image).then(...).无后端自动回Mock. */
 (function(){
-  var BASE = localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+  var BASE = localStorage.getItem('wms_api_base') ||
+    (location.protocol + '//' + location.host + '/api/v1');
   function token(){ return localStorage.getItem('wms_token') || ''; }
   /* 演示自动登录:无token时以demo免密登录换真token,失败保留Demo(后端回Mock) */
   var ready = (function(){

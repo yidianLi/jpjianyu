@@ -2,7 +2,8 @@
  * select[data-master] 自动填充(失败保留原Demo项);WmsRpt/WmsSys 供页面渐进接入. */
 (function(){
   var BASE = (window.WmsAi && window.WmsAi.base) ||
-    localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+    localStorage.getItem('wms_api_base') ||
+    (location.protocol + '//' + location.host + '/api/v1');
   function token(){ return localStorage.getItem('wms_token') || ''; }
   function gate(){ return (window.WmsAi && window.WmsAi.ready) || Promise.resolve(); }
   function get(path){
