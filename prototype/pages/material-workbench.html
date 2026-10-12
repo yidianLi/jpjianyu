@@ -237,6 +237,23 @@ function seed(){
 }
 var DB;try{DB=JSON.parse(localStorage.getItem(KEY)||'null')||seed()}catch(e){DB=seed()}
 if(!DB.material||!DB.doc||!DB.seq||!DB.stock)DB=seed();
+function mergeSrvMasters(){
+ if(mergeSrvMasters.done)return;mergeSrvMasters.done=1;
+ if(!window.WmsMaster)return;
+ WmsMaster.get('/web/masters/materials?page_size=200').then(function(j){
+  var changed=false;
+  ((j&&j.data)||[]).forEach(function(r){
+   if(!r.material_code)return;
+   var row={code:r.material_code,name:r.name||'',spec:r.spec||'',unit:r.base_unit||'',mode:r.manage_mode||'QTY',pack:Number(r.pack_qty)||1,sub:1,min:Number(r.min_qty)||0,max:Number(r.max_qty)||0,price:Number(r.price_ref)||0,customer:'',status:(r.enabled===0||r.status==='停用')?'停用':'启用',srv:1};
+   var ex=DB.material.find(function(m){return m.code===row.code;});
+   if(ex){Object.keys(row).forEach(function(k){ex[k]=row[k];});}
+   else{DB.material.push(row);}
+   changed=true;
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+ }).catch(function(){});
+}
+mergeSrvMasters();
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('本地存储写入失败',1);return}
   notifyShell();

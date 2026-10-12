@@ -115,6 +115,21 @@ function finTag(s){var m={'草稿':'g1','已保存':'g2','已审批':'g4','已�
 function faudit(d,act,note){FDB.audit.unshift({t:now(),doc:d.no,act:act,by:d.handler||'—',note:note||''})}
 /* ===== 库存/单据基础 ===== */
 var FINISHED_CATALOG=[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',spec:'藏青',unit:'件'}];
+(function mergeSrvProducts(){
+ if(!window.WmsMaster)return;
+ WmsMaster.get('/web/masters/products?page_size=200').then(function(j){
+  var changed=false;
+  ((j&&j.data)||[]).forEach(function(r){
+   if(!r.product_code)return;
+   var ex=FINISHED_CATALOG.filter(function(x){return x.code===r.product_code;})[0];
+   var row={code:r.product_code,name:r.name||r.product_code,spec:r.spec||'',unit:r.base_unit||'件',srv:1};
+   if(ex){Object.keys(row).forEach(function(k){ex[k]=row[k];});}
+   else{FINISHED_CATALOG.push(row);}
+   changed=true;
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+ }).catch(function(){});
+})();
 function fmat(code){var c=FINISHED_CATALOG.filter(function(x){return x.code===code})[0];return c||{code:code,name:code,spec:'',unit:'件'}}
 function fstock(code,batch,wh,loc){return FDB.stock.filter(function(s){return s.code===code&&s.batch===batch&&s.wh===wh&&(!loc||s.loc===loc)})[0]}
 function fstockOrNew(code,wh,loc,batch){var m=fmat(code),s=fstock(code,batch,wh,loc);if(!s){s={code:code,name:m.name,spec:m.spec||'',unit:m.unit||'件',wh:wh,loc:loc||'F01',batch:batch,on:0,avail:0,qua:0,pending:0,src:'',at:now()};FDB.stock.push(s)}if(loc)s.loc=loc;return s}
