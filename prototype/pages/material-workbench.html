@@ -179,6 +179,7 @@ var COLS={
 };
 var VIEWS={
   request:{name:'申请领料',prefix:'SQ',kind:'doc',desc:'进仓前：车间按送货单/订单提需求，只登记申请意向。审批只做需求确认，不写库存记录、不增减仓库库存，后续由仓库发料（物料领用）执行。'},
+  receive:{name:'到货验收',prefix:'',kind:'merge',desc:'到货=登记→入库一页办结：新建登记DJ,验收合格一键转入库RK,不合格一键转拒收JS；拒收只留凭证不写库存。'},
   register:{name:'物料登记',prefix:'DJ',kind:'doc',desc:'进仓加库存第1步：建码建账，按一物一码逐件生成二维码；审批后自动入账并写流水。物料档案初始库存固定为 0，只能通过已审批单据产生库存。'},
   reject:{name:'来料拒收',prefix:'JS',kind:'doc',desc:'物料登记的分支：只留不合格凭证，审批后不写库存记录、不增减仓库库存，但会锁定来源单据的可入库数量。'},
   inbound:{name:'物料入库',prefix:'RK',kind:'doc',desc:'进仓加库存第2步：增加仓库库存。可关联已审批物料登记单（单头“关联登记单号”），核对来料数与验收数；待检行只进“待检”分量，不计可用。'},
@@ -189,7 +190,7 @@ var VIEWS={
   ledger:{name:'库存记录',prefix:'',kind:'book',desc:'只读流水：只增不改不删，冲红为反向流水并指向原单；账实核对以本表为准。'},
   materialCode:{name:'物料明细',prefix:'',kind:'book',desc:'聚合只读：每种物料一行，批次显示记录数并可点击查看明细，数量为包装件数（箱/袋）；行操作只跳转不改数。'}
 };
-var ORDER=['request','register','reject','inbound','issue','wreturn','return','stock','materialCode'];
+var ORDER=['request','receive','issue','wreturn','return','stock','materialCode'];
 
 /* ===== 2. 核心数据表（localStorage 模拟全站唯一数据源） ===== */
 var KEY='jm_wms_core_v1';
@@ -663,8 +664,8 @@ function renderList(){
     var seen=[];(d.lines||[]).forEach(function(l){var c=mat(l.code).customer;if(c&&seen.indexOf(c)<0)seen.push(c)});
     return seen.join('、')||'—';
   }
-  if(view!=='request'&&view!=='register'&&view!=='reject'&&view!=='inbound'&&view!=='issue'&&view!=='wreturn'&&view!=='return'){view='request'}
-  var list=DB.doc.filter(function(d){return d.type===view});
+  if(view!=='request'&&view!=='receive'&&view!=='register'&&view!=='reject'&&view!=='inbound'&&view!=='issue'&&view!=='wreturn'&&view!=='return'){view='request'}
+  var list=DB.doc.filter(function(d){return view==='receive'?(d.type==='register'||d.type==='inbound'||d.type==='reject'):d.type===view});
   list=list.filter(function(d){return queue==='待办'?(d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'):(d.status==='已审批'||d.status==='已作废'||d.status==='已冲红')});
   if(kw)list=list.filter(function(d){return (d.no+' '+(d.party||'')+' '+(d.dept||'')+' '+(d.receiver||'')+' '+(d.lines||[]).map(function(l){return mat(l.code).name+l.code}).join(' ')).toLowerCase().indexOf(kw.toLowerCase())>=0});
   var rows=list.map(function(d){
@@ -982,7 +983,7 @@ function goLegacy(page){try{if(parent&&parent.go)parent.go(page,page==='transfer
 function cur(){return docBy(curNo)}
 var ACT={
   backnav:function(){
-    var target=view==='request'?'materialRequest':view==='register'?'materialRegister':view==='reject'?'materialReject':view==='inbound'?'materialInbound':view==='issue'?'materialIssue':view==='wreturn'?'materialWReturn':view==='return'?'materialReturn':'materialCode';
+    var target=view==='request'?'materialRequest':view==='receive'?'materialReceive':view==='register'?'materialReceive':view==='reject'?'materialReceive':view==='inbound'?'materialReceive':view==='issue'?'materialIssue':view==='wreturn'?'materialWReturn':view==='return'?'materialReturn':'materialCode';
     try{if(parent&&parent.go){parent.go(target);return}}catch(e){}
     if(history.length>1)history.back();
   },
@@ -995,7 +996,10 @@ var ACT={
   gotransfer:function(){goLegacy('transfer')},
   gostocktake:function(){goLegacy('stocktake')},
   printloc:function(el){toast('已推送库区条码到打印队列：LOC-'+(Number(el.dataset.i)+1))},
-  new:function(){if(view==='stock'){toast('库存台账不可直接改数：请到「物料入库 / 物料领用 / 车间退料 / 物料退库」发起工单',1);return}var d=blankDoc(view);DB.doc.unshift(d);save();edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
+  new:function(){if(view==='stock'){toast('库存台账不可直接改数：请到「物料入库 / 物料领用 / 车间退料 / 物料退库」发起工单',1);return}
+  if(view==='receive'){dialog('到货验收 · 新建','<div class="note">到货=登记→入库一页办结,不合格走拒收</div>','<button class="b" data-close>取消</button> <button class="b pri" data-act="newrecv" data-t="register">新建登记 DJ</button> <button class="b pri" data-act="newrecv" data-t="inbound">新建入库 RK</button> <button class="b" data-act="newrecv" data-t="reject">新建拒收 JS</button>');return}
+  var d=blankDoc(view);DB.doc.unshift(d);save();edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
+  newrecv:function(el){var t=el.dataset.t||'register';var d=blankDoc(t);DB.doc.unshift(d);save();document.getElementById('dlgRoot').classList.add('hide');view=t;edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
   open:function(el){var d=docBy(el.dataset.no);if(!d){toast('未找到单据 '+el.dataset.no+'（可能是流水示例数据）',1);return}view=d.type;mode='edit';curNo=d.no;render()},
    back:function(){var d=cur();if(d&&d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存')}mode='list';curNo='';render()},
    cancel:function(){var d=cur();if(!d)return;if(d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存，未提交审批')}curNo='';mode='list';render()},
