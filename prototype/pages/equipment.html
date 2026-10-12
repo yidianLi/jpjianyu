@@ -55,4 +55,29 @@ function saveDraft(){lsSet(CUR.id,{step:CUR.cur,done:CUR.cur>1?CUR.cur-1:1,updat
 function finish(){if(!document.getElementById('wOn').checked){toast('请先勾选确认启用',true);return}lsSet(CUR.id,{step:3,done:3,updated:Date.now()});toast('已完成：'+CUR.id+' 启用成功，已纳入保养预警');setTimeout(backList,700)}
 ['wCode','wName','wType','wBrand','wWs','wLead','wCycle','wNext'].forEach(function(id){document.addEventListener('change',function(e){if(e.target&&e.target.id===id&&CUR.id)renderWiz()})});
 doCount();
+</script>
+<script>
+/* 设备真数据:拉system/equipment重建首tbody,详情回退照用openDetail */
+document.addEventListener('DOMContentLoaded', function(){
+  if(!window.WmsAi || !window.WmsSys) return;
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  window.WmsSys.equipment().then(function(j){
+    var rows = (j && j.data) || [];
+    if(!rows.length) return;
+    var tb = document.querySelector('tbody');
+    if(!tb) return;
+    tb.innerHTML = rows.map(function(x){
+      var on = String(x.status || '启用') !== '停用';
+      return '<tr class="border-b hover:bg-blue-50" data-stat="' + (on ? '运行中' : '停用') + '">'
+        + '<td class="py-2"><b class="text-blue-700">' + esc(x.eq_id) + '</b> ' + esc(x.kind || '') + '<br><span class="text-slate-400">SN ' + esc(x.sn || '') + '</span></td>'
+        + '<td>' + esc(x.kind || '') + '</td>'
+        + '<td>' + esc(x.holder || '') + '</td>'
+        + '<td><span class="px-2 rounded-full ' + (on ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500') + '">' + (on ? '启用' : '停用') + '</span></td>'
+        + '<td class="text-slate-400">—</td>'
+        + '<td class="text-slate-400">—</td>'
+        + '<td><button onclick="openDetail(\'' + esc(x.eq_id) + '\')" class="text-blue-600 font-bold">详情</button></td></tr>';
+    }).join('');
+    if(typeof doCount === 'function'){ try{ doCount(); }catch(e){} }
+  }).catch(function(){});
+});
 </script></body></html>

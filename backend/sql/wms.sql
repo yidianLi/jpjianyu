@@ -786,5 +786,15 @@ INSERT INTO bom_line(product_code,version,line_no,material_code,qty,unit,loss_ra
 ('CP-JK-001','V1',2,'HD-ZP-011',1.000,'件',0.0000),
 ('CP-JK-001','V1',3,'HD-NK-005',5.000,'件',0.0100)
 ON DUPLICATE KEY UPDATE qty=VALUES(qty);
+-- 演示设备(PDA-03/04与鉴权白名单一致,序列号脱敏展示)
+INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
+('PDA-03','PDA','SN202600000003','张建国','启用'),
+('PDA-04','PDA','SN202600000004','李小明','启用')
+ON DUPLICATE KEY UPDATE holder=VALUES(holder);
+-- 演示设备(与鉴权白名单一致):PDA-03/04
+INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
+('PDA-03','PDA','SN-PDA03-2026','张建国','启用'),
+('PDA-04','PDA','SN-PDA04-2026','李小明','启用')
+ON DUPLICATE KEY UPDATE holder=VALUES(holder);
 
 -- END: 本文件可重复执行(CREATE TABLE IF NOT EXISTS + INSERT..ON DUPLICATE KEY),无独立CREATE INDEX,无物理外键,无ENUM/JSON/CHECK

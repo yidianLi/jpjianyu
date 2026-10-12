@@ -36,4 +36,28 @@
 </div></div></div>
 <div id="m" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50"><div class="bg-white rounded-2xl w-[520px] p-6 text-xs"><div class="flex justify-between"><b class="text-sm">新建账号</b><button aria-label="关闭弹窗" title="关闭" onclick="document.getElementById('m').classList.add('hidden')" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div><div class="grid grid-cols-2 gap-2 mt-3"><label>账号*<input value="neicang_02" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>姓名*<input value="赵芳" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>初始密码*<input value="123456" type="password" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>手机号<input value="138****3302" class="w-full border rounded-lg px-2 py-2 mt-1"></label></div><div class="flex gap-2 mt-4"><button class="flex-1 border rounded-lg py-2" onclick="document.getElementById('m').classList.add('hidden')">取消</button><button class="flex-1 bg-blue-600 text-white rounded-lg py-2 font-bold" onclick="toast('账号 neicang_02 已创建，待分配角色');document.getElementById('m').classList.add('hidden')">创建</button></div></div></div>
 <div id="t" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full"></div>
-<script>var NAMES=['张建国','李小明','陈芳','王会计','陈总'];function toast(t,e){var d=document.getElementById('t');d.textContent=t;d.style.background=e?'#dc2626':'#0f172a';d.classList.remove('hidden');setTimeout(function(){d.classList.add('hidden')},2200)}function selUser(i,tr){document.querySelectorAll('#utb tr').forEach(function(x){x.classList.remove('sel')});tr.classList.add('sel');document.getElementById('uname').textContent=NAMES[i];toast('已选中 '+NAMES[i]+'，右侧权限已联动')}function preview(){var n=document.querySelectorAll('.rolechk:checked').length;document.getElementById('pv').textContent='权限影响预览：已选 '+n+' 个角色 · 保存后即时生效 · 变更写入审计'}function filterUser(kw){toast(kw?('已筛选：'+kw):'已清空筛选')}function openNew(){document.getElementById('m').classList.remove('hidden')}</script></body></html>
+<script>var NAMES=['张建国','李小明','陈芳','王会计','陈总'];function toast(t,e){var d=document.getElementById('t');d.textContent=t;d.style.background=e?'#dc2626':'#0f172a';d.classList.remove('hidden');setTimeout(function(){d.classList.add('hidden')},2200)}function selUser(i,tr){document.querySelectorAll('#utb tr').forEach(function(x){x.classList.remove('sel')});tr.classList.add('sel');document.getElementById('uname').textContent=NAMES[i];toast('已选中 '+NAMES[i]+'，右侧权限已联动')}function preview(){var n=document.querySelectorAll('.rolechk:checked').length;document.getElementById('pv').textContent='权限影响预览：已选 '+n+' 个角色 · 保存后即时生效 · 变更写入审计'}function filterUser(kw){toast(kw?('已筛选：'+kw):'已清空筛选')}function openNew(){document.getElementById('m').classList.remove('hidden')}</script>
+<script>
+/* 用户真数据:拉system/users重建#utb并同步NAMES,选择联动照用 */
+document.addEventListener('DOMContentLoaded', function(){
+  if(!window.WmsAi || !window.WmsSys) return;
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  window.WmsSys.users().then(function(j){
+    var rows = (j && j.data) || [];
+    if(!rows.length) return;
+    window.NAMES = rows.map(function(x){ return x.name || x.username; });
+    var tb = document.getElementById('utb');
+    if(!tb) return;
+    tb.innerHTML = rows.map(function(x, i){
+      var on = String(x.enabled) !== '0' && String(x.status || '启用') !== '停用';
+      return '<tr class="border-b hover:bg-blue-50 cursor-pointer' + (i === 0 ? ' sel' : '') + '" onclick="selUser(' + i + ',this)">'
+        + '<td class="py-2"><b>' + esc(x.username) + '</b><br>' + esc(x.name || '') + '</td>'
+        + '<td><span class="bg-slate-100 px-2 rounded-full">演示角色</span></td>'
+        + '<td>' + esc(x.data_scope || '') + '</td>'
+        + '<td><span class="px-2 rounded-full ' + (on ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500') + '">' + (on ? '启用' : '停用') + '</span></td>'
+        + '<td class="text-slate-400">—</td>'
+        + '<td></td></tr>';
+    }).join('');
+  }).catch(function(){});
+});
+</script></body></html>

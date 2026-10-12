@@ -80,5 +80,37 @@ function exportAudit(){toast('审计记录已导出（当前筛选结果）');}
 ['audit-q','audit-user','audit-type','audit-result','audit-from','audit-to'].forEach(function(id){document.getElementById(id).addEventListener('input',filterAudit);document.getElementById(id).addEventListener('change',filterAudit);});
 filterAudit();
 </script>
+<script src="../assets/ai-gateway.js"></script>
+<script>
+/* 审计真数据:拉audit_logs重建tbody,原筛选函数照用data属性 */
+document.addEventListener('DOMContentLoaded', function(){
+  if(!window.WmsAi) return;
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  window.WmsAi.ready.then(function(){
+    return fetch(window.WmsAi.base + '/system/audit_logs?page_size=100',
+      {headers: {'Authorization': 'Bearer ' + (localStorage.getItem('wms_token') || '')}});
+  }).then(function(r){ if(!r.ok) throw new Error('no backend'); return r.json(); })
+  .then(function(j){
+    var rows = (j && j.data) || [];
+    if(!rows.length) return;
+    var tb = document.getElementById('audit-body');
+    if(!tb) return;
+    tb.innerHTML = rows.map(function(x){
+      var at = String(x.at || ''), d = at.slice(0, 10), t = at.slice(11, 16);
+      var warn = /需|驳|失败|退回/.test(String(x.result || ''));
+      return '<tr data-user="' + esc(x.by_user) + '" data-type="' + esc(x.biz_type) + '" data-result="' + esc(x.result) + '" data-date="' + esc(d) + '">'
+        + '<td><b>' + esc(d.slice(5)) + '</b><br><span class="text-slate-400">' + esc(t) + '</span></td>'
+        + '<td>' + esc(x.by_user) + '<br><span class="text-slate-400">' + esc(x.device || '') + '</span></td>'
+        + '<td><span class="audit-tag audit-info">' + esc(x.biz_type || '') + '</span></td>'
+        + '<td class="font-bold text-blue-700">' + esc(x.doc_no || '') + '</td>'
+        + '<td>' + esc(x.action || '') + '</td>'
+        + '<td>' + (x.o_val != null && String(x.o_val) !== '' ? '<s>' + esc(x.o_val) + '</s> → <b>' + esc(x.n_val) + '</b>' : esc(x.n_val == null ? '' : x.n_val)) + '</td>'
+        + '<td><span class="audit-tag ' + (warn ? 'audit-warn' : '') + '">' + esc(x.result || '') + '</span></td>'
+        + '<td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>';
+    }).join('');
+    if(typeof filterAudit === 'function') filterAudit();
+  }).catch(function(){});
+});
+</script>
 </body>
 </html>
