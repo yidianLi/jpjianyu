@@ -58,6 +58,12 @@
     base: BASE,
     toType: function(tab){ return TYPE_MAP[tab] || 'DJ'; },
     toLocal: toLocalDoc,
+    statusBack: function(s){ return STATUS_BACK[s] || '草稿'; },
+    getDoc: function(docNo){
+      return get('/web/docs/' + encodeURIComponent(docNo)).then(function(j){
+        return (j && j.data) || null;
+      }).catch(function(){ return null; });
+    },
     pullDocs: function(dtype){
       var q = '/web/docs?page_size=100&with_lines=1' +
         (dtype ? '&dtype=' + encodeURIComponent(dtype) : '');

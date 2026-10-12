@@ -307,6 +307,18 @@ function mat(code){return DB.material.find(function(m){return m.code===code})||{
 function st(wh,code,batch){return DB.stock.find(function(s){return s.wh===wh&&s.code===code&&s.batch===batch})}
 function stOrNew(wh,loc,code,batch,unit){var s=st(wh,code,batch);if(!s){s={wh:wh,loc:loc||'待分配',code:code,batch:batch||'待分配',unit:unit,on:0,avail:0,pending:0,qua:0,frozen:0,at:now()};DB.stock.push(s)}if(loc)s.loc=loc;return s}
 function docBy(no){return DB.doc.find(function(d){return d.no===no})}
+function applySrvDetail(d,srv){
+ if(!d||!srv)return;
+ d.status=window.WmsDoc?WmsDoc.statusBack(srv.biz_status):d.status;
+ d.handler=srv.handler||d.handler;
+ d.date=String(srv.at||'').slice(0,10)||d.date;
+ if(srv.lines&&srv.lines.length){
+  var keepLocal=d.srv_pending||(srv.biz_status==='DRAFT'&&(d.lines||[]).length>srv.lines.length);
+  if(!keepLocal){
+   d.lines=srv.lines.map(function(l){return {code:l.material_code||l.product_code||'',name:mat(l.material_code||l.product_code||'').name||'',unit:l.unit||'',qty:Number(l.qty)||0,qty_src:Number(l.qty)||0,batch:l.batch_no||'',loc:l.loc||'',region:l.loc||'',qc:l.qc_result||'合格',price:0,reason:l.reason||''};});
+  }
+ }
+}
 function tag(t){var m={'草稿':'g1','已保存':'g2','已审批':'g4','已驳回':'g5','已作废':'g1','已冲红':'g6','正常':'g4','低于下限':'g5','超过上限':'g3','待检':'g3','隔离':'g5','在库':'g4','已领用':'g2','已退库':'g2','已拒收':'g5','已报废':'g1','入':'g4','出':'g5','转':'g2'};return '<span class="tag '+(m[t]||'g1')+'">'+esc(t)+'</span>'}
 function unitSum(list){var g={};(list||[]).forEach(function(l){var q=num(l.qty);if(!q)return;var u=l.unit||mat(l.code).unit||'—';g[u]=(g[u]||0)+q});return Object.keys(g).map(function(u){return '<span class="qty-value">'+fmt(g[u])+'</span><span class="qty-unit">'+esc(u)+'</span>'}).join('<span class="mut"> · </span>')||'—'}
 function unitSumText(list){return String(unitSum(list)).replace(/<[^>]+>/g,'')}
@@ -1018,7 +1030,10 @@ var ACT={
   if(view==='receive'){dialog('到货验收 · 新建','<div class="note">到货=登记→入库一页办结,不合格走拒收</div>','<button class="b" data-close>取消</button> <button class="b pri" data-act="newrecv" data-t="register">新建登记 DJ</button> <button class="b pri" data-act="newrecv" data-t="inbound">新建入库 RK</button> <button class="b" data-act="newrecv" data-t="reject">新建拒收 JS</button>');return}
   var d=blankDoc(view);DB.doc.unshift(d);save();edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
   newrecv:function(el){var t=el.dataset.t||'register';var d=blankDoc(t);DB.doc.unshift(d);save();document.getElementById('dlgRoot').classList.add('hide');view=t;edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
-  open:function(el){var d=docBy(el.dataset.no);if(!d){toast('未找到单据 '+el.dataset.no+'（可能是流水示例数据）',1);return}view=d.type;mode='edit';curNo=d.no;render()},
+  open:function(el){var d=docBy(el.dataset.no);if(!d){toast('未找到单据 '+el.dataset.no+'（可能是流水示例数据）',1);return}
+    var key=d.srv_no||(d.srv?d.no:'');
+    if(key&&window.WmsDoc&&WmsDoc.getDoc){WmsDoc.getDoc(key).then(function(srv){if(srv)applySrvDetail(d,srv);save();view=d.type;mode='edit';curNo=d.no;render();}).catch(function(){view=d.type;mode='edit';curNo=d.no;render();});return;}
+    view=d.type;mode='edit';curNo=d.no;render()},
    back:function(){var d=cur();if(d&&d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存')}mode='list';curNo='';render()},
    cancel:function(){var d=cur();if(!d)return;if(d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存，未提交审批')}curNo='';mode='list';render()},
   void:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no)},
