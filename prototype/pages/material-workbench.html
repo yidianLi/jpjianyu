@@ -828,7 +828,7 @@ function renderRegisterGroupedLines(d,cols){
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>工单信息'+(d.status==='草稿'?'（新工单，未保存）':'')+'</b><button class="b" data-act="print">打印</button></div>'+
         '<div class="hd">'+headForm+'</div>'+
         '<div class="note" style="margin-top:12px">'+ruleTip(d.type)+'</div>'+
-        '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" data-act="submit"'+(locked?' disabled':'')+'>提交</button><button class="b" data-act="audit"'+(locked?' disabled':'')+'>审核</button><button class="b danger" data-act="void"'+(locked?' disabled':'')+'>作废</button></div>'+
+        '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="b pri" data-act="submit"'+(locked?' disabled':'')+'>提交</button><button class="b" data-act="audit"'+(locked?' disabled':'')+'>审核</button><button class="b danger" data-act="void"'+(locked?' disabled':'')+'>作废</button>'+(d.type==='register'?'<button class="b" data-act="toInbound"'+(locked?' disabled':'')+'>转入库 →</button>':'')+(d.type==='inbound'?'<button class="b" data-act="toReject"'+(locked?' disabled':'')+'>转拒收 →</button>':'')+'</div>'+
         '<div class="sm mut" style="margin-top:8px" data-flowline>审批流：加载中…</div>'+
         '<div class="sm mut" style="margin-top:10px">附件上传数量：'+(d.files||0)+' <span class="link" data-act="file">上传照片 / 送货单</span></div>'+
         '<div class="sm mut" style="margin-top:6px">审批日志 <span class="link" data-act="log">查看</span> · 库存记录 <span class="link" data-act="flow" data-code="'+esc((d.lines[0]||{}).code||'')+'">查看</span></div>'+
@@ -1000,6 +1000,16 @@ var ACT={
    back:function(){var d=cur();if(d&&d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存')}mode='list';curNo='';render()},
    cancel:function(){var d=cur();if(!d)return;if(d.status!=='已审批'&&d.status!=='已作废'){save();toast(d.no+' 已自动保存，未提交审批')}curNo='';mode='list';render()},
   void:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no)},
+  toInbound:function(){var d=cur();if(!d||d.type!=='register'){toast('只有登记单可一键转入库',1);return}
+    var n=blankDoc('inbound');n.src=d.no;n.remark='由登记单'+d.no+'一键转入';
+    n.lines=(d.lines||[]).map(function(l){return {code:l.code,name:l.name,unit:l.unit||mat(l.code).unit,qty:l.qty_src||l.qty,qty_src:l.qty_src||l.qty,batch:l.batch||'',loc:l.loc||l.region||'',region:l.region||l.loc||'',qc:'合格',price:l.price||0};});
+    if(!n.lines.length){toast('登记单无行项,无法转入库',1);return}
+    DB.doc.unshift(n);curNo=n.no;audit(n,'一键转入','来源'+d.no);save();render();toast('已生成入库单'+n.no+',已关联登记'+d.no);},
+  toReject:function(){var d=cur();if(!d||d.type!=='inbound'){toast('只有入库单可一键转拒收',1);return}
+    var n=blankDoc('reject');n.source=d.no;n.remark='由入库单'+d.no+'一键生成';
+    n.lines=(d.lines||[]).map(function(l){return {code:l.code,name:l.name,unit:l.unit||mat(l.code).unit,qty:l.qty,qty_src:l.qty,qty_bad:l.qty,reason:'质量问题',batch:l.batch||'',loc:'',price:l.price||0};});
+    if(!n.lines.length){toast('入库单无行项,无法转拒收',1);return}
+    DB.doc.unshift(n);curNo=n.no;audit(n,'一键生成','来源'+d.no);save();render();toast('已生成拒收单'+n.no+',请补差异原因后提交');},
   delDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;if(d.status!=='草稿'){toast('只有草稿可以删除',1);return}dialog('删除草稿 · '+d.no,'<div class="note">删除后不可恢复，确认删除这张草稿工单吗？</div>','<button class="b" data-close>取消</button><button class="b danger" id="delYes">确认删除</button>');document.getElementById('delYes').onclick=function(){DB.doc=DB.doc.filter(function(x){return x.no!==d.no});audit(d,'删除草稿');save();document.getElementById('dlgRoot').classList.add('hide');render();toast('已删除草稿：'+d.no);};},
   voidDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;if(d.status==='已审批'){toast('已过账单据只能走《物料退库·入库冲红》，不能作废',1);return}if(d.status==='已作废'||d.status==='已冲红'){toast('该单据已'+d.status+'，无需重复作废',1);return}d.status='已作废';audit(d,'作废');save();render();toast('已作废：'+d.no);},
   printDoc:function(el){var d=docBy(el.dataset.no);if(!d)return;var codes=(d.lines||[]).map(function(l){return l.barcode}).filter(Boolean);toast(codes.length?('已推送 '+codes.length+' 张二维码标签到打印队列（二维码 / 名称 / 单价）'):'物料登记后才会生成二维码标签');},
