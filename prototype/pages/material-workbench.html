@@ -1078,7 +1078,8 @@ var ACT={
     if(d.status==='草稿'){d.status='已保存'}
     ApproveFlow.ensureFlow(d,d.type);
     var r=ApproveFlow.submit(d,d.type,d.handler||'经办人');if(!r.ok){toast(r.msg,1);return}
-    audit(d,'提交(S1=1)','');save();render();toast(d.no+' '+r.msg)},
+    audit(d,'提交(S1=1)','');save();render();toast(d.no+' '+r.msg);
+    if(window.WmsDoc){WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.submitSrv(srv);}).then(function(){d.srv_status='APPROVING';save();render();toast(d.no+' 后端提审OK('+d.srv_no+')');}).catch(function(e){d.srv_pending=1;save();toast('后端提审失败,本地已保存待补:'+e.message,1);});}},
   audit:function(){var d=cur();if(!d)return;var f=ApproveFlow.ensureFlow(d,d.type);
     if(!f||!f.submitted){toast('请先点“提交”(S1=1) 后再审核',1);return}
     if(ApproveFlow.needPost(d,d.type)){toast('各节点已通过，请点“仓管确认”完成过账');return}
@@ -1091,8 +1092,12 @@ var ACT={
       var pass=document.getElementById('af_pass').value==='1',note=document.getElementById('af_note').value.trim();
       if(pass&&d.status!=='已审批'){
         var r=ApproveFlow.approve(d,d.type,d.handler||'审批人',nx.role,pass,note);
-        if(r.reject){d.status='已驳回';audit(d,'审核驳回(' +nx.k+')',note);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' 已驳回：'+r.msg,1);return}
-        audit(d,'审核通过('+nx.k+')',note||nx.role);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' '+r.msg);return;
+        if(r.reject){d.status='已驳回';audit(d,'审核驳回(' +nx.k+')',note);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' 已驳回：'+r.msg,1);
+          if(window.WmsDoc&&d.srv_no){WmsDoc.approveSrv(d.srv_no,'退回',note||('驳回:'+nx.k)).then(function(){toast(d.no+' 后端已退回');}).catch(function(e){d.srv_pending=1;save();toast('后端退回失败待补:'+e.message,1);});}
+          return}
+        audit(d,'审核通过('+nx.k+')',note||nx.role);save();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' '+r.msg);
+        if(window.WmsDoc){WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.approveSrv(srv,'通过',note);}).then(function(){d.srv_status='APPROVED';save();toast(d.no+' 后端节点OK');}).catch(function(e){d.srv_pending=1;save();toast('后端审核同步失败待补:'+e.message,1);});}
+        return;
       }
       document.getElementById('dlgRoot').classList.add('hide');
     };
@@ -1105,17 +1110,34 @@ var ACT={
     if(d.status==='已审批'){toast('该单已过账（幂等保护）',1);return}
     var r=post(d);
     if(!r.ok){showErrors(r.errors);return}
-    f=ApproveFlow.ensureFlow(d,d.type);
-    f.S6=1;f.done=1;f.cur='DONE';(f.hist=f.hist||[]).push({t:now(),act:'仓管确认(S6=1)',by:d.handler||'仓管员',s:'完成'});
-    d.status='已审批';d.approved_at=now();audit(d,'仓管确认·过账(S6=1)','入库/出库确认，工单完成');save();render();
-    toast(d.no+' 仓管确认完成：S6=1，工单完成并过账')},
+    function doConfirmLocal(){
+      var f2=ApproveFlow.ensureFlow(d,d.type);
+      f2.S6=1;f2.done=1;f2.cur='DONE';(f2.hist=f2.hist||[]).push({t:now(),act:'仓管确认(S6=1)',by:d.handler||'仓管员',s:'完成'});
+      d.status='已审批';d.approved_at=now();audit(d,'仓管确认·过账(S6=1)','入库/出库确认，工单完成');save();render();
+      toast(d.no+' 仓管确认完成：S6=1，工单完成并过账');
+    }
+    if(!window.WmsDoc){doConfirmLocal();return}
+    WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.submitSrv(srv).catch(function(){});})
+      .then(function(){return WmsDoc.postSrv(d.srv_no);})
+      .then(function(){d.srv_status='POSTED';doConfirmLocal();})
+      .catch(function(e){toast('后端过账失败,本地未动:'+e.message+'（先查可用量，超发会被拦）',1);});
+  },
   gocfg:function(){try{if(parent&&parent.go)parent.go('approveFlow');else location.href='approve-flow.html'}catch(e){location.href='approve-flow.html'}},
   approve:function(){var d=cur();if(!d){toast('请先打开工单');return}
     if(d.status==='已审批'){toast('该单已过账，重复审批被拒绝（幂等保护）',1);return}
     var r=post(d);
     if(!r.ok){showErrors(r.errors);return}
-    d.status='已审批';d.approved_at=now();audit(d,'审批通过');save();render();
-    toast(r.quiet?d.no+' 已审批：拒收凭证已登记，未产生库存变动':d.no+' 审批通过，仓库库存与流水已联动')},
+    function doApproveLocal(){
+      d.status='已审批';d.approved_at=now();audit(d,'审批通过');save();render();
+      toast(r.quiet?d.no+' 已审批：拒收凭证已登记，未产生库存变动':d.no+' 审批通过，仓库库存与流水已联动');
+    }
+    if(!window.WmsDoc){doApproveLocal();return}
+    WmsDoc.ensure(d).then(function(srv){d.srv_no=srv;save();return WmsDoc.submitSrv(srv).catch(function(){});})
+      .then(function(){return WmsDoc.approveSrv(d.srv_no,'通过',d.handler||'审批人');})
+      .then(function(){return WmsDoc.postSrv(d.srv_no);})
+      .then(function(){d.srv_status='POSTED';doApproveLocal();toast(d.no+' 后端过账OK');})
+      .catch(function(e){d.srv_pending=1;save();toast('后端过账失败,本地未动:'+e.message+'（超发/状态不对时会出现）',1);});
+  },
   reject:function(){var d=cur();if(!d||d.status!=='已保存'){toast('只有待审批工单可驳回');return}d.status='已驳回';audit(d,'驳回');save();render();toast(d.no+' 已驳回，退回经办人修改后可重新保存提交')},
   print:function(){var d=cur();if(!d)return;var codes=(d.lines||[]).map(function(l){return l.barcode}).filter(Boolean);toast(codes.length?('已推送 '+codes.length+' 张二维码标签到打印队列（二维码 / 名称 / 单价）'):'物料登记后才会生成二维码标签')},
   file:function(){var d=cur();if(!d)return;d.files=(d.files||0)+1;audit(d,'上传附件');save();render();toast('附件已上传（照片/送货单），计入工单附件数量')},

@@ -65,6 +65,44 @@
         {line_no: lineNo || 1, n_qty: nQty}, idemKey(pdNo, lineNo || 1, 'PD'));
     }
   };
+  /* 工单三连调:ensure建后端单→submit提审→approve节点→post过账,全经网关ready */
+  window.WmsDoc.ensure = function(local){
+    if(local.srv_no) return Promise.resolve(local.srv_no);
+    var lines = (local.lines || []).map(function(l){
+      return {material_code: l.code || l.material_code || '',
+        product_code: l.product_code || '', qty: Number(l.qty) || 0,
+        unit: l.unit || '', loc: l.loc || l.region || ''};
+    }).filter(function(x){ return x.material_code && x.qty > 0 && x.unit; });
+    var type = window.WmsDoc.toType(local.tab || local.type);
+    return post('/web/docs', {type: type, lines: lines,
+      handler: local.handler || 'web'}, idemKey('WB:' + local.no, 1, type))
+      .then(function(j){
+        var docNo = j && j.data && j.data.doc_no;
+        if(!docNo) throw new Error('网关未返回单号');
+        return docNo;
+      });
+  };
+  window.WmsDoc.submitSrv = function(srvNo){
+    return post('/web/docs/' + encodeURIComponent(srvNo) + '/submit', {})
+      .then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return j;
+      });
+  };
+  window.WmsDoc.approveSrv = function(srvNo, action, opinion){
+    return post('/web/docs/' + encodeURIComponent(srvNo) + '/approve',
+      {action: action, opinion: opinion || ''}).then(function(j){
+      if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+      return j;
+    });
+  };
+  window.WmsDoc.postSrv = function(srvNo){
+    return post('/web/docs/' + encodeURIComponent(srvNo) + '/post', {},
+      idemKey(srvNo, 1, 'POST')).then(function(j){
+      if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+      return j;
+    });
+  };
   var oldToast = window.toast;
   window.addEventListener('load', function(){
     if(typeof window.toast === 'function' && !window.toast.__wmsDocBridge){
