@@ -58,8 +58,10 @@
     base: BASE,
     toType: function(tab){ return TYPE_MAP[tab] || 'DJ'; },
     toLocal: toLocalDoc,
-    pullDocs: function(){
-      return get('/web/docs?page_size=100&with_lines=1').then(function(j){
+    pullDocs: function(dtype){
+      var q = '/web/docs?page_size=100&with_lines=1' +
+        (dtype ? '&dtype=' + encodeURIComponent(dtype) : '');
+      return get(q).then(function(j){
         return (j && j.data) || [];
       }).catch(function(){ return []; });
     },

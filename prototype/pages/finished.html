@@ -58,7 +58,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .x{border:0;background:transparent;font-size:20px;color:var(--muted)}
 .errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
 @media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script><script src="../assets/ai-gateway.js"></script><script src="../assets/doc-bridge.js"></script></head>
+</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script><script src="../assets/ai-gateway.js"></script><script src="../assets/master-data.js"></script><script src="../assets/doc-bridge.js"></script></head>
 <body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
 <div class="wrap space-y-4">
@@ -80,6 +80,29 @@ function fseed(){return {seq:{CP:208,RK:105,TC:11,JJ:104},
  audit:[],seq2:{BAR:2}};}
 var FDB;try{FDB=JSON.parse(localStorage.getItem(FKEY)||'null')||fseed()}catch(e){FDB=fseed()}
 if(!FDB.stock||!FDB.doc)FDB=fseed();
+/* 成品真接口:服务端CP/RK/JJ/TK单据与成品现存覆盖本地(按单号/行合并,服务端赢)
+   注:下方已有CP/RK单据与onhand成品行两处合并,此处仅补JJ交付/TK退仓两类 */
+var FIN_TYPE_BACK={JJ:'deliver',TK:'wreturn',TC:'wreturn'};
+var FIN_STATUS_BACK={DRAFT:'草稿',APPROVING:'已保存',POSTED:'已审批',VOID:'已作废'};
+function mergeFinDocs(){
+ if(mergeFinDocs.busy||!window.WmsDoc)return;mergeFinDocs.busy=1;
+ WmsDoc.pullDocs('').then(function(rows){
+  var changed=false;
+  (rows||[]).forEach(function(x){
+   if(!x.doc_no||!FIN_TYPE_BACK[x.type])return;
+   var row={no:x.doc_no,type:FIN_TYPE_BACK[x.type],status:FIN_STATUS_BACK[x.biz_status]||'草稿',
+    date:String(x.at||'').slice(0,10),handler:x.handler||'',srv:1,
+    lines:((x.lines)||[]).map(function(l){return {code:l.product_code||l.material_code||'',name:'',batch:l.batch_no||'',qty:Number(l.qty)||0,qty_src:Number(l.qty)||0,unit:l.unit||'件',loc:l.loc||'',region:l.loc||'',qc:l.qc_result||'合格',price:0,reason:l.reason||''};})};
+   var ex=FDB.doc.filter(function(d){return d.no===row.no||d.srv_no===row.no;})[0];
+   if(ex){ex.status=row.status;ex.srv=1;}
+   else if(row.lines.length){FDB.doc.unshift(row);changed=true;}
+  });
+  try{fsave();}catch(e){}
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+  mergeFinDocs.busy=0;
+ }).catch(function(){mergeFinDocs.busy=0;});
+}
+mergeFinDocs();
 function fsave(){try{localStorage.setItem(FKEY,JSON.stringify(FDB))}catch(e){}}
 /* ---- 老数据迁移：单行单据 -> lines[]，库存补 pending ---- */
 function migrate(){
@@ -126,6 +149,43 @@ var FINISHED_CATALOG=[{code:'CP-JK-001',name:'HD-JK-24秋 工装夹克',spec:'�
    if(ex){Object.keys(row).forEach(function(k){ex[k]=row[k];});}
    else{FINISHED_CATALOG.push(row);}
    changed=true;
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+ }).catch(function(){});
+ /* 成品单据接口化:CP登记单+含成品行的入库单并入FDB.doc,状态跟后端 */
+ WmsMaster.get('/web/docs?dtype=CP&page_size=100&with_lines=1').then(function(j){
+  var changed=false;
+  ((j&&j.data)||[]).forEach(function(x){
+   if(!x.doc_no||x.type!=='CP')return;
+   var row={no:x.doc_no,type:'register',status:x.biz_status==='POSTED'?'已审批':(x.biz_status==='APPROVING'?'已保存':'草稿'),date:String(x.at||'').slice(0,10),customer:x.handler||'',wh:'',loc:'',handler:x.handler||'',remark:'',files:0,srv:1,lines:((x.lines)||[]).map(function(l,i){return {code:l.product_code||l.material_code||'',name:'',batch:l.batch_no||'',qty:Number(l.qty)||0,unit:l.unit||'件',loc:l.loc||'',region:l.loc||'',price:0,barcode:''};})};
+   var ex=FDB.doc.filter(function(d){return d.no===row.no;})[0];
+   if(ex){ex.status=row.status;}
+   else{FDB.doc.unshift(row);changed=true;}
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+ }).catch(function(){});
+ WmsMaster.get('/web/docs?dtype=RK&page_size=100&with_lines=1').then(function(j){
+  var changed=false;
+  ((j&&j.data)||[]).forEach(function(x){
+   if(!x.doc_no||x.type!=='RK')return;
+   var pl=((x.lines)||[]).filter(function(l){return l.product_code;});
+   if(!pl.length)return;
+   var row={no:x.doc_no,type:'inbound',status:x.biz_status==='POSTED'?'已审批':(x.biz_status==='APPROVING'?'已保存':'草稿'),date:String(x.at||'').slice(0,10),customer:'',wh:'',handler:x.handler||'',acceptor:'',remark:'',files:0,src:'',srv:1,lines:pl.map(function(l){return {code:l.product_code||'',name:'',batch:l.batch_no||'',qty_src:Number(l.qty)||0,qty:Number(l.qty)||0,unit:l.unit||'件',loc:l.loc||'',qc:l.qc_result||'合格',price:0,barcode:''};})};
+   var ex=FDB.doc.filter(function(d){return d.no===row.no;})[0];
+   if(ex){ex.status=row.status;}
+   else{FDB.doc.unshift(row);changed=true;}
+  });
+  if(changed&&typeof render==='function'){try{render();}catch(e){}}
+ }).catch(function(){});
+ /* 成品库存接口化:onhand成品行并入FDB.stock */
+ WmsMaster.get('/web/stock/onhand?page_size=200').then(function(j){
+  var changed=false;
+  ((j&&j.data)||[]).forEach(function(x){
+   if(!x.product_code)return;
+   var ex=FDB.stock.filter(function(s){return s.code===x.product_code&&s.batch===(x.batch_no||'')&&s.wh===(x.wh||'');})[0];
+   var m=fmat(x.product_code);
+   if(ex){ex.on=Number(x.on_hand)||0;ex.avail=Number(x.avail)||0;ex.srv=1;}
+   else{FDB.stock.unshift({code:x.product_code,name:m.name,spec:m.spec||'',unit:'件',wh:x.wh||'',loc:x.loc||'',batch:x.batch_no||'',on:Number(x.on_hand)||0,avail:Number(x.avail)||0,qua:0,pending:0,src:'',at:'',srv:1});changed=true;}
   });
   if(changed&&typeof render==='function'){try{render();}catch(e){}}
  }).catch(function(){});
