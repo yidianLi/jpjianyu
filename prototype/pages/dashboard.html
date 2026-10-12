@@ -88,6 +88,23 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+  /* 全局兜底点击:不依赖主脚本是否存活,保证每个按钮都有反应 */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    function up(sel){ return t.closest ? t.closest(sel) : null; }
+    var el;
+    if((el = up('#dash-new'))){ location.href = 'docs.html?new=SL'; return; }
+    if((el = up('[data-action]'))){
+      var route = {receipt: 'docs.html?new=RK', transfer: 'transfer.html', docs: 'docs.html'}[el.getAttribute('data-action')] || 'docs.html';
+      location.href = route; return;
+    }
+    if((el = up('.dash-right .list-item'))){
+      if(el.hasAttribute('data-live-alert')) return;
+      if(el.getAttribute('data-pd')){ location.href = 'stocktake.html?pd=' + encodeURIComponent(el.getAttribute('data-pd')); return; }
+      var code = el.getAttribute('data-code') || el.getAttribute('data-doc');
+      if(code){ location.href = 'docs.html?code=' + encodeURIComponent(code); return; }
+    }
+  }, true);
 })();
 </script>
 </head>
