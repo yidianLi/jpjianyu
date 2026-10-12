@@ -21,6 +21,7 @@
       var v = (el.value || '').trim();
       if(/^\d+(\.\d+)?$/.test(v) && el.type !== 'file' && el.type !== 'checkbox') lines.push({qty: Number(v)});
     });
+    (window.__SCAN_CODES || []).slice(0, 20).forEach(function(c){ lines.push({code: c}); });
     return lines.slice(0, 20);
   }
   function byText(keywords){

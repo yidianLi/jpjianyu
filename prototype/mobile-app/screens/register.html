@@ -30,6 +30,15 @@
   if(biz==='RJ')miss=['RJ 来料拒收:只留不合格凭证,不写库存;请填差异原因'];
   var w=document.getElementById('missWarn');
   if(miss.length){w.classList.remove('hidden');w.innerHTML='缺关联待处理(不拦单):<br>'+miss.join('<br>');}
+  try{
+    var ho=JSON.parse(localStorage.getItem('wms_scan_handoff')||'null');
+    if(ho&&ho.codes&&ho.codes.length&&(ho.biz===biz||ho.biz==='DJ')){
+      window.__SCAN_CODES=ho.codes;
+      w.classList.remove('hidden');
+      w.innerHTML+=(w.innerHTML?'<br>':'')+'从扫码带入 '+ho.codes.length+' 码'+(ho.doc?'（单据'+ho.doc+'）':'')+':'+ho.codes.slice(0,6).join('、')+(ho.codes.length>6?'…':'');
+      localStorage.removeItem('wms_scan_handoff');
+    }
+  }catch(e){}
   var subs=document.querySelectorAll('button');
   for(var i=0;i<subs.length;i++){var t=subs[i].textContent||'';
     if(t.indexOf('提交登记入账')>-1){subs[i].textContent=biz==='TK'?'提交退库':biz==='RJ'?'提交拒收单':biz==='LY'?'提交领用':biz==='RK'?'提交入库':'提交登记入账';break;}}

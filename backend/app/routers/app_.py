@@ -27,8 +27,10 @@ def scan(body: dict, authed: dict = Depends(auth.need_auth),
     if not code:
         return resp.fail(400, "扫码内容为空")
     if code in SEEN:
-        db.execute(text("INSERT INTO scan_log(code,result,by_user,device)"
-                        " VALUES(:c,'DUP_SCAN','app','')"), {"c": code})
+        db.execute(text("INSERT INTO scan_log(code,result,doc_no,by_user,device)"
+                        " VALUES(:c,'DUP_SCAN',:d,:u,:dev)"),
+                   {"c": code, "d": str(body.get("orderId") or ""),
+                    "u": authed["username"], "dev": authed.get("device", "")})
         db.commit()
         return resp.fail(403, "DUP_SCAN:重复扫码")
     item = db.execute(text("SELECT material_code,batch_no,status FROM material_item"
@@ -38,8 +40,10 @@ def scan(body: dict, authed: dict = Depends(auth.need_auth),
     if not item and not loc:
         return resp.fail(404, "INVALID:无效码")
     SEEN.add(code)
-    db.execute(text("INSERT INTO scan_log(code,result,by_user,device)"
-                    " VALUES(:c,'HIT','app','')"), {"c": code})
+    db.execute(text("INSERT INTO scan_log(code,result,doc_no,by_user,device)"
+                    " VALUES(:c,'HIT',:d,:u,:dev)"),
+               {"c": code, "d": str(body.get("orderId") or ""),
+                "u": authed["username"], "dev": authed.get("device", "")})
     db.commit()
     if item:
         return resp.ok({"code": code, "result": "OK", "kind": "SB",
@@ -72,8 +76,8 @@ def confirm(body: dict, authed: dict = Depends(auth.need_auth),
             return resp.fail(400, "DIFF_REASON_REQUIRED:差异必须填原因")
     with db.begin():
         db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,result)"
-                        " VALUES('app','清单确认',:d,'已完成')"),
-                   {"d": str(body.get("orderId") or "")})
+                        " VALUES(:u,'清单确认',:d,'已完成')"),
+                   {"u": authed["username"], "d": str(body.get("orderId") or "")})
     return resp.ok({"orderId": body.get("orderId"), "status": "ACCEPTED"})
 
 
