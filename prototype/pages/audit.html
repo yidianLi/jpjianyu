@@ -34,9 +34,9 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
       </div>
 
       <section class="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-label="审计摘要">
-        <div class="card p-3"><div class="text-xs text-slate-400">记录总数</div><div class="text-xl font-extrabold mt-1 text-slate-800">128</div><div class="text-[11px] text-slate-400 mt-1">近 30 天</div></div>
-        <div class="card p-3"><div class="text-xs text-slate-400">今日新增</div><div class="text-xl font-extrabold mt-1 text-blue-700">8</div><div class="text-[11px] text-slate-400 mt-1">涉及 5 位操作人</div></div>
-        <div class="card p-3"><div class="text-xs text-slate-400">需复核</div><div class="text-xl font-extrabold mt-1 text-amber-600">2</div><div class="text-[11px] text-slate-400 mt-1">数量修改与异常签名</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">记录总数</div><div id="auTotal" class="text-xl font-extrabold mt-1 text-slate-800">–</div><div class="text-[11px] text-slate-400 mt-1">近 30 天</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">今日新增</div><div id="auToday" class="text-xl font-extrabold mt-1 text-blue-700">–</div><div id="auUsers" class="text-[11px] text-slate-400 mt-1">–</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">需复核</div><div id="auWarn" class="text-xl font-extrabold mt-1 text-amber-600">–</div><div class="text-[11px] text-slate-400 mt-1">数量修改与异常签名</div></div>
         <div class="card p-3"><div class="text-xs text-slate-400">最近同步</div><div class="text-xl font-extrabold mt-1 text-emerald-600">08:31</div><div class="text-[11px] text-slate-400 mt-1">审计服务正常</div></div>
       </section>
 
@@ -103,6 +103,11 @@ document.addEventListener('DOMContentLoaded', function(){
         + '<td><span class="audit-tag ' + (warn ? 'audit-warn' : '') + '">' + esc(x.result || '') + '</span></td>'
         + '<td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>';
     }).join('');
+    (function paintAuStats(list){function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+     var today=new Date(),tstr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+     var users={},tn=0,wn=0;
+     (list||[]).forEach(function(x){var at=String(x.at||'');if(at.slice(0,10)===tstr){tn++;if(x.by_user)users[x.by_user]=1;}if(/需|驳|失败|退回/.test(String(x.result||'')))wn++;});
+     set('auTotal',list.length);set('auToday',tn);set('auUsers','涉及 '+Object.keys(users).length+' 位操作人');set('auWarn',wn);})(rows);
     if(typeof filterAudit === 'function') filterAudit();
   }).catch(function(){var tb=document.getElementById('audit-body');if(tb)tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">后端不可达</td></tr>';});
 });

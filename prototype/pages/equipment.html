@@ -6,10 +6,10 @@
 <div id="listView" class="space-y-4">
 <div class="flex justify-between items-center flex-wrap gap-2"><div><h1 class="text-xl font-extrabold">设备管理</h1></div><div class="flex gap-2 text-xs"><button onclick="toast('设备台账已导出（含状态与保养记录）')" class="px-3 py-2 bg-white border rounded-lg">导出台账</button><button onclick="openWiz(null)" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">+ 新增设备</button></div></div>
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 text-xs">
-<div class="card p-3"><div class="text-slate-400">设备总数</div><div class="font-extrabold text-lg">42 <span class="text-xs font-normal text-slate-400">缝制26 · 裁剪8 · 仓储8</span></div></div>
-<div class="card p-3"><div class="text-slate-400">运行中</div><div class="font-extrabold text-lg text-emerald-600">36</div><div class="text-[11px] text-slate-400">完好率 85.7%</div></div>
-<div class="card p-3 border-orange-200 bg-orange-50/50"><div class="text-orange-600">保养到期 ≤7天</div><div class="font-extrabold text-lg">4</div><div class="text-[11px] text-slate-500">SB-003 裁床 · 明天到期</div></div>
-<div class="card p-3 border-red-200 bg-red-50/50"><div class="text-red-500">维修中 / 停机</div><div class="font-extrabold text-lg">2</div><div class="text-[11px] text-slate-500">SB-007 叉车维修中 · SB-011 停机</div></div>
+<div class="card p-3"><div class="text-slate-400">设备总数</div><div class="font-extrabold text-lg" id="eqTotal">–</div></div>
+<div class="card p-3"><div class="text-slate-400">运行中</div><div class="font-extrabold text-lg text-emerald-600" id="eqRun">–</div><div class="text-[11px] text-slate-400" id="eqRate">–</div></div>
+<div class="card p-3 border-orange-200 bg-orange-50/50"><div class="text-orange-600">保养到期 ≤7天</div><div class="font-extrabold text-lg">–</div><div class="text-[11px] text-slate-500">无保养计划口</div></div>
+<div class="card p-3 border-red-200 bg-red-50/50"><div class="text-red-500">维修中 / 停机</div><div class="font-extrabold text-lg" id="eqDown">–</div><div class="text-[11px] text-slate-500" id="eqDownList">–</div></div>
 </div>
 <div class="card p-4"><div class="flex gap-2 text-xs flex-wrap"><input id="q" placeholder="搜索：编码 / 名称 / 车间 / 负责人" class="border rounded-lg px-3 py-2 w-64" oninput="doQ()"><select id="fStat" class="border rounded-lg px-2 py-2" onchange="doQ()"><option value="">全部状态</option><option>运行中</option><option>维修中</option><option>停机</option><option>报废</option></select><select id="fType" class="border rounded-lg px-2 py-2" onchange="doQ()"><option value="">全部类型</option><option>缝制设备</option><option>裁剪设备</option><option>仓储设备</option><option>辅助设备</option></select><select id="fWs" class="border rounded-lg px-2 py-2" onchange="doQ()"><option value="">全部位置</option><option>缝制一车间</option><option>裁剪车间</option><option>外仓 WH-A</option><option>内仓1 WH-B</option></select><label class="flex items-center gap-1 text-slate-500 self-center"><input type="checkbox" id="fWarn" onchange="doQ()" class="w-4 h-4"> 仅看保养预警</label><span class="flex-1"></span><span class="text-slate-400 self-center" id="cntTip">共 7 台设备</span></div>
 <table class="w-full text-xs mt-3"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">编码 / 名称</th><th>类型</th><th>所属位置</th><th>状态</th><th>保养计划</th><th>负责人/更新</th><th>操作</th></tr></thead><tbody id="eqBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">加载中…</td></tr></tbody></table><div id="empty" class="hidden text-center text-slate-400 text-xs py-6">无匹配设备，换个条件试试</div>
@@ -69,6 +69,13 @@ document.addEventListener('DOMContentLoaded', function(){
         + '<td class="text-slate-400">—</td>'
         + '<td><button onclick="openDetail(\'' + esc(x.eq_id) + '\')" class="text-blue-600 font-bold">详情</button></td></tr>';
     }).join('');
+    (function(){function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+     var run=rows.filter(function(x){return String(x.status||'启用')!=='停用';});
+     var down=rows.filter(function(x){return String(x.status||'')==='停用';});
+     set('eqTotal',rows.length);set('eqRun',run.length);
+     set('eqRate','完好率 '+(rows.length?Math.round(run.length/rows.length*1000)/10:'—')+'%');
+     set('eqDown',down.length);
+     set('eqDownList',down.slice(0,3).map(function(x){return x.eq_id;}).join(' · ')||'无');})();
     if(typeof doCount === 'function'){ try{ doCount(); }catch(e){} }
   }).catch(function(){var tb=document.querySelector('tbody');if(tb)tb.innerHTML='<tr><td colspan="8" class="text-center text-slate-400 py-6">后端不可达</td></tr>';});
 });

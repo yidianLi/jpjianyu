@@ -15,8 +15,24 @@ def kpi(db):
     back = db.execute(text("SELECT COALESCE(SUM(qty),0) s FROM stock_ledger"
                            " WHERE biz='TK'")).scalar() or 0
     rate = (float(back) / float(issue)) if float(issue) else 0.0
+    whs = db.execute(text("SELECT COUNT(*) c FROM warehouse")).scalar() or 0
+    mats = db.execute(text("SELECT COUNT(*) c FROM mat_master")).scalar() or 0
+    locs = db.execute(text("SELECT COUNT(*) c FROM location")).scalar() or 0
+    wha = db.execute(text("SELECT COALESCE(SUM(o.on_hand),0) s FROM stock_onhand o"
+                          " LEFT JOIN mat_master m ON m.material_code=o.material_code"
+                          " LEFT JOIN product_master p ON p.product_code=o.product_code"
+                          " WHERE o.wh='WH-A' AND COALESCE(m.base_unit,p.base_unit)='米'")).scalar() or 0
+    whin = db.execute(text("SELECT COALESCE(SUM(o.on_hand),0) s FROM stock_onhand o"
+                           " LEFT JOIN mat_master m ON m.material_code=o.material_code"
+                           " LEFT JOIN product_master p ON p.product_code=o.product_code"
+                           " WHERE o.wh IN ('WH-B','WH-C') AND COALESCE(m.base_unit,p.base_unit)='米'")).scalar() or 0
+    fout = db.execute(text("SELECT COALESCE(SUM(qty),0) s FROM stock_ledger"
+                            " WHERE biz='JJ' AND product_code LIKE 'CP-%'")).scalar() or 0
     return {"todo": int(todo), "onhand": float(onhand), "diff": int(diff),
             "turnover": {"issue": float(issue), "fin_in": float(fin)},
+            "masters": {"wh": int(whs), "mat": int(mats), "loc": int(locs)},
+            "wh_m": {"a": float(wha), "in": float(whin)},
+            "fin_out": float(fout),
             "capacity": {"back_qty": float(back), "back_rate": round(rate, 4)}}
 
 
