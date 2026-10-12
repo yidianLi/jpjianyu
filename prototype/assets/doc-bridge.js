@@ -9,6 +9,15 @@
   function idemKey(docNo, lineNo, biz){
     return (docNo || 'NEW') + ':' + (lineNo || 1) + ':' + (biz || 'DOC');
   }
+  function get(path){
+    var gate = (window.WmsAi && window.WmsAi.ready) || Promise.resolve();
+    return gate.then(function(){
+      return fetch(BASE + path, {headers: {'Authorization': 'Bearer ' + token()}});
+    }).then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
   function post(path, body, key){
     var gate = (window.WmsAi && window.WmsAi.ready) || Promise.resolve();
     return gate.then(function(){
@@ -102,6 +111,50 @@
       if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
       return j;
     });
+  };
+  /* 成品四口:查BOM版本→建WO→领料/完工,交付签收直调,失败抛错由页内决定本地动不动 */
+  window.WmsProduce = {
+    bomVersion: function(productCode){
+      return get('/web/masters/boms?product_code=' + encodeURIComponent(productCode || '') + '&page_size=20')
+        .then(function(j){
+          var rows = (j && j.data) || [];
+          var hit = rows.filter(function(r){ return String(r.status || '') === '启用'; })[0] || rows[0];
+          return hit ? hit.version : '';
+        });
+    },
+    createWo: function(productCode, qty, version, workshop){
+      return post('/web/wo_tasks', {product_code: productCode, qty_plan: qty,
+        bom_version: version, workshop: workshop || ''},
+        idemKey('WO:' + productCode, 1, 'WO')).then(function(j){
+        var wo = j && j.data && j.data.wo_no;
+        if(!wo) throw new Error('网关未返回工单号');
+        return wo;
+      });
+    },
+    issueWo: function(woNo, handler, loc){
+      return post('/web/wo_tasks/' + encodeURIComponent(woNo) + '/issue',
+        {handler: handler || '', loc: loc || ''},
+        idemKey(woNo, 1, 'ISSUE')).then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return j.data;
+      });
+    },
+    finishWo: function(woNo, qtyDone, handler){
+      return post('/web/wo_tasks/' + encodeURIComponent(woNo) + '/finish',
+        {qty_done: qtyDone, handler: handler || ''},
+        idemKey(woNo, 1, 'FINISH')).then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return (j.data && j.data.rk_no) || '';
+      });
+    },
+    signDeliver: function(docNo, receiver, signTime, sender, proof){
+      return post('/web/deliver_signs', {doc_no: docNo, receiver: receiver,
+        sign_time: signTime, sender: sender || '', proof_ref: proof || ''},
+        idemKey(docNo, 1, 'SIGN')).then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return j.data;
+      });
+    }
   };
   var oldToast = window.toast;
   window.addEventListener('load', function(){

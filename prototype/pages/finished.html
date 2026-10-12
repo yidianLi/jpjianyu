@@ -58,7 +58,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .x{border:0;background:transparent;font-size:20px;color:var(--muted)}
 .errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
 @media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script></head>
+</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script><script src="../assets/ai-gateway.js"></script><script src="../assets/doc-bridge.js"></script></head>
 <body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
 <div class="wrap space-y-4">
@@ -584,6 +584,23 @@ window.finAudit=function(no){var d=docBy(no);if(!d)return;ApproveFlow.ensureFlow
   if(ps){var r=ApproveFlow.approve(d,finFlowKey(d),d.handler||'审批人',nx.role,true,nt);faudit(d,'审核通过('+nx.k+')',nt||nx.role);fsave();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' '+r.msg);return}
   ApproveFlow.approve(d,finFlowKey(d),d.handler||'审批人',nx.role,false,nt);faudit(d,'审核驳回('+nx.k+')',nt);fsave();document.getElementById('dlgRoot').classList.add('hide');render();toast(d.no+' 已驳回，退回经办人',1);
  };};
+/* 成品后端同步:deliver直调签收;inbound走建WO+完工;register/wreturn本地(无后端对应口) */
+function finLinesQty(d){return (d.lines||[]).reduce(function(n,l){return n+(Number(l.qty)||0);},0);}
+function finFirstCode(d){var l=(d.lines||[])[0]||{};return l.code||'';}
+function finSyncSrv(d){
+ if(!window.WmsProduce)return Promise.resolve();
+ if(d.type==='deliver')return WmsProduce.signDeliver(d.no,d.recv,d.stime,d.sender,'').then(function(){d.srv_signed=1;fsave();});
+ if(d.type==='inbound'){
+  var code=finFirstCode(d),qty=finLinesQty(d);
+  if(!code||!qty)return Promise.reject(new Error('成品编码与数量必填'));
+  return WmsProduce.bomVersion(code).then(function(ver){
+   if(!ver)throw new Error(code+' 无启用BOM版本,先到基础资料建BOM');
+   return WmsProduce.createWo(code,qty,ver,d.dept||'');
+  }).then(function(wo){d.srv_wo=wo;fsave();return WmsProduce.finishWo(wo,qty,d.handler||'');})
+  .then(function(rk){d.srv_rk=rk;fsave();});
+ }
+ return Promise.resolve();
+}
 window.finConfirm=function(no){var d=docBy(no);if(!d)return;ApproveFlow.ensureFlow(d,finFlowKey(d));
  if(!d.flow.submitted){toast('请先点“提交”(S1=1)',1);return}
  var left=ApproveFlow.nextPending(finFlowKey(d),d.flow);
@@ -592,16 +609,18 @@ window.finConfirm=function(no){var d=docBy(no);if(!d)return;ApproveFlow.ensureFl
  var r=finPost(d);
  if(!r.ok){dialog('校验未通过：本单未过账','<ul class="errs">'+r.errors.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>');return}
  d.flow.S6=1;d.flow.done=1;d.flow.cur='DONE';(d.flow.hist=d.flow.hist||[]).push({t:now(),act:'仓管确认(S6=1)',by:d.handler||'仓管员'});
+ finSyncSrv(d).then(function(){
  d.status='已审批';faudit(d,'仓管确认·过账(S6=1)','工单完成');fsave();render();
- toast(d.no+(d.type==='register'?' 登记完成(S6=1)：条码已生成，未加库存':d.type==='inbound'?' 仓管确认完成(S6=1)：库存已增加':d.type==='wreturn'?' 退仓完成(S6=1)':' 交付完成(S6=1，含签收存证)'))};
+ toast(d.no+(d.type==='register'?' 登记完成(S6=1)：条码已生成，未加库存':d.type==='inbound'?' 仓管确认完成(S6=1)：库存已增加'+(d.srv_rk?'（'+d.srv_rk+'）':''):d.type==='wreturn'?' 退仓完成(S6=1)':' 交付完成(S6=1，含签收存证)'))}).catch(function(e){toast('后端同步失败,本地未动:'+e.message,1);});};
 window.finSave=function(no){var d=docBy(no);if(!d)return;if(d.status==='已审批'){toast('已过账无需保存');return}d.status='已保存';faudit(d,'保存待审批','');fsave();render();toast(d.no+' 已保存为待审批（登记单不加库存）')};
 window.finApprove=function(no){
  var d=docBy(no);if(!d)return;
  if(d.status==='已审批'){toast('重复审批被拒绝（幂等保护）',1);return}
  var r=finPost(d);
  if(!r.ok){dialog('校验未通过：本单未过账','<ul class="errs">'+r.errors.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul><div class="note" style="margin-top:12px">过账是原子操作：任何一行不通过，整单不写流水、不改库存。</div>');return}
+ finSyncSrv(d).then(function(){
  d.status='已审批';fsave();render();
- toast(d.no+(d.type==='register'?' 登记完成：条码已生成，未加库存，下一步请到成品入库':d.type==='inbound'?' 审批入账：库存已增加':d.type==='wreturn'?' 退仓完成':' 交付完成（含签收存证）'));
+ toast(d.no+(d.type==='register'?' 登记完成：条码已生成，未加库存，下一步请到成品入库':d.type==='inbound'?' 审批入账：库存已增加'+(d.srv_rk?'（'+d.srv_rk+'）':''):d.type==='wreturn'?' 退仓完成':' 交付完成（含签收存证）'));}).catch(function(e){toast('后端同步失败,本地未动:'+e.message,1);});
 };
 window.finVoid=function(no){var d=docBy(no);if(!d||d.status==='已审批'){toast('已审批单据不可作废',1);return}d.status='已作废';faudit(d,'作废','');fsave();if(d.type==='deliver'){deliverMode='list';curNo=''}else curNo='';render();toast('已作废：'+no)};
 window.finPrint=function(no){toast('已推送成品单 '+no+' 到打印队列')};
