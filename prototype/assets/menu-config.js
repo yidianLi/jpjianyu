@@ -30,23 +30,20 @@
       {id:'dashboard', label:'业务运营驾驶舱', tab:''},
       {id:'fieldApp', label:'现场作业APP', tab:''},
       {id:'ai', label:'AI问数', tab:''}]},
-    /* P1-5按流程重组:收货/发料/回仓/查盘(原仓储作业+物料管理按对象分组一次收货跨两组) */
-    {id:'g1', label:'收货到货', icon:'fa-arrow-down', children:[
-      {id:'materialRequest', label:'申请领料', tab:'request'},
-      {id:'materialReceive', label:'到货验收', tab:'receive'}]},
-    {id:'g2', label:'发料出库', icon:'fa-arrow-up', children:[
-      {id:'materialIssue', label:'物料领用', tab:'issue'}]},
-    {id:'g3', label:'回仓调拨', icon:'fa-rotate-left', children:[
-      {id:'materialWReturn', label:'车间退料', tab:'wreturn'},
-      {id:'materialReturn', label:'物料退库', tab:'return'},
-      {id:'transfer', label:'库存调仓', tab:''}]},
-    {id:'g10', label:'查盘对账', icon:'fa-clipboard-check', children:[
-      {id:'materialCode', label:'物料明细', tab:'detail'},
+    /* C方案:一级按对象(物料/仓储/成品),二级按流程排,到货验收置顶 */
+    {id:'g1', label:'仓储作业', icon:'fa-warehouse', children:[
       {id:'inventoryOnhand', label:'仓库库存', tab:'onhand'},
       {id:'inventoryLedger', label:'库存记录', tab:'ledger'},
       {id:'location', label:'库区管理', tab:''},
-      {id:'stocktake', label:'库存盘点', tab:''},
-      {id:'docs', label:'业务记录查询', tab:''}]},
+      {id:'transfer', label:'库存调仓', tab:''},
+      {id:'stocktake', label:'库存盘点', tab:''}]},
+    {id:'g2', label:'物料管理', icon:'fa-boxes-stacked', children:[
+      {id:'materialReceive', label:'到货验收', tab:'receive'},
+      {id:'materialRequest', label:'申请领料', tab:'request'},
+      {id:'materialIssue', label:'物料领用', tab:'issue'},
+      {id:'materialWReturn', label:'车间退料', tab:'wreturn'},
+      {id:'materialReturn', label:'物料退库', tab:'return'},
+      {id:'materialCode', label:'物料明细', tab:'detail'}]},
     {id:'g4', label:'成品管理', icon:'fa-flag-checkered', children:[
       {id:'finishedDetail', label:'成品明细', tab:'detail'},
       {id:'finishedRegister', label:'成品登记', tab:'register'},
@@ -63,6 +60,7 @@
       {id:'baseProd', label:'成品档案', tab:'5'},
       {id:'baseTpl', label:'单据模板·拍照/AI', tab:'6'}]},
     {id:'g6', label:'单据中心', icon:'fa-file-lines', children:[
+      {id:'docs', label:'业务记录查询', tab:''},
       {id:'qrcode', label:'二维码中心', tab:''},
       {id:'ocr', label:'OCR工作台', tab:''},
       {id:'scanlog', label:'设备扫码记录', tab:''},

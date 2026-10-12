@@ -166,17 +166,17 @@ fieldApp:{file:'mobile-app/screens/home.html',title:'工作台 / 现场作业APP
 ai:{file:'pages/ai.html',title:'工作台 / AI问数'},
 inventoryOnhand:{file:'pages/material-workbench.html',title:'仓储作业 / 仓库库存'},
 inventoryLedger:{file:'pages/material-workbench.html',title:'仓储作业 / 库存记录'},
-location:{file:'pages/location.html',title:'查盘对账 / 库区管理'},
-materialCode:{file:'pages/material-workbench.html',title:'查盘对账 / 物料明细'},
-materialRequest:{file:'pages/material-workbench.html',title:'收货到货 / 申请领料'},
-materialReceive:{file:'pages/material-workbench.html',title:'收货到货 / 到货验收'},
-materialRegister:{file:'pages/material-workbench.html',title:'收货到货 / 到货验收'},
-materialReject:{file:'pages/material-workbench.html',title:'收货到货 / 到货验收'},
-materialInbound:{file:'pages/material-workbench.html',title:'收货到货 / 到货验收'},
-materialIssue:{file:'pages/material-workbench.html',title:'发料出库 / 物料领用'},
-materialWReturn:{file:'pages/material-workbench.html',title:'回仓调拨 / 车间退料'},
-materialReturn:{file:'pages/material-workbench.html',title:'回仓调拨 / 物料退库'},
-transfer:{file:'pages/transfer.html',title:'回仓调拨 / 库存调仓'},
+location:{file:'pages/location.html',title:'仓储作业 / 库区管理'},
+materialCode:{file:'pages/material-workbench.html',title:'物料管理 / 物料明细'},
+materialRequest:{file:'pages/material-workbench.html',title:'物料管理 / 申请领料'},
+materialReceive:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
+materialRegister:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
+materialReject:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
+materialInbound:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
+materialIssue:{file:'pages/material-workbench.html',title:'物料管理 / 物料领用'},
+materialWReturn:{file:'pages/material-workbench.html',title:'物料管理 / 车间退料'},
+materialReturn:{file:'pages/material-workbench.html',title:'物料管理 / 物料退库'},
+transfer:{file:'pages/transfer.html',title:'仓储作业 / 库存调仓'},
 finishedDetail:{file:'pages/finished.html',title:'成品管理 / 成品明细'},
 finishedRegister:{file:'pages/finished.html',title:'成品管理 / 成品登记'},
 finishedInbound:{file:'pages/finished.html',title:'成品管理 / 成品入库'},
@@ -192,11 +192,11 @@ baseOrg:{file:'pages/base.html',title:'基础资料 / 组织架构·车间',base
 baseLoc:{file:'pages/base.html',title:'基础资料 / 库区·客户档案',baseTab:'4'},
 baseProd:{file:'pages/base.html',title:'基础资料 / 成品档案',baseTab:'5'},
 baseTpl:{file:'pages/base.html',title:'基础资料 / 单据模板·拍照/AI',baseTab:'6'},
-docs:{file:'pages/docs.html',title:'查盘对账 / 业务记录查询'},
+docs:{file:'pages/docs.html',title:'单据中心 / 单据查询'},
 qrcode:{file:'pages/qrcode.html',title:'单据中心 / 二维码中心'},
 ocr:{file:'pages/ocr.html',title:'单据中心 / OCR工作台'},
 ocrResult:{file:'pages/ocr-result.html',title:'单据中心 / OCR扫描结果'},
-stocktake:{file:'pages/stocktake.html',title:'查盘对账 / 库存盘点'},
+stocktake:{file:'pages/stocktake.html',title:'仓储作业 / 库存盘点'},
 report:{file:'pages/report.html',title:'报表中心 / 报表列表'},
 audit:{file:'pages/audit.html',title:'异常与审计 / 操作审计'},
 processingFee:{file:'pages/processing-fee.html',title:'单据中心 / 加工费对账'},
@@ -302,7 +302,7 @@ function go(id, tab, options){
     v=fullTab; 
     if(fullTab.indexOf(':')>=0){var _p=fullTab.split(':');v=_p[0];subParam=_p[1]||'';}
     else if(fullTab==='onhand'||fullTab==='ledger'){v='stock';subParam=fullTab;}
-    r.title=id==='inventoryOnhand'?'查盘对账 / 仓库库存':id==='inventoryLedger'?'查盘对账 / 库存记录':r.title;
+    r.title=id==='inventoryOnhand'?'仓储作业 / 仓库库存':id==='inventoryLedger'?'仓储作业 / 库存记录':r.title;
     contextTab=v;
     curTab=id==='materialCode'?'detail':(fullTab.indexOf(':')>=0?fullTab:(v==='stock'&&subParam?(v+':'+subParam):v));
   }else{
