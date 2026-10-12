@@ -5,11 +5,7 @@
 <div id="listView" class="space-y-4">
 <div class="flex justify-between items-center flex-wrap gap-2"><div><h1 class="text-xl font-extrabold">库存调仓记录</h1></div><button onclick="newDb()" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">+ 发起库存调仓</button></div>
 <div class="card p-4"><div class="flex gap-2 text-xs flex-wrap"><input id="recSearch" placeholder="搜索：单号 / 仓库 / 物料" class="border rounded-lg px-3 py-2 w-64"><select class="border rounded-lg px-2 py-2"><option>全部节点</option><option>运输中</option><option>已完成</option><option>异常</option></select></div>
-<table class="w-full text-xs mt-3"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">单号/时间</th><th>源仓→目标仓</th><th>客户/物料</th><th>申请/已发/已收</th><th>进度</th><th>节点</th><th>操作</th></tr></thead><tbody id="recBody">
-<tr class="border-b hover:bg-blue-50"><td class="py-2 text-blue-700 font-bold">DB2026091202<br><span class="text-slate-400">09-12 09:05</span></td><td>外仓→内仓1</td><td>恒达 · 拉链 2000件</td><td>2000/2000/—</td><td data-prog-for="DB2026091202"></td><td><span class="bg-blue-100 text-blue-600 px-2 rounded-full">运输中</span></td><td><button data-resume-for="DB2026091202" onclick="WFlow.open('DB2026091202','DB2026091202 · 恒达拉链 2000件','外仓→内仓1 · 运输中')" class="text-blue-600 font-bold">继续办理</button></td></tr>
-<tr class="border-b hover:bg-blue-50"><td class="py-2 text-blue-700 font-bold">DB2026091199</td><td>外仓→内仓2</td><td>宏远 · 里布 500米</td><td>500/500/500</td><td data-prog-for="DB2026091199"></td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">已完成</span></td><td><button data-resume-for="DB2026091199" onclick="WFlow.open('DB2026091199','DB2026091199 · 已完成','源-500·目标+500')" class="text-blue-600 font-bold">查看</button></td></tr>
-<tr class="hover:bg-blue-50"><td class="py-2 text-blue-700 font-bold">DB2026091195</td><td>内仓1→外仓</td><td>恒达 · 牛津布 300米</td><td>300/300/280</td><td data-prog-for="DB2026091195"></td><td><span class="bg-red-100 text-red-600 px-2 rounded-full">异常·差异20</span></td><td><button data-resume-for="DB2026091195" onclick="WFlow.open('DB2026091195','DB2026091195 · 差异20','待差异确认')" class="text-blue-600 font-bold">继续办理</button></td></tr>
-</tbody></table><div id="recEmpty" class="hidden text-center text-slate-400 text-xs py-6">无匹配记录</div></div>
+<table class="w-full text-xs mt-3"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">单号/时间</th><th>源仓→目标仓</th><th>客户/物料</th><th>申请/已发/已收</th><th>进度</th><th>节点</th><th>操作</th></tr></thead><tbody id="recBody"><tr><td colspan="7" class="text-center text-slate-400 py-6">加载中…</td></tr></tbody></table><div id="recEmpty" class="hidden text-center text-slate-400 text-xs py-6">无匹配记录</div></div>
 </div>
 <div id="wizView" class="hidden space-y-4">
 <div class="card p-4"><div class="flex items-center justify-between"><div id="wfTitle" class="text-sm"></div><button onclick="WFlow.back()" class="text-xs border rounded-lg px-3 py-1.5">← 返回列表</button></div><div id="wfSteps" class="flex items-center gap-1 mt-3 flex-wrap"></div><div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="wfBar" class="h-full bg-blue-600 rounded-full"></div></div><div class="flex justify-between text-[11px] text-slate-400 mt-1"><span id="wfHint"></span><span id="wfPct"></span></div></div>
@@ -29,6 +25,23 @@ function doOut(){_out=true;document.getElementById('scanBox').innerHTML='源仓 
 function doIn(){_in=true;document.getElementById('inQty').textContent='1998（差异2进异常）';toast('目标仓接收成功：实收1998，差异2进异常');if(window.WmsTransfer)WmsTransfer.receive(curDb(),1998).catch(function(){});}
 function curDb(){var r=document.querySelector('#recBody tr');return r?(r.cells[0].innerText||'').split('\n')[0].trim():'DB2026091202';}
 function newDb(){var id='DB20260912'+Math.floor(10+Math.random()*89);if(window.WmsTransfer)WmsTransfer.create({from_wh:'外仓',to_wh:'内仓1',lines:[{qty:2000,unit:'件'}]}).then(function(j){if(j&&j.data&&j.data.doc_no)id=j.data.doc_no;}).catch(function(){});var tr=document.createElement('tr');tr.className='border-b hover:bg-blue-50';tr.innerHTML='<td class="py-2 text-blue-700 font-bold">'+id+'</td><td>外仓→内仓1</td><td>待选择</td><td>—</td><td data-prog-for="'+id+'"></td><td><span class="bg-orange-100 text-orange-600 px-2 rounded-full">草稿</span></td><td><button data-resume-for="'+id+'" onclick="WFlow.open(\''+id+'\',\''+id+' · 新建\',\'从申请开始\')" class="text-blue-600 font-bold">开始办理</button></td>';document.getElementById('recBody').prepend(tr);WFlow.progress();WFlow.open(id,id+' · 新建','从申请开始');}
+
+/* 调仓真数据:拉transfer_ships重建recBody */
+document.addEventListener('DOMContentLoaded', function(){
+ if(!window.WmsTransfer) return;
+ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+ WmsTransfer.list().then(function(j){
+  var rows = (j && j.data) || [];
+  if(!rows.length){var tb0=document.getElementById('recBody');if(tb0)tb0.innerHTML='<tr><td colspan="7" class="text-center text-slate-400 py-6">暂无数据</td></tr>';return;}
+  var tb = document.getElementById('recBody');
+  if(!tb) return;
+  tb.innerHTML = rows.map(function(x){
+   var st = x.diff_status || '草稿';
+   return '<tr class="border-b hover:bg-blue-50"><td class="py-2 text-blue-700 font-bold">' + esc(x.doc_no || '') + '</td><td>' + esc((x.from_wh || '') + '→' + (x.to_wh || '')) + '</td><td>' + esc(x.carrier || '') + ' ' + esc(x.plate || '') + '</td><td>' + esc(x.o_qty) + '/' + esc(x.qty_sent) + '/' + esc(x.n_qty) + '</td><td data-prog-for="' + esc(x.doc_no || '') + '"></td><td><span class="bg-blue-100 text-blue-600 px-2 rounded-full">' + esc(st) + '</span></td><td><button data-resume-for="' + esc(x.doc_no || '') + '" onclick="WFlow.open(\'' + esc(x.doc_no || '') + '\',\'' + esc(x.doc_no || '') + ' · 调仓\',\'' + esc((x.from_wh || '') + '→' + (x.to_wh || '')) + ' · ' + esc(st) + '\')" class="text-blue-600 font-bold">继续办理</button></td></tr>';
+  }).join('');
+  if(window.WFlow && WFlow.progress){ try{ WFlow.progress(); }catch(e){} }
+ }).catch(function(){ var tb=document.getElementById('recBody'); if(tb)tb.innerHTML='<tr><td colspan="7" class="text-center text-slate-400 py-6">后端不可达</td></tr>'; });
+});
 WFlow.init({page:'transfer',steps:['调拨申请','调拨清单（可修改）','运输在途','目标仓接收','差异确认'],
 validate:function(c){if(c===1&&!document.getElementById('dbAck').checked)return{ok:false,msg:'请先核对申请信息'};if(c===2&&!_out)return{ok:false,msg:'请先确认调拨清单'};if(c===3&&!document.getElementById('shipAck').checked)return{ok:false,msg:'请确认发车信息'};if(c===4&&!_in)return{ok:false,msg:'请先完成目标仓扫码接收'};if(c===5&&!document.getElementById('diffAck').checked)return{ok:false,msg:'请先确认差异'};return{ok:true};},
 onFinish:function(r){toast('调拨完成：内仓+1998 · 差异2已写审计');setTimeout(function(){WFlow.back();},800);}});

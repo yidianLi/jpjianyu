@@ -38,7 +38,7 @@ def list_ships(authed: dict = Depends(auth.need_auth),
     total = db.execute(text("SELECT COUNT(*) c FROM transfer_ship")).scalar() or 0
     rows = db.execute(text("SELECT doc_no,from_wh,to_wh,from_loc,to_loc,o_qty,"
                            "qty_apply,qty_sent,n_qty,qty_recv,unit,carrier,plate,"
-                           "diff_status FROM transfer_ship LIMIT :o,:n"),
+                           "diff_status FROM transfer_ship LIMIT :n OFFSET :o"),
                       {"o": (p - 1) * s, "n": s}).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
@@ -55,6 +55,19 @@ def receive(doc_no: str, body: dict, authed: dict = Depends(auth.need_auth),
     if not hit.rowcount:
         return resp.fail(404, "DOC_NOT_FOUND:调仓单不存在")
     return resp.ok({"doc_no": doc_no, "diff_status": "待复核"})
+
+
+@router.get("/pd_tasks")
+def list_pd(authed: dict = Depends(auth.need_auth),
+            db: Session = Depends(get_db), page: int = 1,
+            page_size: int = 20):
+    p, s = resp.page_args(page, page_size)
+    total = db.execute(text("SELECT COUNT(*) c FROM pd_task")).scalar() or 0
+    rows = db.execute(text("SELECT pd_no,mode,wh_code,scope,biz_status,handler"
+                           " FROM pd_task ORDER BY pd_no DESC"
+                           " LIMIT :n OFFSET :o"),
+                      {"o": (p - 1) * s, "n": s}).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=int(total))
 
 
 @router.post("/pd_tasks")

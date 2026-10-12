@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }).then(function(r){ if(!r.ok) throw new Error('no backend'); return r.json(); })
   .then(function(j){
     var rows = (j && j.data) || [];
-    if(!rows.length) return;
+    if(!rows.length){var tb0=document.getElementById('audit-body');if(tb0)tb0.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">暂无数据</td></tr>';return;}
     var tb = document.getElementById('audit-body');
     if(!tb) return;
     tb.innerHTML = rows.map(function(x){

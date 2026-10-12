@@ -90,6 +90,10 @@
       return fetch(BASE + '/web/transfer_ships', {headers:{'Authorization':'Bearer ' + token()}})
         .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
     },
+    pdList: function(){
+      return fetch(BASE + '/web/pd_tasks?page_size=100', {headers:{'Authorization':'Bearer ' + token()}})
+        .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    },
     receive: function(docNo, nQty){
       return fetch(BASE + '/web/transfer_ships/' + encodeURIComponent(docNo) + '/receive',
         {method: 'PATCH', headers:{'Content-Type':'application/json',

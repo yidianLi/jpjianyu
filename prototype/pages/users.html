@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   window.WmsSys.users().then(function(j){
     var rows = (j && j.data) || [];
-    if(!rows.length) return;
+    if(!rows.length){var tb0=document.getElementById('utb');if(tb0)tb0.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">暂无数据</td></tr>';return;}
     window.NAMES = rows.map(function(x){ return x.name || x.username; });
     var tb = document.getElementById('utb');
     if(!tb) return;
