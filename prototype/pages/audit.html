@@ -57,12 +57,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
         <div class="overflow-x-auto mt-3">
           <table class="audit-table w-full min-w-[980px]">
             <thead><tr><th>时间</th><th>操作人 / 设备</th><th>业务类型</th><th>关联单据</th><th>操作内容</th><th>前值 → 后值</th><th>结果</th><th>操作</th></tr></thead>
-            <tbody id="audit-body">
-              <tr data-user="张建国" data-type="入库" data-result="需复核" data-date="2026-09-12"><td><b>09-12</b><br><span class="text-slate-400">08:31</span></td><td>张建国<br><span class="text-slate-400">PC07 · 外仓</span></td><td><span class="audit-tag audit-info">入库</span></td><td class="font-bold text-blue-700">SL2026091209</td><td>修改送货单数量</td><td><s>120 米</s> → <b>1200 米</b></td><td><span class="audit-tag audit-warn">需复核</span></td><td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>
-              <tr data-user="张建国" data-type="调拨" data-result="已完成" data-date="2026-09-12"><td><b>09-12</b><br><span class="text-slate-400">09:10</span></td><td>张建国<br><span class="text-slate-400">PC07 · 外仓</span></td><td><span class="audit-tag audit-info">调拨</span></td><td class="font-bold text-blue-700">DB2026091202</td><td>确认来源仓扣减</td><td>— → <b>-2000 件</b></td><td><span class="audit-tag audit-ok">已完成</span></td><td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>
-              <tr data-user="李小明" data-type="退料" data-result="已完成" data-date="2026-09-12"><td><b>09-12</b><br><span class="text-slate-400">08:10</span></td><td>李小明<br><span class="text-slate-400">PDA-03 · 缝制一车间</span></td><td><span class="audit-tag audit-info">退料</span></td><td class="font-bold text-blue-700">TL2026091201</td><td>提交退料单</td><td>— → <b>+120 米</b></td><td><span class="audit-tag audit-ok">已完成</span></td><td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>
-              <tr data-user="王芳" data-type="权限" data-result="已完成" data-date="2026-09-11"><td><b>09-11</b><br><span class="text-slate-400">16:42</span></td><td>王芳<br><span class="text-slate-400">管理端</span></td><td><span class="audit-tag audit-info">权限</span></td><td class="font-bold text-blue-700">USR2026091104</td><td>调整数据范围</td><td>外仓 → 外仓 / 内仓1</td><td><span class="audit-tag audit-ok">已完成</span></td><td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>
-            </tbody>
+            <tbody id="audit-body"><tr><td colspan="6" class="text-center text-slate-400 py-6">加载中…</td></tr></tbody>
           </table>
         </div>
         <div id="audit-empty" hidden class="text-center text-slate-400 text-xs py-8">暂无匹配的审计记录，请调整筛选条件。</div>
@@ -109,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function(){
         + '<td><button type="button" class="audit-action" onclick="viewAudit(this)">查看</button></td></tr>';
     }).join('');
     if(typeof filterAudit === 'function') filterAudit();
-  }).catch(function(){});
+  }).catch(function(){var tb=document.getElementById('audit-body');if(tb)tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">后端不可达</td></tr>';});
 });
 </script>
 </body>

@@ -5,13 +5,7 @@
 <div class="flex justify-between items-center"><div><h1 class="text-xl font-extrabold">用户管理</h1></div><div class="flex gap-2 text-xs"><input id="kw" placeholder="搜索账号 / 姓名 / 车间" class="border rounded-lg px-3 py-2 w-56" oninput="filterUser(this.value)"><button onclick="toast('已导出用户清单（有权限）')" class="px-3 py-2 bg-white border rounded-lg">导出</button><button onclick="openNew()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">+ 新建账号</button></div></div>
 <div class="grid grid-cols-3 gap-4">
 <div class="card p-4 col-span-2"><b class="text-sm">账号列表 <span class="text-xs text-slate-400 font-normal">共 12 个 · 点击行选中</span></b>
-<table class="w-full text-xs mt-2"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">账号/姓名</th><th>角色（多选）</th><th>数据范围</th><th>状态</th><th>最后登录</th><th>操作</th></tr></thead><tbody id="utb">
-<tr class="border-b hover:bg-blue-50 cursor-pointer sel" onclick="selUser(0,this)"><td class="py-2"><b>wai_cang_zhang</b><br>张建国 · 仓库负责人</td><td><span class="bg-blue-100 text-blue-700 px-2 rounded-full">外仓管理员</span> <span class="bg-slate-100 px-2 rounded-full">仓库负责人</span></td><td>外仓/内仓1/2 · 一监区</td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td>09-12 08:30 PC07</td><td><button class="text-blue-600 font-bold" onclick="event.stopPropagation();toast('已重置密码，短信已通知')">重置密码</button></td></tr>
-<tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="selUser(1,this)"><td class="py-2"><b>chejian_lixm</b><br>李小明 · 车间领料员</td><td><span class="bg-orange-100 text-orange-700 px-2 rounded-full">车间领料员</span></td><td>缝制一车间（本车间）</td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td>09-12 08:10 PDA-03</td><td><button class="text-blue-600 font-bold" onclick="event.stopPropagation();toast('已切换预览：仅见缝制一车间')">预览视角</button></td></tr>
-<tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="selUser(2,this)"><td class="py-2"><b>neicang_chenf</b><br>陈芳 · 内仓管理员</td><td><span class="bg-blue-100 text-blue-700 px-2 rounded-full">内仓管理员</span></td><td>内仓1 WH-B</td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td>09-11 16:40 PC05</td><td><button class="text-blue-600 font-bold" onclick="event.stopPropagation();toast('已重置密码')">重置密码</button></td></tr>
-<tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="selUser(3,this)"><td class="py-2"><b>caiwu_wang</b><br>王会计 · 财务查看</td><td><span class="bg-slate-100 px-2 rounded-full">财务查看账号</span></td><td>全部客户（只读）</td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td>09-10 09:00 PC02</td><td><button class="text-slate-400" onclick="event.stopPropagation();toast('只读账号：无录入/确认权限','e')">权限说明</button></td></tr>
-<tr class="hover:bg-blue-50 cursor-pointer" onclick="selUser(4,this)"><td class="py-2"><b>kehu_hengda</b><br>陈总 · 客户查看</td><td><span class="bg-slate-100 px-2 rounded-full">客户查看账号</span></td><td>恒达服饰（只读）</td><td><span class="bg-slate-100 text-slate-500 px-2 rounded-full">停用</span></td><td>—</td><td><button class="text-emerald-600 font-bold" onclick="event.stopPropagation();toast('已重新启用')">启用</button></td></tr>
-</tbody></table></div>
+<table class="w-full text-xs mt-2"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">账号/姓名</th><th>角色（多选）</th><th>数据范围</th><th>状态</th><th>最后登录</th><th>操作</th></tr></thead><tbody id="utb"><tr><td colspan="6" class="text-center text-slate-400 py-6">加载中…</td></tr></tbody></table></div>
 <div class="space-y-4 text-xs"><div class="card p-4"><b>选中用户 · <span id="uname" class="text-blue-700">张建国</span></b><div class="mt-2 font-bold text-slate-500">角色（可多选）</div><div id="roles" class="mt-1 space-y-1.5">
 <label class="flex items-center gap-2 border rounded-lg px-2 py-1.5 cursor-pointer"><input type="checkbox" checked class="rolechk" onchange="preview()"><span>外仓管理员</span><span class="ml-auto text-slate-400">录入/确认/导出</span></label>
 <label class="flex items-center gap-2 border rounded-lg px-2 py-1.5 cursor-pointer"><input type="checkbox" checked class="rolechk" onchange="preview()"><span>仓库负责人</span><span class="ml-auto text-slate-400">审批/导出</span></label>
@@ -58,6 +52,6 @@ document.addEventListener('DOMContentLoaded', function(){
         + '<td class="text-slate-400">—</td>'
         + '<td></td></tr>';
     }).join('');
-  }).catch(function(){});
+  }).catch(function(){var tb=document.getElementById('utb');if(tb)tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">后端不可达</td></tr>';});
 });
 </script></body></html>
