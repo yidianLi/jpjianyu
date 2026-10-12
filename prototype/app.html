@@ -170,9 +170,9 @@ location:{file:'pages/location.html',title:'仓储作业 / 库区管理'},
 materialCode:{file:'pages/material-workbench.html',title:'物料管理 / 物料明细'},
 materialRequest:{file:'pages/material-workbench.html',title:'物料管理 / 申请领料'},
 materialReceive:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
-materialRegister:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
-materialReject:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
-materialInbound:{file:'pages/material-workbench.html',title:'物料管理 / 到货验收'},
+materialRegister:{file:'pages/material-workbench.html',title:'物料管理 / 物料登记'},
+materialReject:{file:'pages/material-workbench.html',title:'物料管理 / 来料拒收'},
+materialInbound:{file:'pages/material-workbench.html',title:'物料管理 / 物料入库'},
 materialIssue:{file:'pages/material-workbench.html',title:'物料管理 / 物料领用'},
 materialWReturn:{file:'pages/material-workbench.html',title:'物料管理 / 车间退料'},
 materialReturn:{file:'pages/material-workbench.html',title:'物料管理 / 物料退库'},
@@ -269,7 +269,7 @@ document.querySelectorAll('#menu [data-id]').forEach(function(el){
 }
 
 /* ---------- 3. 路由（同一文档挂载页面，tab 只做深链定位） ---------- */
-var WB_DEFAULT_TAB={inventoryOnhand:'stock:onhand',inventoryLedger:'stock:ledger',materialCode:'materialCode',materialRequest:'request',materialReceive:'receive',materialRegister:'receive',materialReject:'receive',materialInbound:'receive',materialIssue:'issue',materialWReturn:'wreturn',materialReturn:'return'};
+var WB_DEFAULT_TAB={inventoryOnhand:'stock:onhand',inventoryLedger:'stock:ledger',materialCode:'materialCode',materialRequest:'request',materialReceive:'receive',materialRegister:'register',materialReject:'reject',materialInbound:'inbound',materialIssue:'issue',materialWReturn:'wreturn',materialReturn:'return'};
 var WB_FILE={inventoryOnhand:'pages/material-workbench.html',inventoryLedger:'pages/material-workbench.html',materialCode:'pages/material-workbench.html',materialRequest:'pages/material-workbench.html',materialReceive:'pages/material-workbench.html',materialRegister:'pages/material-workbench.html',materialReject:'pages/material-workbench.html',materialInbound:'pages/material-workbench.html',materialIssue:'pages/material-workbench.html',materialWReturn:'pages/material-workbench.html',materialReturn:'pages/material-workbench.html'};
 function buildRouteUrl(id, tab, view, subParam, extra){
   var params=new URLSearchParams();

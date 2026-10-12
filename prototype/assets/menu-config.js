@@ -30,7 +30,7 @@
       {id:'dashboard', label:'业务运营驾驶舱', tab:''},
       {id:'fieldApp', label:'现场作业APP', tab:''},
       {id:'ai', label:'AI问数', tab:''}]},
-    /* g1 仓储作业含仓库库存/库存记录/库区管理/库存调仓/库存盘点；物料管理 8 个工单+明细（登记/入库/拒收三口并为到货验收） */
+    /* g1 仓储作业含仓库库存/库存记录/库区管理/库存调仓/库存盘点；物料管理 8 个工单+明细 */
     {id:'g1', label:'仓储作业', icon:'fa-warehouse', children:[
       {id:'inventoryOnhand', label:'仓库库存', tab:'onhand'},
       {id:'inventoryLedger', label:'库存记录', tab:'ledger'},
@@ -40,7 +40,9 @@
     {id:'g2', label:'物料管理', icon:'fa-boxes-stacked', children:[
       {id:'materialCode', label:'物料明细', tab:'detail'},
       {id:'materialRequest', label:'申请领料', tab:'request'},
-      {id:'materialReceive', label:'到货验收', tab:'receive'},
+      {id:'materialRegister', label:'物料登记', tab:'register'},
+      {id:'materialReject', label:'来料拒收', tab:'reject'},
+      {id:'materialInbound', label:'物料入库', tab:'inbound'},
       {id:'materialIssue', label:'物料领用', tab:'issue'},
       {id:'materialWReturn', label:'车间退料', tab:'wreturn'},
       {id:'materialReturn', label:'物料退库', tab:'return'}]},
@@ -76,7 +78,7 @@
       {id:'approveFlow', label:'审批流配置', tab:''}]}
   ];
   /* 兼容映射：旧 id workshop → 申请领料，workshopReceive → 物料领用，return → 车间退料（tab 一律 view key） */
-  var MATERIAL_ALIAS={workshop:['materialRequest','request'],workshopReceive:['materialIssue','issue'],return:['materialWReturn','wreturn'],receipt:['materialReceive','receive'],issue:['materialIssue','issue'],materialRegister:['materialReceive','receive'],materialReject:['materialReceive','receive'],materialInbound:['materialReceive','receive'],inventory:['inventoryOnhand','onhand'],finished:['finishedRegister','register'],finishedOut:['finishedRegister','register'],finishedSign:['finishedDeliver','deliver']};
+  var MATERIAL_ALIAS={workshop:['materialRequest','request'],workshopReceive:['materialIssue','issue'],return:['materialWReturn','wreturn'],receipt:['materialInbound','inbound'],issue:['materialIssue','issue'],inventory:['inventoryOnhand','onhand'],finished:['finishedRegister','register'],finishedOut:['finishedRegister','register'],finishedSign:['finishedDeliver','deliver']};
   var MATERIAL_TAB={materialRequest:'request',materialReceive:'receive',materialRegister:'register',materialReject:'reject',materialInbound:'inbound',materialIssue:'issue',materialWReturn:'wreturn',materialReturn:'return',materialCode:'detail',inventoryOnhand:'onhand',inventoryLedger:'ledger',inventory:'onhand'};
   /* 基础资料 6 个子页共用 base.html：用独立 id 避免“同一文件+空tab”互相覆盖 */
   var BASE_TAB={baseBom:'',baseMat:'2',baseOrg:'3',baseLoc:'4',baseProd:'5',baseTpl:'6'};
