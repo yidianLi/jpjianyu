@@ -330,3 +330,46 @@ def customer_create(body: dict, adm: dict = Depends(auth.need_admin),
                     "t": body.get("cust_type"), "o": body.get("contact"),
                     "p": body.get("phone")})
     return resp.ok({"cust_id": cid})
+
+
+@router.patch("/masters/warehouses/{code}/status")
+def warehouse_status(code: str, body: dict, adm: dict = Depends(auth.need_admin),
+                     db: Session = Depends(get_db)):
+    en = 0 if str(body.get("enabled")) == "0" else 1
+    db.rollback()
+    with db.begin():
+        hit = db.execute(text("UPDATE warehouse SET enabled=:e,status=:s"
+                              " WHERE wh_code=:c"),
+                         {"e": en, "s": "停用" if not en else "启用",
+                          "c": code})
+        if not hit.rowcount:
+            return resp.fail(404, "仓库不存在")
+    return resp.ok({"wh_code": code, "enabled": en})
+
+
+@router.patch("/masters/locations/{code}/status")
+def location_status(code: str, body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    en = 0 if str(body.get("enabled")) == "0" else 1
+    db.rollback()
+    with db.begin():
+        hit = db.execute(text("UPDATE location SET enabled=:e,status=:s"
+                              " WHERE loc_code=:c"),
+                         {"e": en, "s": "停用" if not en else "启用",
+                          "c": code})
+        if not hit.rowcount:
+            return resp.fail(404, "库位不存在")
+    return resp.ok({"loc_code": code, "enabled": en})
+
+
+@router.patch("/masters/customers/{cid}/status")
+def customer_status(cid: str, body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    st = "停用" if str(body.get("enabled")) == "0" else "启用"
+    db.rollback()
+    with db.begin():
+        hit = db.execute(text("UPDATE customer SET status=:s"
+                              " WHERE cust_id=:c"), {"s": st, "c": cid})
+        if not hit.rowcount:
+            return resp.fail(404, "客户不存在")
+    return resp.ok({"cust_id": cid, "status": st})

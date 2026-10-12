@@ -37,7 +37,7 @@ check("idem-peek", idem.peek("UT:1:LY") == {"v": 1} and idem.peek("NOPE") is Non
 from app.routers import web, masters, sysadm, reports, transfer, produce, docparts, app_, ai
 n = sum(len(m.router.routes) for m in
         (web, masters, sysadm, reports, transfer, produce, docparts, app_, ai))
-check("routes-68", n == 68)
+check("routes-71", n == 71)
 from fastapi.testclient import TestClient
 from app.main import app
 client = TestClient(app, raise_server_exceptions=False)
@@ -45,7 +45,7 @@ h = client.get("/health")
 check("health-200", h.status_code == 200 and h.json().get("code") == 200)
 spec = client.get("/openapi.json").json()
 paths = spec.get("paths", {})
-check("openapi-68", "/api/v1/web/dashboard" in paths and "/api/v1/ai/ask" in paths and "/api/v1/web/masters/materials" in paths and "/api/v1/web/fee_settles/{settle_no}/confirm" in paths)
+check("openapi-71", "/api/v1/web/dashboard" in paths and "/api/v1/ai/ask" in paths and "/api/v1/web/masters/materials" in paths and "/api/v1/web/fee_settles/{settle_no}/confirm" in paths)
 if fails:
     raise SystemExit("SMOKE FAIL:" + ",".join(fails))
 print("SMOKE ALL PASS")
