@@ -1,35 +1,22 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>仓位管理 · 库区库位（库区二维码）</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei"}.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}.field{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;width:100%;font-size:12px}.unit-tag{font-size:10px;padding:0 6px;border-radius:99px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.unit-mi{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}.unit-jian{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}.unit-ge{background:#faf5ff;color:#7e22ce;border-color:#ddd6fe}.wstep{min-height:220px}.area-card{cursor:pointer}.area-card.on{border-color:#2563eb;background:#eff6ff}.qr{font-family:monospace;background:#0f172a;color:#fff;border-radius:8px;padding:2px 8px;font-size:11px}.qr.ok{background:#065f46}.qr.bad{background:#991b1b}.print-dialog{width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:0;border-radius:16px;box-shadow:0 24px 70px rgba(15,30,58,.28)}.print-dialog::backdrop{background:rgba(15,30,58,.48)}.print-area-option:has(input:checked){border-color:#3b82f6;background:#eff6ff}.print-preview img{width:76px;height:76px;border:1px solid #dbeafe;border-radius:6px;background:#fff}@media(max-width:640px){.print-dialog-body{grid-template-columns:1fr}.print-dialog{width:calc(100vw - 20px)}}button:focus-visible,input:focus-visible{outline:2px solid #2563eb;outline-offset:2px}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/menu-config.js"></script><script src="../assets/nav.js"></script></head>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>仓位管理 · 库区库位（库区二维码）</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei"}.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}.field{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;width:100%;font-size:12px}.unit-tag{font-size:10px;padding:0 6px;border-radius:99px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.unit-mi{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}.unit-jian{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}.unit-ge{background:#faf5ff;color:#7e22ce;border-color:#ddd6fe}.wstep{min-height:220px}.area-card{cursor:pointer}.area-card.on{border-color:#2563eb;background:#eff6ff}.qr{font-family:monospace;background:#0f172a;color:#fff;border-radius:8px;padding:2px 8px;font-size:11px}.qr.ok{background:#065f46}.qr.bad{background:#991b1b}.print-dialog{width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:0;border-radius:16px;box-shadow:0 24px 70px rgba(15,30,58,.28)}.print-dialog::backdrop{background:rgba(15,30,58,.48)}.print-area-option:has(input:checked){border-color:#3b82f6;background:#eff6ff}.print-preview img{width:76px;height:76px;border:1px solid #dbeafe;border-radius:6px;background:#fff}@media(max-width:640px){.print-dialog-body{grid-template-columns:1fr}.print-dialog{width:calc(100vw - 20px)}}button:focus-visible,input:focus-visible{outline:2px solid #2563eb;outline-offset:2px}</style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/menu-config.js"></script><script src="../assets/ai-gateway.js"></script><script src="../assets/nav.js"></script></head>
 <body class="bg-[#f2f5fa]"><div class="flex"><aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">仓储作业 / <b class="text-slate-700">库区管理</b><span class="ml-3 bg-blue-50 text-blue-700 px-2 py-1 rounded">仓库 → 库区 → 库位三级 · 无货架 · 无库位类型</span><span class="ml-2 bg-emerald-50 text-emerald-700 px-2 py-1 rounded">库区二维码供移动端使用 · 编码必须与二维码一致</span></header>
 <div class="p-6 space-y-4">
 <!-- ===== 列表视图 ===== -->
 <div id="listView" class="space-y-4">
 <div class="flex justify-between items-center flex-wrap gap-2"><div><h1 class="text-xl font-extrabold">仓位管理</h1></div><div class="flex gap-2 text-xs"><button id="printAreaTrigger" type="button" onclick="openPrintAreas()" aria-haspopup="dialog" class="px-3 py-2 bg-white border rounded-lg">打印库区码</button><button onclick="toast('仓位台账已导出（含库区二维码与物料明细）')" class="px-3 py-2 bg-white border rounded-lg">导出台账</button><button onclick="openWiz(null)" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">+ 新增库位</button></div></div>
-<div class="flex gap-2 text-sm flex-wrap"><button onclick="swWh('A',this)" class="wh on px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold">外仓 WH-A</button><button onclick="swWh('B',this)" class="wh px-5 py-2.5 rounded-xl bg-white border font-bold">内仓1 WH-B</button><button onclick="swWh('C',this)" class="wh px-5 py-2.5 rounded-xl bg-white border font-bold">内仓2 WH-C</button><span class="flex-1"></span><span class="text-xs text-slate-400 self-center">占用 = 托/箱位数 · 与米/件/个无关</span></div>
-<div class="grid grid-cols-2 xl:grid-cols-5 gap-3 text-xs">
-<div class="card p-3"><div class="text-slate-400">库位数</div><div class="font-extrabold text-lg">168 <span class="text-xs font-normal text-slate-400">启用 152 · 停用 16</span></div></div>
-<div class="card p-3"><div class="text-slate-400">托位占用</div><div class="font-extrabold text-lg">82%</div><div class="h-1.5 bg-slate-100 rounded-full mt-1"><div class="h-1.5 bg-orange-400 rounded-full" style="width:82%"></div></div></div>
-<div class="card p-3 border-orange-200 bg-orange-50/50"><div class="text-orange-600">预警库区</div><div class="font-extrabold text-lg">A-05区 96%</div><div class="text-[11px] text-slate-500">占用 230/240托 · 建议分流到A-06</div></div>
-<div class="card p-3"><div class="text-slate-400">特殊库位</div><div class="font-extrabold text-lg">待检 6 · 隔离 3 · 冻结 1</div><div class="text-[11px] text-slate-400">待检不计可用 · 隔离红色锁定</div></div>
-<div class="card p-3"><div class="text-slate-400">混放库位</div><div class="font-extrabold text-lg">14 <span class="text-xs font-normal text-blue-600">● 多物料/多单位</span></div><div class="text-[11px] text-slate-400">同库位分行列示 · 不合并</div></div>
+<div class="flex gap-2 text-sm flex-wrap"><div class="flex gap-2 text-sm flex-wrap" id="whRow"><span class="text-xs text-slate-400 self-center">仓库加载中…</span></div><span class="text-xs text-slate-400 self-center">占用 = 托/箱位数 · 与米/件/个无关</span></div>
+<div class="grid grid-cols-2 xl:grid-cols-5 gap-3 text-xs" id="statRow">
+<div class="card p-3"><div class="text-slate-400">库位数</div><div class="font-extrabold text-lg" id="stLoc">–</div></div>
+<div class="card p-3"><div class="text-slate-400">库区数</div><div class="font-extrabold text-lg" id="stArea">–</div></div>
+<div class="card p-3"><div class="text-slate-400">有货库位</div><div class="font-extrabold text-lg" id="stFill">–</div></div>
+<div class="card p-3"><div class="text-slate-400">空库位</div><div class="font-extrabold text-lg" id="stEmpty">–</div></div>
+<div class="card p-3"><div class="text-slate-400">待检量</div><div class="font-extrabold text-lg" id="stQua">–</div></div>
 </div>
-<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs" id="areaRow">
-<button onclick="filterArea('',this)" class="area-card on card p-3 text-left"><b>全部库区</b><div class="text-slate-400">168库位 · 占用82%</div><div class="mt-1 text-slate-400">各库区码见下方 · 扫码自动定位</div></button>
-<button onclick="filterArea('A-05',this)" class="area-card card p-3 text-left"><b>A-05区 <span class="text-red-500">96%预警</span></b><div class="text-slate-400">48库位 · 混放8 · 待检2</div><div class="mt-1"><span class="qr ok"><i class="fa-solid fa-qrcode mr-1"></i>AQ-WHA-A05</span> <span class="text-emerald-600">已绑定 ✓</span></div></button>
-<button onclick="filterArea('A-06',this)" class="area-card card p-3 text-left"><b>A-06区</b><div class="text-slate-400">36库位 · 新区 · 空12</div><div class="mt-1"><span class="qr ok"><i class="fa-solid fa-qrcode mr-1"></i>AQ-WHA-A06</span> <span class="text-emerald-600">已绑定 ✓</span></div></button>
-<button onclick="filterArea('D01/G01',this)" class="area-card card p-3 text-left"><b>待检区D01 / 隔离区G01</b><div class="text-slate-400">待检220米 · 隔离15米锁定</div><div class="mt-1"><span class="qr ok">AQ-WHA-D01</span> <span class="qr ok">AQ-WHA-G01</span></div></button>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs" id="areaRow"><div class="card p-3 text-slate-400">库区加载中…</div></div>
 </div>
 <div class="card p-4"><div class="flex gap-2 text-xs flex-wrap"><input id="q" placeholder="搜索：库位编码 / 库区 / 库区二维码 / 物料 / 客户" class="border rounded-lg px-3 py-2 w-72" oninput="doQ()"><select id="fStat" class="border rounded-lg px-2 py-2" onchange="doQ()"><option value="">全部状态</option><option>可用</option><option>混放</option><option>待检</option><option>隔离</option><option>冻结</option><option>空闲</option><option>停用</option></select><select id="fUnit" class="border rounded-lg px-2 py-2" onchange="doQ()"><option value="">全部单位</option><option>米</option><option>件</option><option>个</option><option>卷</option></select><label class="flex items-center gap-1 text-slate-500 self-center"><input type="checkbox" id="fMix" onchange="doQ()" class="w-4 h-4"> 仅看混放</label><span class="flex-1"></span><span class="text-slate-400 self-center" id="cntTip">共 8 个库位</span></div>
-<table class="w-full text-xs mt-3"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">库位编码 / 所属库区</th><th>容量(托)</th><th>占用</th><th>状态</th><th>库区二维码</th><th>存放物料（多物料分行 · 各带单位）</th><th>更新</th><th>操作</th></tr></thead><tbody id="binBody">
-<tr class="border-b hover:bg-blue-50" data-area="A-05" data-stat="混放" data-unit="米件" data-mix="1"><td class="py-2"><b class="text-blue-700">WH-A-05-03</b><br><span class="text-slate-400">外仓 · A-05区</span></td><td>42托</td><td><b>38/42</b><div class="h-1.5 bg-slate-100 rounded-full mt-1 w-24"><div class="h-1.5 bg-blue-500 rounded-full" style="width:90%"></div></div></td><td><span class="bg-blue-100 text-blue-600 px-2 rounded-full">混放2种</span></td><td><span class="qr ok">AQ-WHA-A05</span><br><span class="text-emerald-600">已核验 ✓</span></td><td>HD-OXF-001 牛津布 <b class="qty-value">300</b><span class="unit-tag unit-mi qty-unit">米</span><br>HD-ZP-011 拉链 <b class="qty-value">1,200</b><span class="unit-tag unit-jian qty-unit">件</span></td><td class="text-slate-400">08:28</td><td><button onclick="openDetail('WH-A-05-03')" class="text-blue-600 font-bold">库存</button> <button onclick="openWiz('WH-A-05-03')" class="text-slate-500">编辑</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="A-05" data-stat="可用" data-unit="个" data-mix="0"><td class="py-2"><b class="text-blue-700">WH-A-05-04</b><br><span class="text-slate-400">外仓 · A-05区</span></td><td>42托</td><td><b>30/42</b><div class="h-1.5 bg-slate-100 rounded-full mt-1 w-24"><div class="h-1.5 bg-blue-500 rounded-full" style="width:71%"></div></div></td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">可用</span></td><td><span class="qr ok">AQ-WHA-A05</span><br><span class="text-emerald-600">已核验 ✓</span></td><td>HD-NK-005 纽扣 <b class="qty-value">5,650</b><span class="unit-tag unit-ge qty-unit">个</span>（可用）+ <b class="text-orange-500 qty-value">150</b><span class="qty-unit">个</span>（待检）</td><td class="text-slate-400">08:05</td><td><button onclick="openDetail('WH-A-05-04')" class="text-blue-600 font-bold">库存</button> <button onclick="openWiz('WH-A-05-04')" class="text-slate-500">编辑</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="A-05" data-stat="空闲" data-unit="" data-mix="0"><td class="py-2"><b class="text-blue-700">WH-A-05-05</b><br><span class="text-slate-400">外仓 · A-05区</span></td><td>42托</td><td><b>0/42</b></td><td><span class="bg-slate-100 text-slate-500 px-2 rounded-full">空闲可分配</span></td><td><span class="qr ok">AQ-WHA-A05</span></td><td class="text-slate-300">空 · 可分配</td><td class="text-slate-400">—</td><td><button onclick="toast('WH-A-05-05 已分配给 SL2026091210')" class="text-blue-600 font-bold">分配</button> <button onclick="openWiz('WH-A-05-05')" class="text-slate-500">编辑</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="D01/G01" data-stat="待检" data-unit="米个" data-mix="1"><td class="py-2"><b class="text-blue-700">WH-A-D01</b><br><span class="text-slate-400">外仓 · 待检区D01</span></td><td>—</td><td><b>—</b></td><td><span class="bg-orange-100 text-orange-600 px-2 rounded-full">待检</span></td><td><span class="qr ok">AQ-WHA-D01</span></td><td>HY-LB-020 里布 <b class="text-orange-600 qty-value">220</b><span class="unit-tag unit-mi qty-unit">米</span><br>HD-OXF-001 样品 <b class="text-orange-600 qty-value">150</b><span class="unit-tag unit-ge qty-unit">个</span><br><span class="text-slate-400">待检不计可用</span></td><td class="text-slate-400">08:10</td><td><button onclick="openDetail('WH-A-D01')" class="text-blue-600 font-bold">库存</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="D01/G01" data-stat="隔离" data-unit="米" data-mix="0"><td class="py-2"><b class="text-blue-700">WH-A-G01</b><br><span class="text-slate-400">外仓 · 隔离区G01 · 红色锁定</span></td><td>—</td><td><b>锁定</b></td><td><span class="bg-red-100 text-red-600 px-2 rounded-full">隔离锁定</span></td><td><span class="qr ok">AQ-WHA-G01</span></td><td>HD-OXF-001 牛津布 <b class="text-red-500 qty-value">15</b><span class="unit-tag unit-mi qty-unit">米</span> · 污染待报废</td><td class="text-slate-400">09-11</td><td><button onclick="toast('隔离库位需审批才能移出')" class="text-red-500 font-bold">审批移出</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="A-05" data-stat="混放" data-unit="米" data-mix="1"><td class="py-2"><b class="text-blue-700">WH-A-05-08</b><br><span class="text-slate-400">外仓 · A-05区</span></td><td>42托</td><td><b>22/42</b></td><td><span class="bg-blue-100 text-blue-600 px-2 rounded-full">混放·同单位</span></td><td><span class="qr ok">AQ-WHA-A05</span></td><td>HD-OXF-001 <b class="qty-value">380</b><span class="unit-tag unit-mi qty-unit">米</span>（恒达）<br>HY-LB-020 <b class="qty-value">390</b><span class="unit-tag unit-mi qty-unit">米</span>（宏远）<br><span class="text-slate-400">同为米但分属不同物料/客户，不合并</span></td><td class="text-slate-400">08:20</td><td><button onclick="openDetail('WH-A-05-08')" class="text-blue-600 font-bold">库存</button> <button onclick="openWiz('WH-A-05-08')" class="text-slate-500">编辑</button></td></tr>
-<tr class="border-b hover:bg-blue-50" data-area="A-06" data-stat="可用" data-unit="卷" data-mix="0"><td class="py-2"><b class="text-blue-700">WH-A-06-01</b><br><span class="text-slate-400">外仓 · A-06区</span></td><td>42托</td><td><b>12/42</b></td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">可用</span></td><td><span class="qr ok">AQ-WHA-A06</span></td><td>HY-ZJ-008 织带 <b class="qty-value">12</b><span class="unit-tag qty-unit">卷</span></td><td class="text-slate-400">09-10</td><td><button onclick="openDetail('WH-A-06-01')" class="text-blue-600 font-bold">库存</button> <button onclick="openWiz('WH-A-06-01')" class="text-slate-500">编辑</button></td></tr>
-<tr class="hover:bg-blue-50" data-area="A-06" data-stat="冻结" data-unit="米" data-mix="0"><td class="py-2"><b class="text-blue-700">WH-A-06-02</b><br><span class="text-slate-400">外仓 · A-06区 · 盘点冻结</span></td><td>42托</td><td><b>20/42</b></td><td><span class="bg-violet-100 text-violet-700 px-2 rounded-full">冻结·盘点中</span></td><td><span class="qr ok">AQ-WHA-A06</span></td><td>PD2026091201 盘点中 · 暂停出入库</td><td class="text-slate-400">02:35</td><td><button onclick="toast('冻结库位：盘点完成后自动解冻')" class="text-violet-600 font-bold">盘点进度</button></td></tr>
-</tbody></table><div id="empty" class="hidden text-center text-slate-400 text-xs py-6">无匹配库位，请调整筛选条件后重试</div>
+<table class="w-full text-xs mt-3"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">库位编码 / 所属库区</th><th>容量(托)</th><th>占用</th><th>状态</th><th>库区二维码</th><th>存放物料（多物料分行 · 各带单位）</th><th>更新</th><th>操作</th></tr></thead><tbody id="binBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">库位加载中…</td></tr></tbody></table><div id="empty" class="hidden text-center text-slate-400 text-xs py-6">无匹配库位，请调整筛选条件后重试</div>
 <div class="mt-2 text-[11px] text-slate-400">无货架层级 · 无库位类型 · 库位编码 = 仓库-库区-库位流水（如 WH-A-05-03）· 旧4段码中间货架段已废止，扫码一律按库区二维码 + 库位码定位 · 同一库位多物料/多单位分行列示，数量不跨单位相加</div></div>
 </div>
 <!-- ===== 向导视图 ===== -->
@@ -79,5 +66,79 @@ function valid(c){if(c===1&&!qrOk())return false;if(c===2&&!document.getElementB
 function saveDraft(){lsSet(CUR.id,{step:CUR.cur,done:CUR.cur>1?CUR.cur-1:1,updated:Date.now()});toast('草稿已保存：'+CUR.id+' 第'+CUR.cur+'步，可从列表继续')}
 function finish(){if(!document.getElementById('wOn').checked){toast('请先勾选确认启用',true);return}if(!qrOk()){toast('库区与二维码不一致，禁止启用',true);return}lsSet(CUR.id,{step:3,done:3,updated:Date.now()});toast('已完成：'+CUR.id+' 启用成功，可分配库存');setTimeout(backList,700)}
 ['wWh','wArea','wQr','wCode','wCap','wMix','wStat'].forEach(function(id){document.addEventListener('change',function(e){if(e.target&&e.target.id===id&&CUR.id)renderWiz()})});
+/* 库位真接口:仓库/库位/现存/物料名四口并拉,列表统计分区全部按接口画 */
+var LOCS=[],OH=[],WHS=[],MATMAP={};
+function apiGet(path){
+ if(!window.WmsAi)return Promise.reject(new Error('后端未连接'));
+ return window.WmsAi.ready.then(function(){
+  return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});
+ }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(j){return (j&&j.data)||[];});
+}
+function escLoc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pullLoc(){
+ apiGet('/web/masters/warehouses?page_size=100').then(function(w){
+  WHS=w;
+  document.getElementById('whRow').innerHTML=w.map(function(x,i){return '<button onclick="swWh(\''+escLoc(x.wh_code)+'\',this)" class="wh px-5 py-2.5 rounded-xl font-bold '+(i===0?'bg-blue-600 text-white':'bg-white border')+'">'+escLoc((x.name||'')+' '+x.wh_code)+'</button>';}).join('')+'<span class="flex-1"></span><span class="text-xs text-slate-400 self-center">占用 = 托/箱位数 · 与米/件/个无关</span>';
+  if(w.length) CURRENT_WH=w[0].wh_code;
+  return apiGet('/web/masters/locations?page_size=500');
+ }).then(function(l){
+  LOCS=l;
+  return apiGet('/web/stock/onhand?page_size=500');
+ }).then(function(o){
+  OH=o;
+  return apiGet('/web/masters/materials?page_size=500');
+ }).then(function(m){
+  m.forEach(function(x){MATMAP[x.material_code]=x.name||x.material_code;});
+  paintLocAll();
+  try{localStorage.setItem('wms_cache_locpage',JSON.stringify({locs:LOCS,oh:OH,whs:WHS}));}catch(e){}
+ }).catch(function(){
+  try{var c=JSON.parse(localStorage.getItem('wms_cache_locpage')||'null');if(c){LOCS=c.locs||[];OH=c.oh||[];WHS=c.whs||[];paintLocAll();return;}}catch(e){}
+  document.getElementById('whRow').innerHTML='<span class="text-xs text-red-500 self-center">后端不可达</span>';
+  document.getElementById('binBody').innerHTML='<tr><td colspan="8" class="text-center text-slate-400 py-6">后端不可达，暂无缓存</td></tr>';
+ });
+}
+function ohOf(loc){return OH.filter(function(x){return x.loc===loc;});}
+function paintLocAll(){
+ var en=LOCS.filter(function(x){return String(x.enabled)!=='0';});
+ var zones={};LOCS.forEach(function(x){zones[x.zone_label||'—']=true;});
+ var fillLocs={};OH.forEach(function(x){if(x.loc)fillLocs[x.loc]=true;});
+ document.getElementById('stLoc').innerHTML=LOCS.length+' <span class="text-xs font-normal text-slate-400">启用 '+en.length+' · 停用 '+(LOCS.length-en.length)+'</span>';
+ document.getElementById('stArea').textContent=Object.keys(zones).length;
+ document.getElementById('stFill').textContent=Object.keys(fillLocs).length;
+ document.getElementById('stEmpty').textContent=Math.max(LOCS.length-Object.keys(fillLocs).length,0);
+ var qua=OH.reduce(function(a,x){return a+(Number(x.quarantine)||0);},0);
+ document.getElementById('stQua').textContent=qua;
+ var zmap={};
+ LOCS.forEach(function(x){var z=x.zone_label||'—';zmap[z]=zmap[z]||{n:0,qr:x.qr_code||x.loc_code};zmap[z].n++;});
+ document.getElementById('areaRow').innerHTML='<button onclick="filterArea(\'\',this)" class="area-card on card p-3 text-left"><b>全部库区</b><div class="text-slate-400">'+LOCS.length+'库位</div></button>'+Object.keys(zmap).map(function(z){var v=zmap[z];return '<button onclick="filterArea(\''+escLoc(z)+'\',this)" class="area-card card p-3 text-left"><b>'+escLoc(z)+'</b><div class="text-slate-400">'+v.n+'库位</div><div class="mt-1"><span class="qr ok">'+escLoc(v.qr||'')+'</span></div></button>';}).join('');
+ paintBins();
+}
+function paintBins(){
+ var body=document.getElementById('binBody');
+ var rows=LOCS.filter(function(x){return !CURRENT_WH||x.wh_code===CURRENT_WH;});
+ body.innerHTML=rows.map(function(x){
+  var items=ohOf(x.loc_code);
+  var units={};items.forEach(function(i){if(i.unit)units[i.unit]=1;});
+  var hasQua=items.some(function(i){return Number(i.quarantine)>0;});
+  var stat=String(x.enabled)==='0'?'停用':(hasQua?'待检':(items.length?'可用':'空闲'));
+  var matHtml=items.length?items.map(function(i){var nm=MATMAP[i.material_code]||i.material_code||i.product_code||'';return escLoc(nm)+' <b>'+escLoc(i.on_hand)+'</b>'+escLoc(i.unit||'');}).join('<br>'):'<span class="text-slate-300">空 · 可分配</span>';
+  return '<tr class="border-b hover:bg-blue-50" data-area="'+escLoc(x.zone_label||'')+'" data-stat="'+stat+'" data-unit="'+escLoc(Object.keys(units).join(''))+'" data-mix="'+(items.length>1?'1':'0')+'"><td class="py-2"><b class="text-blue-700">'+escLoc(x.loc_code)+'</b><br><span class="text-slate-400">'+escLoc(x.wh_code+' · '+(x.zone_label||''))+'</span></td><td>'+escLoc(x.capacity||'—')+'</td><td><b>'+items.length+'种物料</b></td><td>'+stat+'</td><td><span class="qr ok">'+escLoc(x.qr_code||x.loc_code||'')+'</span></td><td>'+matHtml+'</td><td class="text-slate-400">—</td><td><button onclick="openDetail(\''+escLoc(x.loc_code)+'\')" class="text-blue-600 font-bold">库存</button></td></tr>';
+ }).join('')||'<tr><td colspan="8" class="text-center text-slate-400 py-6">该仓库暂无库位</td></tr>';
+ doCount();
+}
+function openDetail(id){var items=ohOf(id);
+ document.getElementById('dTitle').textContent=id+' · 库位库存';
+ document.getElementById('dBody').innerHTML='<div class="bg-blue-50 border border-blue-100 rounded-xl p-3">'+(items.length?items.map(function(x){var nm=MATMAP[x.material_code]||x.material_code||x.product_code||'';return '<div class="border-b last:border-0 py-1.5">'+escLoc(nm)+' · 账面'+escLoc(x.on_hand)+' · 可用'+escLoc(x.avail)+escLoc(x.unit||'')+' · 待检'+escLoc(x.quarantine||0)+'</div>';}).join(''):'暂无物料 · 空闲可分配')+'</div>';
+ document.getElementById('d').classList.remove('hidden');}
+var _swWh=swWh;
+swWh=function(w,btn){CURRENT_WH=w;document.querySelectorAll('.wh').forEach(function(x){x.className='wh px-5 py-2.5 rounded-xl bg-white border font-bold'});if(btn)btn.className='wh on px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold';paintBins();};
+var _finish=finish;
+finish=function(){if(!document.getElementById('wOn').checked){toast('请先勾选确认启用',true);return}if(!qrOk()){toast('库区与二维码不一致，禁止启用',true);return}
+ var code=document.getElementById('wCode').value.trim(),whTxt=document.getElementById('wWh').value||'',wh=whTxt.split(' ').pop()||'';
+ if(window.WmsAi&&code&&wh&&wh!=='new'){
+  window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+'/web/masters/locations',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')},body:JSON.stringify({loc_code:code,wh_code:wh,zone_label:document.getElementById('wArea').value,capacity:document.getElementById('wCap').value})});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.code!==200)throw new Error(j.msg||('HTTP '+r.status));return j;});}).then(function(){toast('已同步后端库位：'+code);pullLoc();}).catch(function(e){toast('后端同步失败（需管理员）:'+e.message+'，本地已保存',1);});
+ }
+ lsSet(CUR.id,{step:3,done:3,updated:Date.now()});toast('已完成：'+CUR.id+' 启用成功，可分配库存');setTimeout(backList,700);};
 doCount();
+pullLoc();
 </script></body></html>
