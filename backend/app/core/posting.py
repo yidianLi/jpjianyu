@@ -91,6 +91,17 @@ def post(db, doc_no, dtype, by_user, device=""):
                     "b": line["batch_no"], "q": qty, "u": line["unit"],
                     "r": "1" if is_in else "-1", "z": dtype,
                     "y": by_user, "v": device, "k": key})
+        signed = qty if is_in else -qty
+        ln = dict(line)
+        db.execute(text("INSERT INTO stock_onhand(material_code,product_code,"
+                        "batch_no,wh,loc,on_hand,avail)"
+                        " VALUES(:m,:p,:b,'',:l,:q,:q)"
+                        " ON DUPLICATE KEY UPDATE on_hand=on_hand+:d,"
+                        "avail=avail+:d"),
+                   {"m": ln.get("material_code") or "",
+                    "p": ln.get("product_code") or "",
+                    "b": ln.get("batch_no") or "",
+                    "l": ln.get("loc") or "", "q": signed, "d": signed})
     db.execute(text("UPDATE doc_main SET biz_status='POSTED' WHERE doc_no=:d"),
                {"d": doc_no})
     db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"

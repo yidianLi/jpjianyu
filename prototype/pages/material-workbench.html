@@ -825,25 +825,42 @@ function renderMaterial(){
   try{location.href='base.html?tab=2'}catch(e){}
   return;
 }
+/* 后端库存覆盖:有真数据时用服务端行替换本地台账展示,查询/库区/流水跳转照用 */
+var SRV={on:false,stock:[],ledger:[],busy:false,at:0};
+function syncStockSrv(){
+  if(!window.WmsStock||SRV.busy)return;
+  if(Date.now()-SRV.at<30000)return;
+  SRV.busy=true;
+  WmsStock.onhand({page_size:200}).then(function(j){
+    var rows=(j&&j.data)||[];
+    if(rows.length){SRV.on=true;SRV.stock=rows.map(function(r){return {code:r.material_code||r.product_code||'',wh:r.wh||'',loc:r.loc||'',batch:r.batch_no||'',unit:'',on:Number(r.on_hand)||0,avail:Number(r.avail)||0,pending:Number(r.pending)||0,qua:Number(r.quarantine)||0,at:'',srv:1};});}
+    return WmsStock.ledger({page_size:100});
+  }).then(function(j2){
+    var rows2=(j2&&j2.data)||[];
+    if(rows2.length){SRV.ledger=rows2.map(function(r){return {t:String(r.at||''),doc:r.doc_no||'',biz:r.biz||'',code:r.material_code||r.product_code||'',batch:r.batch_no||'',wh:r.wh||'',loc:r.loc||'',dir:String(r.dir==null?'':r.dir),qty:r.qty,unit:r.unit||'',before:'',after:'',field:'',by:r.by_user||'',note:'',srv:1};});}
+  }).catch(function(){}).then(function(){SRV.busy=false;SRV.at=Date.now();if(typeof renderStock==='function')renderStock();});
+}
 function renderStock(){
   var body='';
   if(sub!=='onhand'&&sub!=='ledger')sub='onhand';
   if(sub==='onhand'){
-    var whs=[];DB.stock.forEach(function(s){if(whs.indexOf(s.wh)<0)whs.push(s.wh)});
+    var STK=SRV.on?SRV.stock:DB.stock;
+    var whs=[];STK.forEach(function(s){if(whs.indexOf(s.wh)<0)whs.push(s.wh)});
     var scope=window.onhandScope||'';
-    var list=DB.stock.filter(function(s){var m=mat(s.code);return (!kw||(s.code+m.name+s.batch+s.wh+s.loc).toLowerCase().indexOf(kw.toLowerCase())>=0)&&(!scope||s.wh===scope)});
-    var rows=list.map(function(s){var m=mat(s.code),al=alertOf(s),gi=DB.stock.indexOf(s);
-      return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+fmt(s.on)+'</b></td><td class="num grn"><b>'+fmt(s.avail)+'</b></td><td class="num org">'+fmt(s.pending)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num">'+fmt(m.min)+'</td><td class="num">'+fmt(m.max)+'</td><td>'+tag(al)+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span> <span class="link" data-act="quick" data-i="'+gi+'">发起领用</span></td></tr>'}).join('');
+    var list=STK.filter(function(s){var m=mat(s.code);return (!kw||(s.code+m.name+s.batch+s.wh+s.loc).toLowerCase().indexOf(kw.toLowerCase())>=0)&&(!scope||s.wh===scope)});
+    var rows=list.map(function(s){var m=mat(s.code),al=alertOf(s),gi=STK.indexOf(s);
+      return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+fmt(s.on)+'</b></td><td class="num grn"><b>'+fmt(s.avail)+'</b></td><td class="num org">'+fmt(s.pending)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num">'+fmt(m.min)+'</td><td class="num">'+fmt(m.max)+'</td><td>'+tag(al)+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span>'+(s.srv?'':' <span class="link" data-act="quick" data-i="'+gi+'">发起领用</span>')+'</td></tr>'}).join('');
     var whBtns='<button class="b '+(scope?'':'on')+'" data-act="whscope" data-wh="">全部库区</button>'+whs.map(function(w){return '<button class="b '+(scope===w?'on':'')+'" data-act="whscope" data-wh="'+esc(w)+'">'+esc(w)+'</button>'}).join('');
-    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>仓库库存 inventory_stock</b><span class="sm mut">由 stock_ledger 派生，页面只读，不可直接改数 · 可用 = 账面 − 待检 − 隔离 − 冻结</span></div>'+
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>仓库库存 inventory_stock</b><span class="sm mut">由 stock_ledger 派生，页面只读，不可直接改数 · 可用 = 账面 − 待检 − 隔离 − 冻结'+(SRV.on?' · <b>后端真数据</b>':'')+'</span></div>'+
       '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b class="sm">库区视角：</b>'+whBtns+'<span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div>'+
       '<div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>仓库</th><th>库区</th><th>批次</th><th>数量单位</th><th>账面</th><th>可用</th><th>待检</th><th>隔离</th><th>最低</th><th>最高</th><th>预警</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无库存</td></tr>')+'</tbody></table></div></div>';
   }else{
-    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><b>库存记录 stock_ledger</b> <span class="sm mut">只增不改不删 · 冲红为反向流水并指向原单 · 账实核对以本表为准</span><span style="flex:1"></span><button class="b" data-act="cmp">数据比对</button></div><div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>物料</th><th>批次</th><th>仓库</th><th>库区</th><th>方向</th><th>数量</th><th>数量单位</th><th>变动前</th><th>变动后</th><th>分量</th><th>操作人</th><th>备注</th><th>操作</th></tr></thead><tbody>'+(DB.ledger.map(function(x){var m=mat(x.code);return '<tr><td>'+esc(x.t)+'</td><td class="link" data-act="open" data-no="'+esc(x.doc)+'">'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc((m.name||'')+' '+x.code)+'</td><td>'+esc(x.batch)+'</td><td>'+esc(x.wh)+'</td><td>'+esc(x.loc)+'</td><td>'+tag(x.dir)+'</td><td class="num">'+qtyVal(x.qty)+'</td><td>'+esc(x.unit||'—')+'</td><td class="num">'+fmt(x.before)+'</td><td class="num">'+fmt(x.after)+'</td><td>'+esc(x.field)+'</td><td>'+esc(x.by)+'</td><td class="sm mut">'+esc(x.note||'')+'</td><td><span class="link" data-act="godetail" data-key="'+esc(x.code+'|'+x.batch+'|'+x.wh+'|'+x.loc)+'">明细</span></td></tr>'}).join('')||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无流水</td></tr>')+'</tbody></table></div></div>';
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><b>库存记录 stock_ledger</b> <span class="sm mut">只增不改不删 · 冲红为反向流水并指向原单 · 账实核对以本表为准</span><span style="flex:1"></span><button class="b" data-act="cmp">数据比对</button></div><div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>物料</th><th>批次</th><th>仓库</th><th>库区</th><th>方向</th><th>数量</th><th>数量单位</th><th>变动前</th><th>变动后</th><th>分量</th><th>操作人</th><th>备注</th><th>操作</th></tr></thead><tbody>'+((SRV.on?SRV.ledger:DB.ledger).map(function(x){var m=mat(x.code);return '<tr><td>'+esc(x.t)+'</td><td class="link" data-act="open" data-no="'+esc(x.doc)+'">'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc((m.name||'')+' '+x.code)+'</td><td>'+esc(x.batch)+'</td><td>'+esc(x.wh)+'</td><td>'+esc(x.loc)+'</td><td>'+tag(x.dir)+'</td><td class="num">'+qtyVal(x.qty)+'</td><td>'+esc(x.unit||'—')+'</td><td class="num">'+fmt(x.before)+'</td><td class="num">'+fmt(x.after)+'</td><td>'+esc(x.field)+'</td><td>'+esc(x.by)+'</td><td class="sm mut">'+esc(x.note||'')+'</td><td><span class="link" data-act="godetail" data-key="'+esc(x.code+'|'+x.batch+'|'+x.wh+'|'+x.loc)+'">明细</span></td></tr>'}).join('')||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无流水</td></tr>')+'</tbody></table></div></div>';
   }
   var kpiTitle=sub==='ledger'?'库存记录':'仓库库存';
   var kpiUnit=sub==='ledger'?'物料+批次+仓库+库区':'仓库+库区+物料+批次';
   document.getElementById('main').innerHTML='<div class="kpis mb-3"><div class="kpi"><small>'+kpiTitle+'</small><b>'+DB.stock.length+'</b><span class="sm mut">'+kpiUnit+'</span></div><div class="kpi"><small>低于下限</small><b class="red">'+DB.stock.filter(function(s){return alertOf(s)==='低于下限'}).length+'</b><span class="sm mut">同步预警中心</span></div><div class="kpi"><small>待检分量</small><b class="org">'+fmt(DB.stock.reduce(function(a,s){return a+num(s.pending)},0))+'</b><span class="sm mut">不计可用</span></div><div class="kpi"><small>待审批工单</small><b style="color:#125d97">'+pendingCount()+'</b><span class="sm mut">审批后才动账</span></div></div>'+body;
+  syncStockSrv();
 }
 
 /* ===== 6. 动作 ===== */

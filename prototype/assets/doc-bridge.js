@@ -156,6 +156,27 @@
       });
     }
   };
+  /* 库存只读:list现存/流水,参数透传wh/material_code/product_code/doc_no/code/page/page_size */
+  window.WmsStock = {
+    onhand: function(p){
+      p = p || {};
+      var q = '?page=' + (p.page || 1) + '&page_size=' + (p.page_size || 50);
+      if(p.wh) q += '&wh=' + encodeURIComponent(p.wh);
+      if(p.material_code) q += '&material_code=' + encodeURIComponent(p.material_code);
+      if(p.product_code) q += '&product_code=' + encodeURIComponent(p.product_code);
+      return get('/web/stock/onhand' + q);
+    },
+    ledger: function(p){
+      p = p || {};
+      var q = '?page=' + (p.page || 1) + '&page_size=' + (p.page_size || 50);
+      if(p.doc_no) q += '&doc_no=' + encodeURIComponent(p.doc_no);
+      if(p.code) q += '&code=' + encodeURIComponent(p.code);
+      return get('/web/stock/ledger' + q);
+    },
+    trace: function(code){
+      return get('/web/stock/trace?code=' + encodeURIComponent(code || ''));
+    }
+  };
   var oldToast = window.toast;
   window.addEventListener('load', function(){
     if(typeof window.toast === 'function' && !window.toast.__wmsDocBridge){
