@@ -1109,6 +1109,7 @@ var ACT={
   drop:function(el){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账，只能冲红',1);return}d.lines.splice(Number(el.dataset.i),1);save();render()},
   save:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账，无需保存');return}ensureRegisterQrs(d);d.status='已保存';audit(d,'保存待审批');save();render();toast(d.no+' 已保存为待审批（二维码已生成，库存未变动）')},
   submit:function(){var d=cur();if(!d)return;if(d.status==='已审批'){toast('已过账无需提交',1);return}
+    if(d.type==='issue'&&!d.src_sq){toast('领用必须关联申请单:请先选关联申请单',1);return}
     if(d.status==='草稿'){d.status='已保存'}
     ApproveFlow.ensureFlow(d,d.type);
     var r=ApproveFlow.submit(d,d.type,d.handler||'经办人');if(!r.ok){toast(r.msg,1);return}

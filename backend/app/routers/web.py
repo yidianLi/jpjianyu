@@ -24,6 +24,7 @@ class DocLineReq(BaseModel):
 class CreateDocReq(BaseModel):
     type: str
     handler: Optional[str] = None
+    ref_doc: Optional[str] = None
     lines: List[DocLineReq] = Field(default_factory=list)
 
 
@@ -147,9 +148,23 @@ def create_doc(body: CreateDocReq, authed: dict = Depends(auth.need_auth),
     hit = idem.peek(key)
     if hit is not None:
         return resp.ok(hit)
+    if dtype == "LY":
+        if not body.ref_doc:
+            return resp.fail(400, "REF_REQUIRED:领用必须关联申请单")
+        sq = db.execute(text("SELECT type FROM doc_main WHERE doc_no=:d"),
+                        {"d": body.ref_doc}).mappings().first()
+        if not sq:
+            return resp.fail(400, "REF_NOT_FOUND:关联申请单不存在")
+        if sq["type"] != "SQ":
+            return resp.fail(400, "REF_TYPE_DENIED:领用只能关联申请单SQ")
+    db.rollback()
     with db.begin():
         doc_no = posting.create(db, dtype, body.handler or "",
                                 lines)
+        if dtype == "LY":
+            db.execute(text("INSERT INTO stock_doc_ref(from_doc,to_doc,rel)"
+                            " VALUES(:f,:t,'领用-申请')"),
+                       {"f": doc_no, "t": body.ref_doc})
     out = idem.replay_or_put(key, lambda: {"doc_no": doc_no,
                                            "biz_status": "DRAFT"})
     return resp.ok(out["data"])

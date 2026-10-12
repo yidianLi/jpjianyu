@@ -84,7 +84,8 @@
     }).filter(function(x){ return x.material_code && x.qty > 0 && x.unit; });
     var type = window.WmsDoc.toType(local.tab || local.type);
     return post('/web/docs', {type: type, lines: lines,
-      handler: local.handler || 'web'}, idemKey('WB:' + local.no, 1, type))
+      handler: local.handler || 'web',
+      ref_doc: local.src_sq || local.src || local.src_rk || ''}, idemKey('WB:' + local.no, 1, type))
       .then(function(j){
         var docNo = j && j.data && j.data.doc_no;
         if(!docNo) throw new Error('网关未返回单号');
