@@ -133,7 +133,20 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
   function speakBriefly(){if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;var center=document.querySelector('.dash-center'),state=document.getElementById('dash-assistant-state');center.classList.add('is-speaking');state.textContent='正在播报';clearTimeout(window.dashSpeakTimer);window.dashSpeakTimer=setTimeout(function(){center.classList.remove('is-speaking');state.textContent='在线';},1300);}
   var answer=document.getElementById('dash-answer'),answerTitle=document.getElementById('dash-answer-title'),answerText=document.getElementById('dash-answer-text'),answerMeta=document.getElementById('dash-answer-meta'),ask=document.getElementById('dash-ask'),questionInput=document.getElementById('dash-question'),wakeInput=document.getElementById('dash-wake-input'),questionPicker=document.getElementById('dash-question-picker'),questionTrigger=document.getElementById('dash-question-trigger');
   var answers={'牛津布在哪些仓库？':'牛津布目前分布在外仓 WH-A 和内仓1 WH-B。外仓可用 5,910 米、待检 440 米；内仓1 可用 1,260 米。','今天有哪些待处理？':'今天有 5 项待处理：退料判定 1 项、车间接收 1 项、盘点差异复核 1 项、OCR确认 1 项、库存预警跟进 1 项。','今天入库多少？':'今日已完成入库 10 单，涉及 38 种物料、7 种计量单位；其中包含车间退料入库。','最近有哪些库存异常？':'当前重点异常有 2 项：WH-A-05 盘点短少 35 米，已冻结待复核；WH-C 纽扣库存低于安全线。','哪些单据待确认？':'待确认单据包括送料单 SL2026091209、直送接收单 ZS2026091204，以及盘点单 PD2026091201。','外仓 WH-A 还有多少库存？':'外仓 WH-A 当前包含 12 种物料：牛津布等面料合计 8,420 米，另有辅料按件、个等单位分别统计。','近期调拨进度如何？':'调拨单 DB2026091202 正在运输中，外仓已出库，预计 10:30 到达内仓1，目标仓尚待接收。'};
-  function showAnswer(question){var text=answers[question]||'已收到“'+question+'”。当前原型会结合库存、单据、批次和异常记录生成答案；正式系统可接入实时业务数据。';answerTitle.textContent=question;answerText.textContent=text;answerMeta.textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' · 点击业务数据可继续下钻';answer.classList.add('is-visible');speakBriefly();document.getElementById('dash-assistant-state').textContent='正在回答';setTimeout(function(){document.getElementById('dash-assistant-state').textContent='在线';},1300);}
+  function liveAsk(question, fallback){
+    answerTitle.textContent=question;answerText.textContent='正在问线上模型…';answer.classList.add('is-visible');speakBriefly();
+    if(!window.WmsAi){fallback(question);return;}
+    window.WmsAi.ask(question).then(function(j){
+      var d=(j&&j.data)||{};
+      var rows=d.rows||[];
+      var first=rows.length?Object.keys(rows[0]).map(function(k){return k+'='+rows[0][k];}).slice(0,4).join(' · '):'暂无记录';
+      answerTitle.textContent=question;
+      answerText.textContent='共'+(j.total||rows.length)+'条 · '+first+(rows.length>1?' · …':'');
+      answerMeta.textContent='线上模型 · SQL:'+String(d.sql||'').slice(0,80)+' · 点击业务数据可继续下钻';
+    }).catch(function(){fallback(question);});
+  }
+  function showAnswer(question){liveAsk(question, showAnswerMock);}
+  function showAnswerMock(question){var text=answers[question]||'已收到“'+question+'”。当前原型会结合库存、单据、批次和异常记录生成答案；正式系统可接入实时业务数据。';answerTitle.textContent=question;answerText.textContent=text;answerMeta.textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' · 点击业务数据可继续下钻';answer.classList.add('is-visible');speakBriefly();document.getElementById('dash-assistant-state').textContent='正在回答';setTimeout(function(){document.getElementById('dash-assistant-state').textContent='在线';},1300);}
   document.querySelectorAll('[data-question]').forEach(function(btn){btn.addEventListener('click',function(){showAnswer(btn.dataset.question);questionPicker.classList.remove('is-open');questionTrigger.setAttribute('aria-expanded','false');});});
   questionTrigger.addEventListener('click',function(){var open=questionPicker.classList.toggle('is-open');questionTrigger.setAttribute('aria-expanded',open?'true':'false');if(open){var first=questionPicker.querySelector('[data-question]');if(first)first.focus();}});
   wakeInput.addEventListener('click',function(){var awake=ask.classList.toggle('is-awake');wakeInput.setAttribute('aria-expanded',awake?'true':'false');wakeInput.textContent=awake?'收起输入栏':'唤醒输入栏';if(awake)questionInput.focus();});
