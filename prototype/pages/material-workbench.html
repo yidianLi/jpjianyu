@@ -255,7 +255,7 @@ function mergeDocs(){
   mergeDocs.busy=0;
  }).catch(function(){mergeDocs.busy=0;});
 }
-mergeDocs();
+mergeDocs();refreshSrvCounts();
 function mergeSrvMasters(){
  if(mergeSrvMasters.done)return;mergeSrvMasters.done=1;
  if(!window.WmsMaster)return;
@@ -621,7 +621,13 @@ function renderPlace(){
   map.stock=(sub==='ledger')?'仓储作业 / 库存记录':'仓储作业 / 仓库库存';
   var el=document.getElementById('crumbBack');if(el)el.textContent='';
 }
-function pendingCount(){return DB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length}
+function pendingCount(){if(SRV.todo!=null)return SRV.todo;return DB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length}
+function doneCount(){if(SRV.done!=null)return SRV.done;return DB.doc.filter(function(d){return d.status==='已审批'||d.status==='已作废'||d.status==='已冲红'}).length}
+var SRV={todo:null,done:null};
+function refreshSrvCounts(){if(!window.WmsAi)return;
+ function get(path){return window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('no');return r.json();});}
+ get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){SRV.todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
+ get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){var t=(j&&j.total!=null)?j.total:((j&&j.data)||[]).length;SRV.done=t;try{render();}catch(e){}}).catch(function(){});}
 function whCount(){var a=[];DB.stock.forEach(function(s){if(a.indexOf(s.wh)<0)a.push(s.wh)});return a.length}
 function renderBar(){
   var d=docBy(curNo),edit=mode==='edit'&&!!d,locked=edit&&(d.status==='已审批'||d.status==='已作废');
@@ -633,7 +639,7 @@ function renderBar(){
   if(edit)b.push('<span class="sm mut" role="status" aria-live="polite">已自动保存</span>');
   b.push('<span style="flex:1"></span>');
   b.push('<button class="b '+(queue==='待办'?'on':'')+'" data-act="queue" data-q="待办">待办 <b>'+pendingCount()+'</b></button>');
-  b.push('<button class="b '+(queue==='已办'?'on':'')+'" data-act="queue" data-q="已办">已办</button>');
+  b.push('<button class="b '+(queue==='已办'?'on':'')+'" data-act="queue" data-q="已办">已办 <b>'+doneCount()+'</b></button>');
   var sharedBar=document.getElementById('bar');
   sharedBar.innerHTML=b.join('');
   sharedBar.classList.add('has-content');

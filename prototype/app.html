@@ -147,7 +147,7 @@ footer>span:last-child{display:none}
 
 <!-- 底栏：平铺总览入口 + 数据联动提示 -->
 <footer class="shell-footer text-[11px] px-5 py-2 flex items-center gap-3">
-<span>联动状态：<b id="syncTip">外仓 8,420米 · 待办 3 · 通知 5</b></span><span class="flex-1"></span>
+<span>联动状态：<b id="syncTip">加载中…</b></span><span class="flex-1"></span>
 <a href="index.html">← 回平铺总览 index.html（评审用）</a>
 <span>本页 app.html 为可点击系统（交付/演示用）</span>
 </footer>
@@ -157,6 +157,7 @@ footer>span:last-child{display:none}
 <script src="assets/action-layer.js"></script>
 <script src="assets/action-layer-fix.js"></script>
 <script src="assets/field-splitter.js"></script>
+<script src="assets/ai-gateway.js"></script>
 <script>
 /* ---------- 1. 路由表：菜单 -> 子页面文件 ---------- */
 var ROUTES={
@@ -439,4 +440,9 @@ if(requested&&ROUTES[requested]&&(cur!==requested||curTab!==requestedTab))go(req
 });</script>
 </body>
 <script>/* 页尾 a11y 补丁（无菜单逻辑） */
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([alt])').forEach(function(i){i.alt='物料管理系统用户头像';});document.querySelectorAll('button').forEach(function(b){if(!b.getAttribute('aria-label')&&!b.textContent.trim()){b.setAttribute('aria-label','操作');}});});</script>
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([alt])').forEach(function(i){i.alt='物料管理系统用户头像';});document.querySelectorAll('button').forEach(function(b){if(!b.getAttribute('aria-label')&&!b.textContent.trim()){b.setAttribute('aria-label','操作');}});});
+/* 壳底栏真数据:现存与待办取dashboard,失败留加载中 */
+document.addEventListener('DOMContentLoaded',function(){
+ if(!window.WmsAi)return;
+ window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+'/web/dashboard',{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('no');return r.json();}).then(function(j){var k=j&&j.data&&j.data.kpi;if(!k)return;var e=document.getElementById('syncTip');if(e)e.textContent='现存 '+Number(k.onhand||0).toLocaleString()+' · 待办 '+(k.todo!=null?k.todo:'—');}).catch(function(){});
+});</script>

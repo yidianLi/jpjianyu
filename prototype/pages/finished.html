@@ -197,7 +197,14 @@ function nextFinBatch(code,wh){var base='CP'+today().replace(/-/g,'');var n=1,b;
 function fnext(p){FDB.seq[p]=(FDB.seq[p]||100)+1;return p+today().replace(/-/g,'')+String(FDB.seq[p]).slice(-4)}
 function docBy(no){return FDB.doc.filter(function(d){return d.no===no})[0]}
 function finDocs(t){return FDB.doc.filter(function(d){return d.type===t})}
-function pendingFin(){return FDB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'}).length}
+function pendingFin(){if(FSRV.todo!=null)return FSRV.todo;return FDB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'}).length}
+function doneFin(){if(FSRV.done!=null)return FSRV.done;return FDB.doc.filter(function(d){return d.status==='已审批'||d.status==='已作废'}).length}
+var FSRV={todo:null,done:null};
+function refreshFinSrvCounts(){if(!window.WmsAi)return;
+ function get(path){return window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('no');return r.json();});}
+ get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){FSRV.todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
+ get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){var t=(j&&j.total!=null)?j.total:((j&&j.data)||[]).length;FSRV.done=t;try{render();}catch(e){}}).catch(function(){});}
+refreshFinSrvCounts();
 function lineSum(lines){var q=0;(lines||[]).forEach(function(l){q+=num(l.qty)});return q}
 function finAlert(s){if(num(s.qua)>0)return '隔离待处理';if(num(s.avail)<=0)return '无可用';return '正常'}
 function finAlertTag(s){var a=finAlert(s);return '<span class="tag '+(a==='正常'?'g4':a==='隔离待处理'?'g5':'g2')+'">'+a+'</span>'}
@@ -438,7 +445,7 @@ function finListHTML(t){
  var addBtn=t==='deliver'
   ?'<button class="b" onclick="deliverNew()">添加清单</button>'
   :'<button class="b" onclick="newFinDoc(\''+t+'\')">添加清单</button>';
- var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办</button>';
+ var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办 <b>'+doneFin()+'</b></button>';
  return '<div class="card pad mb-3 flex justify-between items-center flex-wrap gap-2"><div class="flex gap-2">'+newBtn+addBtn+'</div><div class="flex gap-2">'+queueBtns+'</div></div>'
  +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
  +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>数量单位</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div></div>';
