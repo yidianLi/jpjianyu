@@ -570,7 +570,8 @@ CREATE TABLE IF NOT EXISTS fee_settle(
   qty_issue DECIMAL(18,3) NOT NULL DEFAULT 0.000 COMMENT '发料数',
   qty_fin DECIMAL(18,3) NOT NULL DEFAULT 0.000 COMMENT '成品数',
   amount DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '金额DECIMAL(18,2)',
-  biz_status VARCHAR(16) NOT NULL DEFAULT '草稿' COMMENT '业务状态:草稿/确认/归档'
+  biz_status VARCHAR(16) NOT NULL DEFAULT '草稿' COMMENT '业务状态:草稿/确认/归档',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '行更新时间:确认/改数自动刷新'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='加工费对账头汇总';
 
 -- ============ K组:工单/审批流(行式流转,禁Sxxx宽表) ============

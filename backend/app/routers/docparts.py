@@ -63,7 +63,7 @@ def fee_settles(customer: str = "", period: str = "",
                        args).scalar() or 0
     args.update({"o": (p - 1) * s, "n": s})
     rows = db.execute(text("SELECT settle_no,customer,period,qty_send,qty_issue,"
-                           "qty_fin,amount,biz_status FROM fee_settle WHERE " + cond +
+                           "qty_fin,amount,biz_status,updated_at FROM fee_settle WHERE " + cond +
                            " LIMIT :o,:n"), args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
@@ -75,7 +75,7 @@ def fee_confirm(settle_no: str, body: dict,
     if not body.get("confirmed"):
         return resp.fail(400, "请勾选确认无误")
     with db.begin():
-        hit = db.execute(text("UPDATE fee_settle SET biz_status='确认'"
+        hit = db.execute(text("UPDATE fee_settle SET biz_status='确认',updated_at=NOW()"
                               " WHERE settle_no=:s AND biz_status<>'确认'"),
                          {"s": settle_no})
         if not hit.rowcount:
