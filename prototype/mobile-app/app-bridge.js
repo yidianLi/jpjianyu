@@ -8,6 +8,13 @@
     document.body.appendChild(t);
     setTimeout(function(){ t.remove(); }, 2400);
   }
+  function pageBiz(){
+    try{
+      var b = (new URLSearchParams(location.search).get('biz') || '').toUpperCase();
+      if('DJRKLYTLTKRJ'.indexOf(b) >= 0 && b.length === 2) return b;
+    }catch(e){}
+    return '';
+  }
   function collectLines(){
     var lines = [];
     document.querySelectorAll('input').forEach(function(el){
@@ -28,7 +35,7 @@
     byText(['存草稿', '弱网存草稿']).forEach(function(b){
       if(b.dataset.appWired) return; b.dataset.appWired = '1';
       b.addEventListener('click', function(){
-        if(window.AppApi) AppApi.submit({draft: true, lines: collectLines()}).then(function(r){
+        if(window.AppApi) AppApi.submit({draft: true, biz: pageBiz(), lines: collectLines()}).then(function(r){
           toast((r && r.msg) || '草稿已保存');
         });
         else toast('草稿已保存(本地)');
@@ -40,7 +47,7 @@
       if(b.dataset.appWired) return; b.dataset.appWired = '1';
       b.addEventListener('click', function(){
         if(!window.AppApi){ toast('已提交(演示)'); return; }
-        AppApi.submit({lines: collectLines(), at: new Date().toISOString()}).then(function(r){
+        AppApi.submit({biz: pageBiz(), lines: collectLines(), at: new Date().toISOString()}).then(function(r){
           if(r && r.queued) toast('弱网已存草稿,待同步');
           else if(r && r.data && r.data.orderId) toast('已提交:' + r.data.orderId);
           else toast('已提交');

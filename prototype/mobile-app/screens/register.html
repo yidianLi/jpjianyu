@@ -15,19 +15,24 @@
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
 <script>
 (function(){
-  // P1业务闭环:register.html?biz=DJ|RK|LY|TL 一页四态,不新增页;缺关联只标出不拦单
+  // P0-1修复:register.html?biz=DJ|RK|LY|TL|TK|RJ 一页六态;TK物料退库/RJ来料拒收不再回退DJ
   var biz='DJ';
   try{biz=(new URLSearchParams(location.search).get('biz')||'DJ').toUpperCase();}catch(e){}
-  if('DJRKLYTL'.indexOf(biz)<0)biz='DJ';
-  var NAMES={DJ:'物料登记 DJ',RK:'物料入库 RK',LY:'物料领用 LY',TL:'车间退料 TL'};
+  if('DJRKLYTLTKRJ'.indexOf(biz)<0||biz.length!==2)biz='DJ';
+  var NAMES={DJ:'物料登记 DJ',RK:'物料入库 RK',LY:'物料领用 LY',TL:'车间退料 TL',TK:'物料退库 TK',RJ:'来料拒收 RJ'};
   document.getElementById('bizTitle').textContent=NAMES[biz];
   // LY超发拦截(qty<=avail)为P1保留校验;TL校验src_doc;缺关联标红待处理
   var miss=[];
   if(biz==='LY')miss=['LY2026091608 缺可用量校验:本次800米,可用3980米 ✓'];
   if(biz==='TL')miss=['TL2026091601 缺对应LY:原领 LY2026091108 待补关联 → 点 docs 补录'];
   if(biz==='RK')miss=['RK 待关联DJ:缺 DJ20260916003,单照过,待补'];
+  if(biz==='TK')miss=['TK 物料退库:退库出库需关联原入库单,超退会被拦'];
+  if(biz==='RJ')miss=['RJ 来料拒收:只留不合格凭证,不写库存;请填差异原因'];
   var w=document.getElementById('missWarn');
   if(miss.length){w.classList.remove('hidden');w.innerHTML='缺关联待处理(不拦单):<br>'+miss.join('<br>');}
+  var subs=document.querySelectorAll('button');
+  for(var i=0;i<subs.length;i++){var t=subs[i].textContent||'';
+    if(t.indexOf('提交登记入账')>-1){subs[i].textContent=biz==='TK'?'提交退库':biz==='RJ'?'提交拒收单':biz==='LY'?'提交领用':biz==='RK'?'提交入库':'提交登记入账';break;}}
 })();
 </script>
 </body></html>
