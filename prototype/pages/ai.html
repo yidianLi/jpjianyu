@@ -293,7 +293,7 @@ function send(){
   live.innerHTML='<div class="flex justify-end"><div class="msg-me px-4 py-2.5 text-[13px] max-w-[82%]">'+esc+'</div></div><div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="typing"><span></span> <span></span> <span></span></div><div class="text-[11px] text-slate-400 mt-1">'+tip+'</div></div>';
   chat.scrollTop=chat.scrollHeight;inp.value='';
   setTimeout(function(){
-    var a=answerFor(q);
+    var go=function(a){
     var extra=a.draft?'<button onclick="toast(\'草稿 '+a.draft+' 已确认发布，进入报表中心列表顶部\');goPage(\'report\')" class="bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">确认发布</button><button onclick="toast(\'草稿 '+a.draft+' 已导出Excel\')" class="border px-3 py-1.5 rounded-lg text-xs">导出</button>':(MODE==='trace'?'<button onclick="toast(\'全链路已导出（含人·码·时·单）\')" class="border px-3 py-1.5 rounded-lg text-xs">导出链路</button>':'<button onclick="goPage(\'inventory\')" class="border px-3 py-1.5 rounded-lg text-xs">查看明细</button><button onclick="goPage(\'stocktake\')" class="border px-3 py-1.5 rounded-lg text-xs">打开追溯</button><button onclick="toast(\'筛选已应用\')" class="border px-3 py-1.5 rounded-lg text-xs">应用筛选</button><button onclick="toast(\'报表草稿已生成，待确认发布\')" class="bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">生成报表草稿</button>');
     live.innerHTML='<div class="flex justify-end"><div class="msg-me px-4 py-2.5 text-[13px] max-w-[82%]">'+esc+'</div></div>'
     +'<div class="msg-ai p-4 text-[13px] max-w-[96%]"><div class="font-bold">'+a.h+' <span class="text-[11px] font-normal text-slate-400">截至08:40 · 一监区</span></div><div class="mt-2 text-slate-700 leading-relaxed">'+a.b+'</div><div class="mt-2 text-[11px] text-slate-400">引用：'+a.refs+' · 数量按单位分组 · 须人工核对</div><div class="flex gap-2 mt-2 flex-wrap">'+extra+'</div></div>';
@@ -302,6 +302,8 @@ function send(){
     var rec={sess:curSess,q:q,a:a.b,refs:a.refs,time:hm,ok:true,mode:MODE};
     if(!QA[curSess])QA[curSess]=[];QA[curSess].push(rec);persistExtra(rec);renderSessions(document.getElementById('sessSearch')?document.getElementById('sessSearch').value:'');
     try{if(window.Store)Store.addAudit('AI问数：'+q.slice(0,16));}catch(e){}
+    };
+    if(window.WmsAi){window.WmsAi.ask(q).then(function(j){var d=(j&&j.data)||{};var rows=d.rows||[];var first=rows.length?Object.keys(rows[0]).map(function(k){return k+'='+rows[0][k];}).slice(0,4).join(' · '):'暂无记录';go({h:'线上模型 · 共'+(j.total||rows.length)+'条',b:first,refs:'SQL:'+String(d.sql||'').slice(0,60),draft:''});}).catch(function(){go(answerFor(q));});}else{go(answerFor(q));}
   },900);
 }
 switchMode('ask');
