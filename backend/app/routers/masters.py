@@ -149,3 +149,184 @@ def bill_methods(sid: int = 0, authed: dict = Depends(auth.need_auth),
         args["s"] = sid
     rows = db.execute(text(sql + " ORDER BY sid,bmid"), args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=len(rows))
+
+def _dup(db, sql, args):
+    return db.execute(text(sql), args).first() is not None
+
+
+@router.post("/masters/materials")
+def material_create(body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    code, name = str(body.get("material_code") or ""), str(body.get("name") or "")
+    unit = str(body.get("base_unit") or "")
+    if not code or not name or not unit:
+        return resp.fail(400, "物料编码/名称/基本单位必填")
+    if _dup(db, "SELECT 1 FROM mat_master WHERE material_code=:c", {"c": code}):
+        return resp.fail(400, "物料编码已存在:必须唯一")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO mat_master(material_code,name,spec,base_unit,"
+                        "pack_unit,pack_qty,manage_mode,price_ref,min_qty,max_qty,"
+                        "enabled,status) VALUES(:c,:n,:s,:u,:p,:q,:m,:r,:x,:i,1,'启用')"),
+                   {"c": code, "n": name, "s": body.get("spec"),
+                    "u": unit, "p": body.get("pack_unit"),
+                    "q": body.get("pack_qty") or 1,
+                    "m": body.get("manage_mode") or "QTY",
+                    "r": body.get("price_ref"),
+                    "x": body.get("max_qty"), "i": body.get("min_qty")})
+    return resp.ok({"material_code": code})
+
+
+@router.patch("/masters/materials/{code}/status")
+def material_status(code: str, body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    en = 0 if str(body.get("enabled")) == "0" else 1
+    with db.begin():
+        hit = db.execute(text("UPDATE mat_master SET enabled=:e,status=:s"
+                              " WHERE material_code=:c"),
+                         {"e": en, "s": "停用" if not en else "启用",
+                          "c": code})
+        if not hit.rowcount:
+            return resp.fail(404, "物料不存在")
+    return resp.ok({"material_code": code, "enabled": en})
+
+
+@router.post("/masters/products")
+def product_create(body: dict, adm: dict = Depends(auth.need_admin),
+                   db: Session = Depends(get_db)):
+    code, name = str(body.get("product_code") or ""), str(body.get("name") or "")
+    if not code or not name:
+        return resp.fail(400, "成品编码/名称必填")
+    if _dup(db, "SELECT 1 FROM product_master WHERE product_code=:c", {"c": code}):
+        return resp.fail(400, "成品编码已存在:必须唯一")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO product_master(product_code,name,spec,style,"
+                        "customer,base_unit,price_ref,enabled,status)"
+                        " VALUES(:c,:n,:s,:y,:u,:b,:r,1,'启用')"),
+                   {"c": code, "n": name, "s": body.get("spec"),
+                    "y": body.get("style"), "u": body.get("customer"),
+                    "b": body.get("base_unit") or "件",
+                    "r": body.get("price_ref")})
+    return resp.ok({"product_code": code})
+
+
+@router.patch("/masters/products/{code}/status")
+def product_status(code: str, body: dict, adm: dict = Depends(auth.need_admin),
+                   db: Session = Depends(get_db)):
+    en = 0 if str(body.get("enabled")) == "0" else 1
+    with db.begin():
+        hit = db.execute(text("UPDATE product_master SET enabled=:e,status=:s"
+                              " WHERE product_code=:c"),
+                         {"e": en, "s": "停用" if not en else "启用",
+                          "c": code})
+        if not hit.rowcount:
+            return resp.fail(404, "成品不存在")
+    return resp.ok({"product_code": code, "enabled": en})
+
+
+@router.post("/masters/boms")
+def bom_create(body: dict, adm: dict = Depends(auth.need_admin),
+               db: Session = Depends(get_db)):
+    code, ver = str(body.get("product_code") or ""), str(body.get("version") or "")
+    if not code or not ver:
+        return resp.fail(400, "成品编码/版本必填")
+    lines = body.get("lines") or []
+    if not lines:
+        return resp.fail(400, "BOM行不能为空")
+    with db.begin():
+        db.execute(text("INSERT INTO bom_master(product_code,version,handler,"
+                        "eff_date,status) VALUES(:c,:v,:h,NOW(),'草稿')"
+                        " ON DUPLICATE KEY UPDATE handler=VALUES(handler)"),
+                   {"c": code, "v": ver, "h": body.get("handler")})
+        db.execute(text("DELETE FROM bom_line WHERE product_code=:c"
+                        " AND version=:v"), {"c": code, "v": ver})
+        for i, line in enumerate(lines, 1):
+            if not line.get("material_code") or not line.get("qty"):
+                return resp.fail(400, "BOM行物料/耗用必填")
+            db.execute(text("INSERT INTO bom_line(product_code,version,line_no,"
+                            "material_code,qty,unit,loss_rate)"
+                            " VALUES(:c,:v,:n,:m,:q,:u,:l)"),
+                       {"c": code, "v": ver, "n": i,
+                        "m": line.get("material_code"), "q": line.get("qty"),
+                        "u": line.get("unit") or "",
+                        "l": line.get("loss_rate") or 0})
+    return resp.ok({"product_code": code, "version": ver,
+                    "lines": len(lines)})
+
+
+@router.patch("/masters/boms/{code}/{ver}/status")
+def bom_status(code: str, ver: str, body: dict,
+               adm: dict = Depends(auth.need_admin),
+               db: Session = Depends(get_db)):
+    st = str(body.get("status") or "")
+    if st not in ("启用", "停用", "草稿"):
+        return resp.fail(400, "BOM状态非法")
+    with db.begin():
+        if st == "启用":
+            db.execute(text("UPDATE bom_master SET status='停用'"
+                            " WHERE product_code=:c AND version<>:v"),
+                       {"c": code, "v": ver})
+        hit = db.execute(text("UPDATE bom_master SET status=:s"
+                              " WHERE product_code=:c AND version=:v"),
+                         {"s": st, "c": code, "v": ver})
+        if not hit.rowcount:
+            return resp.fail(404, "BOM版本不存在")
+    return resp.ok({"product_code": code, "version": ver, "status": st})
+
+
+@router.post("/masters/warehouses")
+def warehouse_create(body: dict, adm: dict = Depends(auth.need_admin),
+                     db: Session = Depends(get_db)):
+    code, name = str(body.get("wh_code") or ""), str(body.get("name") or "")
+    if not code or not name:
+        return resp.fail(400, "仓库编码/名称必填")
+    if _dup(db, "SELECT 1 FROM warehouse WHERE wh_code=:c", {"c": code}):
+        return resp.fail(400, "仓库编码已存在:必须唯一")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO warehouse(wh_code,name,wh_type,stock_kind,"
+                        "manager,enabled,status)"
+                        " VALUES(:c,:n,:t,:k,:m,1,'启用')"),
+                   {"c": code, "n": name, "t": body.get("wh_type"),
+                    "k": body.get("stock_kind"), "m": body.get("manager")})
+    return resp.ok({"wh_code": code})
+
+
+@router.post("/masters/locations")
+def location_create(body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    code, wh = str(body.get("loc_code") or ""), str(body.get("wh_code") or "")
+    if not code or not wh:
+        return resp.fail(400, "库位编码/所属仓库必填")
+    if not _dup(db, "SELECT 1 FROM warehouse WHERE wh_code=:w", {"w": wh}):
+        return resp.fail(400, "所属仓库不存在")
+    if _dup(db, "SELECT 1 FROM location WHERE loc_code=:c", {"c": code}):
+        return resp.fail(400, "库位编码已存在:必须唯一")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO location(loc_code,wh_code,zone_label,"
+                        "capacity,enabled,status)"
+                        " VALUES(:c,:w,:z,:p,1,'启用')"),
+                   {"c": code, "w": wh, "z": body.get("zone_label"),
+                    "p": body.get("capacity")})
+    return resp.ok({"loc_code": code})
+
+
+@router.post("/masters/customers")
+def customer_create(body: dict, adm: dict = Depends(auth.need_admin),
+                    db: Session = Depends(get_db)):
+    import time
+    cid = str(body.get("cust_id") or "KH%d" % int(time.time()))
+    if not body.get("name"):
+        return resp.fail(400, "客户名称必填")
+    if _dup(db, "SELECT 1 FROM customer WHERE cust_id=:c", {"c": cid}):
+        return resp.fail(400, "客户ID已存在:必须唯一")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO customer(cust_id,name,cust_type,contact,"
+                        "phone,status) VALUES(:c,:n,:t,:o,:p,'启用')"),
+                   {"c": cid, "n": body.get("name"),
+                    "t": body.get("cust_type"), "o": body.get("contact"),
+                    "p": body.get("phone")})
+    return resp.ok({"cust_id": cid})

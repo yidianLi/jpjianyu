@@ -63,12 +63,17 @@ def avail_of(db, mat, prod, batch, wh, loc):
 def post(db, doc_no, dtype, by_user, device=""):
     if dtype in NO_POST:
         return "SKIP:不动账"
-    head = db.execute(text("SELECT biz_status FROM doc_main WHERE doc_no=:d"),
-                      {"d": doc_no}).mappings().first()
-    if not head:
-        return "404"
-    if head["biz_status"] == "POSTED":
-        return "POSTED"
+    # 乐观锁抢单据头:仅当处于 APPROVING 时置为 POSTING,取 rowcount 判定是否抢到。
+    # 解决并发/重放下 stock_onhand 被重复增减的数据一致性问题。
+    hit = db.execute(text("UPDATE doc_main SET biz_status='POSTING' "
+                          "WHERE doc_no=:d AND biz_status='APPROVING'"),
+                     {"d": doc_no})
+    if not hit.rowcount:
+        cur = db.execute(text("SELECT biz_status FROM doc_main WHERE doc_no=:d"),
+                         {"d": doc_no}).mappings().first()
+        if not cur:
+            return "404"
+        return "POSTED" if cur["biz_status"] == "POSTED" else "LOCKED"
     lines = fetch_lines(db, doc_no)
     for line in lines:
         key = "%s:%s:%s" % (doc_no, line["line_no"], dtype)

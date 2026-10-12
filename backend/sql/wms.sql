@@ -720,7 +720,7 @@ INSERT INTO sys_sequence(seq_name,cid,next_val,remark) VALUES
 ('DOC_MAIN.DOC_NO_JJ',0,10000001,'交付单号'),
 ('DOC_MAIN.DOC_NO_SQ',0,10000001,'申请领料单号'),
 ('WO_TASK.WO_NO',0,10000001,'生产工单号')
-ON DUPLICATE KEY UPDATE next_val=VALUES(next_val);
+ON DUPLICATE KEY UPDATE next_val=GREATEST(next_val,VALUES(next_val));
 INSERT INTO sys_bill_method(sid, method_code, method_name, enabled) VALUES
 (10100,'01','正常采购',1),(10100,'02','自建转固',1),(10100,'99','其他方式',1),
 (10400,'01','新人领用',1),(10400,'02','日常领用',1),(10400,'99','其他领用',1),
@@ -754,6 +754,12 @@ INSERT INTO sys_user_role(username,role_id) VALUES
 ('admin','R-ADMIN'),
 ('demo','R-WH')
 ON DUPLICATE KEY UPDATE username=VALUES(username);
+-- 正式版幂等落库:Idempotency-Key与响应快照,重启不丢
+CREATE TABLE IF NOT EXISTS idem_log(
+  idem_key VARCHAR(128) NOT NULL PRIMARY KEY COMMENT '幂等键doc_no:line:biz',
+  response TEXT NOT NULL COMMENT '首次响应JSON快照',
+  `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='幂等日志';
 -- 演示主档(与前端Demo同名,空库开箱即用):3物料/4仓/4库位/1客户/1成品+BOM(V1启用)
 INSERT INTO mat_master(material_code,cat_code,autocode,lowest,name,spec,base_unit,pack_unit,pack_qty,manage_mode,price_ref,max_qty,min_qty,enabled,status) VALUES
 ('HD-OXF-001','ML',NULL,1,'牛津布','600D','米','卷',100.000,'QTY',0.85,50000.000,1000.000,1,'启用'),

@@ -2,6 +2,9 @@
 
 离线用例不连库；db 标记的用例见 tests/test_integration_db.py，由环境变量启用。
 """
+import os
+
+os.environ.setdefault("DB_URL", "mysql+pymysql://ci:ci@localhost:3306/wms")
 import pytest
 
 

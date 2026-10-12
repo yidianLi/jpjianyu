@@ -66,3 +66,28 @@ def fee_settles(customer: str = "", period: str = "",
                            "qty_fin,amount,biz_status FROM fee_settle WHERE " + cond +
                            " LIMIT :o,:n"), args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
+
+
+@router.post("/fee_settles/{settle_no}/confirm")
+def fee_confirm(settle_no: str, body: dict,
+               authed: dict = Depends(auth.need_auth),
+               db: Session = Depends(get_db)):
+    if not body.get("confirmed"):
+        return resp.fail(400, "请勾选确认无误")
+    with db.begin():
+        hit = db.execute(text("UPDATE fee_settle SET biz_status='确认'"
+                              " WHERE settle_no=:s AND biz_status<>'确认'"),
+                         {"s": settle_no})
+        if not hit.rowcount:
+            row = db.execute(text("SELECT biz_status FROM fee_settle"
+                                  " WHERE settle_no=:s"),
+                             {"s": settle_no}).first()
+            if not row:
+                return resp.fail(404, "对账单不存在")
+            return resp.ok({"settle_no": settle_no, "biz_status": "确认",
+                            "replay": True})
+    db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"
+                    " VALUES(:y,'对账确认',:d,'加工费','已完成')"),
+               {"y": "web-user", "d": settle_no})
+    db.commit()
+    return resp.ok({"settle_no": settle_no, "biz_status": "确认"})
