@@ -6,8 +6,11 @@ services:
       MYSQL_DATABASE: wms
       MYSQL_USER: wms
       MYSQL_PASSWORD: wms
+      SEED_DEMO: ${SEED_DEMO:-0}
     volumes:
       - ./sql/wms.sql:/docker-entrypoint-initdb.d/01-wms.sql
+      - ./sql/seed_demo.sh:/docker-entrypoint-initdb.d/02-seed-demo.sh:ro
+      - ./sql/seeds/seed_demo.sql:/opt/seeds/seed_demo.sql:ro
     ports:
       - "3307:3306"
   wms-api:

@@ -1,6 +1,7 @@
-"""AI网关路由:问答编排/text2sql/OCR,只读禁过账,真查库+日志."""
+"""AI网关路由:问答编排/OCR,只读禁过账,真查库+日志."""
 import json
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core import resp, auth, guards
@@ -10,10 +11,20 @@ from app.adapters import qwen, paddle
 router = APIRouter()
 
 
+class AskReq(BaseModel):
+    question: str = ""
+
+
+class OcrReq(BaseModel):
+    image: str = ""
+    doc_type: str = "delivery"
+    doc_no: str = ""
+
+
 @router.post("/ask")
-def ask(body: dict, authed: dict = Depends(auth.need_auth),
+def ask(body: AskReq, authed: dict = Depends(auth.need_auth),
         db: Session = Depends(get_db)):
-    question = str(body.get("question") or "")
+    question = body.question
     denied = guards.check_question(question)
     if denied:
         return resp.fail(403, denied)
@@ -28,30 +39,24 @@ def ask(body: dict, authed: dict = Depends(auth.need_auth),
         return resp.fail(400, "SQL执行失败:" + str(err)[:200])
     data = [dict(r) for r in rows[:200]]
     db.execute(text("INSERT INTO ai_qa_log(by_user,question,sql_text,rows_count)"
-                    " VALUES('web',:q,:s,:n)"),
-               {"q": question[:1000], "s": final[:2000], "n": len(data)})
+                    " VALUES(:u,:q,:s,:n)"),
+               {"u": authed.get("username") or "web", "q": question[:1000],
+                "s": final[:2000], "n": len(data)})
     db.commit()
     return resp.ok({"sql": final, "rows": data,
                     "formula": "默认查快照onhand,仲裁查ledger"}, total=len(data))
 
 
-@router.post("/text2sql")
-def text2sql(body: dict, authed: dict = Depends(auth.need_auth),
-             db: Session = Depends(get_db)):
-    return ask(body, authed, db)
-
-
 @router.post("/ocr")
-def ocr(body: dict, authed: dict = Depends(auth.need_auth),
+def ocr(body: OcrReq, authed: dict = Depends(auth.need_auth),
         db: Session = Depends(get_db)):
     import time
-    out = paddle.recognize(str(body.get("image") or ""),
-                           str(body.get("doc_type") or "delivery"))
+    out = paddle.recognize(body.image, body.doc_type)
     oid = "OCR%d" % int(time.time() * 1000)
     rows = out.get("rows") if isinstance(out.get("rows"), list) else []
     db.execute(text("INSERT INTO ocr_document(ocr_id,doc_no,conf,ref)"
                     " VALUES(:i,:d,:c,:r)"),
-               {"i": oid, "d": str(body.get("doc_no") or ""),
+               {"i": oid, "d": body.doc_no,
                 "c": float(out.get("conf") or 0.0),
                 "r": ";".join(out.get("issues") or [])[:2000]})
     for n, row in enumerate(rows[:50], 1):

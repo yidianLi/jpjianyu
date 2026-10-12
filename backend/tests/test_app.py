@@ -26,7 +26,7 @@ def test_route_count():
     from app.routers import ai, app_, docparts, masters, produce, reports, sysadm, transfer, web
     n = sum(len(m.router.routes) for m in
             (web, masters, sysadm, reports, transfer, produce, docparts, app_, ai))
-    assert n == 69
+    assert n == 68
 
 
 def test_index_redirect():
