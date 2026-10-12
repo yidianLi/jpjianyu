@@ -1,4 +1,5 @@
 """AI网关路由:问答编排/text2sql/OCR,只读禁过账,真查库+日志."""
+import json
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -43,9 +44,23 @@ def text2sql(body: dict, authed: dict = Depends(auth.need_auth),
 @router.post("/ocr")
 def ocr(body: dict, authed: dict = Depends(auth.need_auth),
         db: Session = Depends(get_db)):
-    out = paddle.recognize(str(body.get("image") or ""))
-    db.execute(text("INSERT INTO ocr_document(ocr_id,conf,ref)"
-                    " VALUES(:i,:c,:r)"),
-               {"i": "OCR1", "c": 0.0, "r": "ref"})
+    import time
+    out = paddle.recognize(str(body.get("image") or ""),
+                           str(body.get("doc_type") or "delivery"))
+    oid = "OCR%d" % int(time.time() * 1000)
+    rows = out.get("rows") if isinstance(out.get("rows"), list) else []
+    db.execute(text("INSERT INTO ocr_document(ocr_id,doc_no,conf,ref)"
+                    " VALUES(:i,:d,:c,:r)"),
+               {"i": oid, "d": str(body.get("doc_no") or ""),
+                "c": float(out.get("conf") or 0.0),
+                "r": ";".join(out.get("issues") or [])[:2000]})
+    for n, row in enumerate(rows[:50], 1):
+        db.execute(text("INSERT INTO ocr_field_result(ocr_id,field,candidate,conf)"
+                        " VALUES(:i,:f,:c,:n)"
+                        " ON DUPLICATE KEY UPDATE candidate=VALUES(candidate)"),
+                   {"i": oid, "f": "row%d" % n, "c": json.dumps(row,
+                    ensure_ascii=False)[:2000],
+                    "n": float(row.get("conf") or 0.0)})
     db.commit()
+    out["ocr_id"] = oid
     return resp.ok(out)

@@ -30,4 +30,55 @@ document.getElementById('uploadBtn').onclick=function(){var input=document.creat
 document.getElementById('scanBtn').onclick=function(){location.href='ocr.html';};document.getElementById('backBtn').onclick=function(){location.href='ocr.html';};document.getElementById('calibrateBtn').onclick=function(){alert('System calibration completed.');};document.getElementById('printBtn').onclick=function(){window.print();};document.getElementById('confirmBtn').onclick=function(){saveMeta();var rows=collectRows(),edited=rows.reduce(function(n,r){return n+Object.keys(r).filter(function(k){return /Edited$/.test(k)&&r[k];}).length;},0);if(item){item.status='confirmed';item.rows=rows;item.editedCells=edited;item.totalAmount=document.getElementById('totalAmount').textContent;}try{localStorage.setItem('jm_wms_core_v1',JSON.stringify(db));}catch(e){}alert('OCR result confirmed: '+name.value+'（人工修改 '+edited+' 处）');};
 try{var image=localStorage.getItem('jm_ocr_result_image');if(image)document.getElementById('sourceImage').src=image;}catch(e){}
 })();
+</script>
+<script src="../assets/ai-gateway.js"></script>
+<script>
+/* 真OCR填表:上传照片后调视觉模型,行项回填结果表,低置信标红,失败保留原Mock表 */
+document.addEventListener('DOMContentLoaded', function(){
+  var up = document.getElementById('uploadBtn');
+  if(up && !up.dataset.vision){
+    up.dataset.vision = '1';
+    var old = up.onclick;
+    up.onclick = function(){ if(old) old.apply(this, arguments); setTimeout(fillVision, 900); };
+  }
+  function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function say(m){ if(typeof window.toast === 'function') window.toast(m); else alert(m); }
+  function fillVision(){
+    var img = null;
+    try{ img = document.getElementById('sourceImage').src; }catch(e){}
+    if(!img || img.indexOf('data:') !== 0 || !window.WmsAi){ return; }
+    say('视觉识别中…');
+    downscale(img, 1600, function(small){
+      window.WmsAi.ocr(small || img).then(function(j){
+      var d = (j && j.data) || {}, rows = d.rows || [];
+      if(!rows.length){ say('视觉无行项,保留原表'); return; }
+      var tb = document.querySelector('.result table tbody');
+      tb.innerHTML = rows.map(function(r, i){
+        function cell(c, v, low){ return '<td contenteditable="true" data-c="' + c + '"' + (low ? ' class="low"' : '') + '>' + escHtml(v) + '</td>'; }
+        var lowQ = Number(r.conf === undefined ? 1 : r.conf) < 0.6;
+        return '<tr data-row="' + i + '">' + cell('name', r.name) + cell('unit', r.unit) + cell('qty', r.qty, lowQ) + cell('price', r.price, lowQ) + cell('amount', r.amount) + cell('pack', r.pack) + cell('note', r.note) + '</tr>';
+      }).join('') + '<tr><td colspan="2"><b>合计</b></td><td></td><td></td><td><b id="totalAmount">' + (d.total == null ? '' : d.total) + '</b></td><td></td><td></td></tr>';
+      tb.querySelectorAll('td[contenteditable]').forEach(function(c){ c.dataset.orig = c.textContent; });
+      say((d.issues && d.issues.length ? '待人工 ' + d.issues.length + ' 项: ' + d.issues.slice(0, 2).join('；') : '视觉已填表,请核对'));
+    }).catch(function(){ say('视觉失败,保留原表'); });
+    });
+  }
+  function downscale(dataUrl, maxSide, done){
+    try{
+      var im = new Image();
+      im.onload = function(){
+        try{
+          var w = im.width, h = im.height, s = Math.min(1, maxSide / Math.max(w, h));
+          if(s >= 1){ done(dataUrl); return; }
+          var cv = document.createElement('canvas');
+          cv.width = Math.round(w * s); cv.height = Math.round(h * s);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          done(cv.toDataURL('image/jpeg', 0.82));
+        }catch(e){ done(dataUrl); }
+      };
+      im.onerror = function(){ done(dataUrl); };
+      im.src = dataUrl;
+    }catch(e){ done(dataUrl); }
+  }
+});
 </script></body></html>
