@@ -1,0 +1,12 @@
+{
+  "name": "wms-prototype-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "静态原型 E2E 冒烟测试（Playwright）",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.0"
+  }
+}

@@ -1,6 +1,11 @@
 # 构建/测试/工具产物
 .playwright-cli/
 .playwright-mcp/
+.pytest_cache/
+playwright-report/
+coverage.xml
+htmlcov/
+node_modules/
 output/
 prototype/output/
 prototype/_qa*/

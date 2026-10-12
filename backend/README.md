@@ -55,3 +55,36 @@ Docker 一键起：`docker compose up -d`（`mysql:5.6` + `wms-api`，`sql/wms.s
 - step22（2026-10-11）：`requirements.txt` 刷新为本机实测版本（fastapi 0.141.1/sqlalchemy 2.0.52/pydantic 2.13.5 等 7 包）；确认新版懒挂载无异常并记入本文档；冒烟 9/9。
 - step23（2026-10-11）：冒烟加端到端 2 项（`TestClient` 拉起全应用：`/health` 200 + `openapi.json` 含 dashboard/aiask）；冒烟 11/11。
 - step25（2026-10-11）：容器实机联调通过——`mysql:5.6`+`wms-api` 双容器 Up；`wms.sql` 连跑两遍均为 63 表零报错（幂等）；5 读口全 200（health/onhand/docs/dashboard/materials，空库 data 为 [] 符合预期）；另抓到真 bug 一只：`ai.py` 问答口 `with db.begin()` 与 Session 自带事务冲突 500，已改为 `execute+commit`、重建镜像复测 200；写口护栏实测（空行 400、提不存在单 403）。
+
+## 自动化测试与 CI（2026-10-11 搭建）
+
+测试金字塔：离线单元/API 为主，真实 DB 联调与前端 E2E 为辅。
+
+### 目录
+- `tests/test_guards.py` `test_idem.py` `test_resp.py` `test_auth.py` `test_dash.py` `test_posting.py`
+  —— 核心纯逻辑单元测试，**不连库**，任意机器秒级跑。
+- `tests/test_app.py` —— 应用级离线断言：`/health`、openapi 路由表(59)、`/` 重定向、`/proto` 静态挂载。
+- `tests/test_integration_db.py` —— 标记 `@pytest.mark.db` 的**真实 MySQL 5.6 联调**（登录成功/密码错/用户不存在）。
+  自建最小 `sys_user` 表并清理，**本地默认跳过**；CI 经服务容器启用。
+- `conftest.py` / `tests/helpers.py` —— `TestClient` fixture 与 `FakeDB` 替身。
+- `../e2e/` + `playwright.config.ts` —— 静态原型 `app.html` / `login.html` / 移动端 的 Playwright 冒烟（不依赖后端 API）。
+- `.github/workflows/ci.yml` —— GitHub Actions：`backend`(ruff+compileall+pytest+覆盖率) /
+  `integration-db`(mysql:5.6) / `e2e`(Playwright) / `ai-gateway`(node lint)。
+
+### 本地运行
+```bash
+cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q                      # 离线全套（db 用例自动跳过）
+pytest -q -m db                # 需先起 MySQL 并设 WMS_ENABLE_DB_TESTS=1 / DB_URL
+ruff check app tests           # lint
+python -m compileall -q app    # 全量编译
+# 前端 E2E（仓库根目录）
+npm install && npx playwright install --with-deps chromium && npm run test:e2e
+```
+`make test / make lint / make cov / make serve` 已封装常用命令。
+
+### 约定
+- 连库逻辑用 `FakeDB`（按 SQL 子串路由）做离线断言；确需真库的走 `@pytest.mark.db`。
+- ruff 配置见 `../ruff.toml`（E/F/W/I/B/S/UP/C4/SIM，行宽 100，忽略 E501/S101）。
+- CI 中 `ruff check tests` 为强制门禁；`ruff check app` 为 advisory（仅报告历史存量，不阻断构建），不在此改写既有业务代码。

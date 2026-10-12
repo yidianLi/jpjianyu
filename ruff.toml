@@ -1,0 +1,32 @@
+# ruff 配置 —— WMS 后端 Python lint + format
+# 一个工具替代 flake8/black/isort，CI 与 pre-commit 共用本配置。
+# 配套：《docs/code-review/代码审查标准.md》《代码审查流程.md》
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+# 启用错误(E)/隐患(F)类，以及常用风格规范
+select = [
+    "E",    # pycodestyle 错误
+    "F",    # pyflakes（未定义/未使用）
+    "W",    # 警告
+    "I",    # isort 导入排序
+    "B",    # bugbear（易错写法）
+    "S",    # bandit 安全（含硬编码密码/SQL 拼接检测）
+    "UP",   # pyupgrade
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "S101",   # 允许 assert（测试用）
+    "E501",   # 行宽交给 formatter 管
+]
+
+# 本项目约定：单文件 ≤ 300 行；超限作 🟡 提示
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "pudb.set_trace"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
