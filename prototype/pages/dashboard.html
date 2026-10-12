@@ -75,8 +75,10 @@ button,input,select{font:inherit}button:focus-visible,input:focus-visible,select
     if(time) time.textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}) + ' · 真数据';
   }
   function load(){
-    fetch(BASE + '/web/dashboard', {headers:{'Authorization':'Bearer ' + token()}})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    var gate = (window.WmsAi && window.WmsAi.ready) || Promise.resolve();
+    gate.then(function(){
+      return fetch(BASE + '/web/dashboard', {headers:{'Authorization':'Bearer ' + token()}});
+    }).then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(render).catch(function(){ /* 保留Mock */ });
   }
   function boot(){
