@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>物料管理系统 · 联通演示版 app.html</title>
+<title>监狱外来物料管理系统</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link id="wms-shared-theme" rel="stylesheet" href="assets/theme.css">
@@ -112,7 +112,7 @@ footer>span:last-child{display:none}
 <aside class="w-[248px] shrink-0 flex flex-col">
 <div class="p-4 flex items-center gap-3">
 <div class="brand-mark w-10 h-10 flex items-center justify-center text-white"><i class="fa-solid fa-boxes-stacked"></i></div>
-<div><div class="font-bold text-sm">物料管理系统</div><div class="text-[11px]">一期 · 内网</div></div>
+<div><div class="font-bold text-sm">监狱外来物料管理系统</div><div class="text-[11px]">一期 · 内网</div></div>
 </div>
 <div class="mx-4 mb-2 text-[11px] rounded-lg p-2.5 leading-relaxed">岗位：<b id="uRole">仓库负责人 · 张建国</b><br><span>范围：外仓/内仓1/内仓2 · 一监区</span><br><span>● 已连接服务器</span></div>
 <nav class="flex-1 overflow-y-auto px-3 pb-3" id="menu" aria-label="系统导航"></nav>
@@ -295,7 +295,7 @@ function go(id, tab, options){
     window.navUserSelected='g5';navSetOpen('g5');
     document.body.classList.toggle('ai-route',false);document.body.classList.toggle('dashboard-mode',false);
     if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen().catch(function(){});}
-    document.getElementById('crumb').textContent=r0.title;document.title=r0.title+' · 物料管理系统';
+    document.getElementById('crumb').textContent=r0.title;document.title=r0.title+' · 监狱外来物料管理系统';
     try{localStorage.setItem('jm_wms_last',id);}catch(e){}
     var nextUrl0=buildRouteUrl(id,bt,'','',options.extra);
     if(options.history!==false){if(options.replace)history.replaceState({page:id,tab:bt},'',nextUrl0);else if(location.href!==new URL(nextUrl0,location.href).href)history.pushState({page:id,tab:bt},'',nextUrl0);}
@@ -326,7 +326,7 @@ function go(id, tab, options){
   document.body.classList.toggle('dashboard-mode',dashboardMode);
   /* 全屏由驾驶舱页内按钮主动触发，路由不再自动抢全屏 */
   document.getElementById('crumb').textContent=r.title;
-  document.title=r.title+' · 物料管理系统';
+  document.title=r.title+' · 监狱外来物料管理系统';
   try{localStorage.setItem('jm_wms_last',id);}catch(e){}
   var nextUrl=buildRouteUrl(id,tab,v,subParam,options.extra);
   if(options.history!==false){
@@ -439,7 +439,7 @@ if(requested&&ROUTES[requested]&&(cur!==requested||curTab!==requestedTab))go(req
 });</script>
 </body>
 <script>/* 页尾 a11y 补丁（无菜单逻辑） */
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([alt])').forEach(function(i){i.alt='物料管理系统用户头像';});document.querySelectorAll('button').forEach(function(b){if(!b.getAttribute('aria-label')&&!b.textContent.trim()){b.setAttribute('aria-label','操作');}});});
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img:not([alt])').forEach(function(i){i.alt='监狱外来物料管理系统用户头像';});document.querySelectorAll('button').forEach(function(b){if(!b.getAttribute('aria-label')&&!b.textContent.trim()){b.setAttribute('aria-label','操作');}});});
 /* 壳底栏真数据:现存与待办取dashboard,失败留加载中 */
 document.addEventListener('DOMContentLoaded',function(){
  if(!window.WmsAi)return;
