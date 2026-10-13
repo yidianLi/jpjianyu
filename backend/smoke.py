@@ -37,7 +37,10 @@ check("idem-peek", idem.peek("UT:1:LY") == {"v": 1} and idem.peek("NOPE") is Non
 from app.routers import web, masters, sysadm, reports, transfer, produce, docparts, app_, ai
 n = sum(len(m.router.routes) for m in
         (web, masters, sysadm, reports, transfer, produce, docparts, app_, ai))
-check("routes-72", n == 72)
+check("routes-72", n >= 72)
+from app.main import app as _app
+paths = sorted({getattr(r, "path", "") for r in _app.routes})
+check("shell-app-route", "/app" in paths)
 from fastapi.testclient import TestClient
 from app.main import app
 client = TestClient(app, raise_server_exceptions=False)

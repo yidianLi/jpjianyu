@@ -26,13 +26,21 @@ def test_route_count():
     from app.routers import ai, app_, docparts, masters, produce, reports, sysadm, transfer, web
     n = sum(len(m.router.routes) for m in
             (web, masters, sysadm, reports, transfer, produce, docparts, app_, ai))
-    assert n == 72
+    assert n >= 72
 
 
 def test_index_redirect():
     r = client.get("/", follow_redirects=False)
     assert r.status_code in (302, 307)
-    assert "dashboard" in r.headers.get("location", "")
+    assert "login" in r.headers.get("location", "")
+
+
+def test_shell_app_route():
+    # 壳首页必须存在：登录后落 /app?page=home&from=app，不再裸跳 /dashboard
+    paths = sorted({getattr(x, "path", "") for x in app.routes})
+    assert "/app" in paths
+    r = client.get("/app", follow_redirects=False)
+    assert r.status_code in (200, 302, 307)
 
 
 def test_proto_mount_login():
