@@ -23,21 +23,12 @@ function showToast(t,err){var d=document.getElementById('toast');d.textContent=t
 function toast(t){showToast(t)}
 function setState(s){var m=document.getElementById('msg');m.classList.remove('hidden');document.getElementById('firstBox').classList.add('hidden');if(s==='default'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-slate-50 text-slate-500 border';m.innerHTML='已填入演示账号 wai_cang_zhang · 点击登录进入驾驶舱';}if(s==='err'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号或密码不正确（剩余尝试 3 次），请重试。';}if(s==='lock'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号已锁定，请联系系统管理员解锁（10 分钟后可重试）。';}if(s==='net'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-orange-50 text-orange-600 border border-orange-200';m.innerHTML='内网连接不可用，已保留草稿，请检查网络后重试。';}if(s==='first'){m.classList.add('hidden');document.getElementById('firstBox').classList.remove('hidden');}}
 function enterDashboard(){
-  var inFrame = false;
-  try{ inFrame = (window.parent !== window); }catch(e){ inFrame = true; }
   var inApp = /from=app/.test(location.search);
-  // app.html 壳里：让壳切换主视图到驾驶舱
-  if(inApp){
-    try{ if(typeof goPage==='function'){ goPage('dashboard'); return; } }catch(e){}
-  }
-  // index.html 平铺总览里：不要把自己变成驾驶舱，只让父页面滚动到 01
-  if(inFrame && !inApp){
-    try{ window.parent.postMessage({from:'wms-nav', go:'dashboard', page:'dashboard', tab:''}, '*'); }catch(e){}
-    showToast('登录成功 · 已进入 01 业务运营驾驶舱（已滚动定位）');
-    return;
-  }
-  // 单独打开：直接跳转文件
-  try{ if(typeof goPage==='function'){ goPage('dashboard'); return; } }catch(e){}
+  // 统一进壳首页:干净URL部署走 /app?page=home&from=app,文件部署走 app.html?page=home&from=app
+  var target = (location.protocol === 'file:' || !location.host)
+    ? 'app.html?page=home&from=app'
+    : '/app?page=home&from=app';
+  try{ location.href = target; return; }catch(e){}
   location.href='dashboard.html';
 }
 function apiBase(){
