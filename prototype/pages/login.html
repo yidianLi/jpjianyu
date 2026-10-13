@@ -40,15 +40,25 @@ function enterDashboard(){
   try{ if(typeof goPage==='function'){ goPage('dashboard'); return; } }catch(e){}
   location.href='dashboard.html';
 }
+function apiBase(){
+  try{
+    var proto = location.protocol === 'file:' ? 'http:' : location.protocol;
+    var host = location.host;
+    if(host) return proto + '//' + host + '/api/v1';
+  }catch(e){}
+  return localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+}
 function login(){
   var username=(document.getElementById('acc').value||'demo').trim();
   var password=document.getElementById('pwd').value||'';
-  var base=localStorage.getItem('wms_api_base')||'http://10.8.0.12:8080/api/v1';
+  var base=apiBase();
   showToast('正在验证账号…');
-  fetch(base+'/web/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,password:password})})
+  var ctl=null, timer=null;
+  try{ if(typeof AbortController!=='undefined'){ ctl=new AbortController(); timer=setTimeout(function(){ try{ctl.abort();}catch(e){} }, 8000); } }catch(e){}
+  fetch(base+'/web/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,password:password}),signal:ctl?ctl.signal:undefined})
     .then(function(r){return r.json().then(function(j){if(!r.ok||!j.data||!j.data.token)throw new Error(j.msg||'登录失败');return j;});})
-    .then(function(j){localStorage.setItem('wms_token',j.data.token);localStorage.setItem('wms_user',JSON.stringify(j.data));showToast('登录成功，正在进入驾驶舱');setTimeout(enterDashboard,450);})
-    .catch(function(){showToast('后端暂不可用，已进入演示模式');localStorage.removeItem('wms_token');setTimeout(enterDashboard,450);});
+    .then(function(j){if(timer)clearTimeout(timer);localStorage.setItem('wms_token',j.data.token);localStorage.setItem('wms_user',JSON.stringify(j.data));showToast('登录成功，正在进入驾驶舱');setTimeout(enterDashboard,450);})
+    .catch(function(e){if(timer)clearTimeout(timer);var msg=(e&&e.name==='AbortError')?'登录超时：后端不可达，请检查网络':'后端暂不可用，已进入演示模式';showToast(msg, true);localStorage.removeItem('wms_token');if(e&&e.name==='AbortError')return;setTimeout(enterDashboard,450);});
   return;
   showToast('登录成功 · 欢迎回来，张建国');
   setTimeout(function(){
