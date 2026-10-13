@@ -112,14 +112,13 @@ footer>span:last-child{display:none}
 <aside class="w-[248px] shrink-0 flex flex-col">
 <div class="p-4 flex items-center gap-3">
 <div class="brand-mark w-10 h-10 flex items-center justify-center text-white"><i class="fa-solid fa-boxes-stacked"></i></div>
-<div><div class="font-bold text-sm">物料管理系统</div><div class="text-[11px]">联通演示版 · 一期闭环</div></div>
+<div><div class="font-bold text-sm">物料管理系统</div><div class="text-[11px]">一期 · 内网</div></div>
 </div>
-<div class="mx-4 mb-2 text-[11px] rounded-lg p-2.5 leading-relaxed">岗位：<b id="uRole">仓库负责人 · 张建国</b><br><span>范围：外仓/内仓1/内仓2 · 一监区</span><br><span>● 数据已连通（localStorage+实时同步）</span></div>
+<div class="mx-4 mb-2 text-[11px] rounded-lg p-2.5 leading-relaxed">岗位：<b id="uRole">仓库负责人 · 张建国</b><br><span>范围：外仓/内仓1/内仓2 · 一监区</span><br><span>● 已连接服务器</span></div>
 <nav class="flex-1 overflow-y-auto px-3 pb-3" id="menu" aria-label="系统导航"></nav>
 <div class="p-3 border-t flex gap-2 text-[11px]">
 <button title="收起导航" aria-label="收起导航" id="navCollapse" onclick="toggleSidebar()" class="flex-none w-10 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-angles-left" aria-hidden="true"></i></button>
-<button title="操作" aria-label="切换角色验证权限" onclick="switchRole()" class="flex-1 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-user-switch mr-1"></i>切换角色验证权限</button>
-<button title="操作" aria-label="重置演示数据" onclick="resetDemo()" class="flex-1 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-rotate mr-1"></i>重置演示数据</button>
+<button title="退出登录" aria-label="退出登录" onclick="logout()" class="flex-1 bg-white/10 rounded-lg py-2 hover:bg-white/20"><i class="fa-solid fa-right-from-bracket mr-1"></i>退出登录</button>
 </div>
 </aside>
 
@@ -144,14 +143,6 @@ footer>span:last-child{display:none}
 <div class="workspace flex-1 min-h-0 relative">
 <main id="view" tabindex="-1" aria-live="polite" aria-busy="true" aria-label="物料管理业务工作区"></main>
 </div>
-
-<!-- 底栏：平铺总览入口 + 数据联动提示 -->
-<footer class="shell-footer text-[11px] px-5 py-2 flex items-center gap-3">
-<span>联动状态：<b id="syncTip">加载中…</b></span><span class="flex-1"></span>
-<a href="index.html">← 回平铺总览 index.html（评审用）</a>
-<span>本页 app.html 为可点击系统（交付/演示用）</span>
-</footer>
-</div>
 </div>
 
 <script src="assets/action-layer.js"></script>
@@ -163,7 +154,7 @@ footer>span:last-child{display:none}
 var ROUTES={
 home:{file:'pages/home.html',title:'工作台 / 首页'},
 dashboard:{file:'pages/dashboard.html',title:'工作台 / 业务运营驾驶舱'},
-fieldApp:{file:'mobile-app/screens/home.html',title:'工作台 / 现场作业APP',iframe:1},
+fieldApp:{file:'mobile-app/index.html',title:'工作台 / 现场作业APP'},
 ai:{file:'pages/ai.html',title:'工作台 / AI问数'},
 inventoryOnhand:{file:'pages/material-workbench.html',title:'仓储作业 / 仓库库存'},
 inventoryLedger:{file:'pages/material-workbench.html',title:'仓储作业 / 库存记录'},
@@ -284,6 +275,19 @@ function buildRouteUrl(id, tab, view, subParam, extra){
 function go(id, tab, options){
   options=options||{};
   if(!ROUTES[id])return;
+  /* 客户端门禁：无登录态(wms_token)只允许停留在登录页 */
+  if(id!=='login'){var _tk=null;try{_tk=localStorage.getItem('wms_token');}catch(e){}
+    if(!_tk){id='login';tab='';}}
+  /* 登录页一律整页跳干净地址 /login：壳内嵌 pages/login.html 在干净部署下不可用，登录本就是顶层门禁页 */
+  if(id==='login'){
+    if(options.replace){location.replace('login');}else{location.href='login';}
+    return;
+  }
+  /* 现场作业APP：独立应用（uni-app/原生打包，独立打开路径），不在后台壳内嵌 */
+  if(id==='fieldApp'){var _fu='mobile-app/index.html',_w=null;
+    try{_w=window.open(_fu,'_blank');}catch(e){}
+    if(!_w){if(options.replace){location.replace(_fu);}else{location.href=_fu;}}
+    return;}
   var BASE_BY_TAB={'':'baseBom','1':'baseBom','2':'baseMat','3':'baseOrg','4':'baseLoc','5':'baseProd','6':'baseTpl'};
   if(id==='base'&&BASE_BY_TAB[tab||'']){id=BASE_BY_TAB[tab||''];tab='';}
   var r0=ROUTES[id];
@@ -385,14 +389,10 @@ else if(/库区/.test(kw)) go('location');
 else{ go('docs'); Store.toast('全局搜索“'+kw+'”：未找到精确匹配，已打开业务记录查询'); return; }
 Store.toast('全局搜索“'+kw+'”：已跨页定位到 '+ROUTES[cur].title);
 }
-/* 角色切换（权限验证） */
-function switchRole(){
-var s=Store.get();
-var toChejian = s.user.name==='张建国';
-if(toChejian){ Store.set(function(x){x.user={name:'李小明',role:'车间领料员',scope:'缝制一车间'};}); }
-else{ Store.set(function(x){x.user={name:'张建国',role:'仓库负责人',scope:'外仓WH-A · 内仓1/2 · 一监区'};}); }
-refreshUser(); Store.toast(toChejian?'已切换为车间账号：子页面将仅见本车间数据':'已切回仓库负责人：可见三仓');
-go('report');
+/* 退出登录：清本地登录态，再走后端 /logout 清 Cookie 并回到登录页 */
+function logout(){
+try{localStorage.removeItem('wms_token');localStorage.removeItem('wms_user');}catch(e){}
+refreshUser(); location.href='logout';
 }
 function refreshUser(){
 var s=Store.get();
@@ -403,7 +403,6 @@ var values={uName:s.user.name,uRole:s.user.role+' · '+s.user.name,uRole2:s.user
 if(document.getElementById('bell'))document.getElementById('bell').textContent=bellN;
 Object.keys(values).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=values[id];});
 }
-function resetDemo(){ localStorage.removeItem('jm_wms_demo_v1'); localStorage.removeItem('jm_wms_core_v1'); localStorage.removeItem('jm_material_demo_v1'); localStorage.removeItem('jm_wms_last'); refreshUser(); Store.toast('演示数据已重置（含物料管理新账套）'); go('home'); }
 /* 子页面发来的同步/通知 */
 window.addEventListener('message',function(e){
 if(e.data&&e.data.from==='wms-nav'&&e.data.page){syncFrameRoute(e.data.page,e.data.view||e.data.tab||'');}
