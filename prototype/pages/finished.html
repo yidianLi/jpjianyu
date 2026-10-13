@@ -57,11 +57,14 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}
 .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
 .x{border:0;background:transparent;font-size:20px;color:var(--muted)}
 .errs{margin:0;padding-left:18px;color:#a9271f;font-size:12px;line-height:1.9}
+.h1{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.h1 h1{margin:0;font-size:19px;font-weight:800;color:#143b5d}
 @media(max-width:1100px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style><script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/flow.js"></script><script src="../assets/menu-config.js" defer></script><script src="../assets/nav.js" defer></script><script src="../assets/ai-gateway.js"></script><script src="../assets/master-data.js"></script><script src="../assets/doc-bridge.js"></script></head>
 <body><div class="flex"><aside class="w-52 shrink-0 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
 <div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">成品管理 / <b class="text-slate-700" id="crumb">成品登记</b></header>
 <div class="wrap space-y-4">
+<div class="h1"><div><h1 id="ttl">成品登记</h1></div></div>
 <div id="main"></div>
 </div></div></div>
 <div id="dlgRoot" class="mask hide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><div class="dlg"><div class="dh"><h3 id="dlgTitle">提示</h3><button class="x" id="dlgX" aria-label="关闭">×</button></div><div class="pad" id="dlgBody"></div><div class="df" id="dlgFoot"></div></div></div>
@@ -197,13 +200,13 @@ function nextFinBatch(code,wh){var base='CP'+today().replace(/-/g,'');var n=1,b;
 function fnext(p){FDB.seq[p]=(FDB.seq[p]||100)+1;return p+today().replace(/-/g,'')+String(FDB.seq[p]).slice(-4)}
 function docBy(no){return FDB.doc.filter(function(d){return d.no===no})[0]}
 function finDocs(t){return FDB.doc.filter(function(d){return d.type===t})}
-function pendingFin(){if(FSRV.todo!=null)return FSRV.todo;return FDB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'||d.status==='草稿'}).length}
-function doneFin(){if(FSRV.done!=null)return FSRV.done;return FDB.doc.filter(function(d){return d.status==='已审批'||d.status==='已作废'}).length}
-var FSRV={todo:null,done:null};
+function pendingFin(t){var S=window.FSRV||{};if(!t&&S.todo!=null)return S.todo;return FDB.doc.filter(function(d){return (!t||d.type===t)&&(d.status==='已保存'||d.status==='已驳回'||d.status==='草稿')}).length}
+function doneFin(t){var S=window.FSRV||{};if(!t&&S.done!=null)return S.done;return FDB.doc.filter(function(d){return (!t||d.type===t)&&(d.status==='已审批'||d.status==='已作废')}).length}
+window.FSRV=window.FSRV||{todo:null,done:null};
 function refreshFinSrvCounts(){if(!window.WmsAi)return;
  function get(path){return window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('no');return r.json();});}
- get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){FSRV.todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
- get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){var t=(j&&j.total!=null)?j.total:((j&&j.data)||[]).length;FSRV.done=t;try{render();}catch(e){}}).catch(function(){});}
+ get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){(window.FSRV=window.FSRV||{}).todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
+ get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){var t=(j&&j.total!=null)?j.total:((j&&j.data)||[]).length;(window.FSRV=window.FSRV||{}).done=t;try{render();}catch(e){}}).catch(function(){});}
 refreshFinSrvCounts();
 function lineSum(lines){var q=0;(lines||[]).forEach(function(l){q+=num(l.qty)});return q}
 function finAlert(s){if(num(s.qua)>0)return '隔离待处理';if(num(s.avail)<=0)return '无可用';return '正常'}
@@ -442,12 +445,8 @@ function finListHTML(t){
  var newBtn=t==='deliver'
   ?'<button class="b pri" onclick="deliverNew()">新建工单</button>'
   :'<button class="b pri" onclick="newFinDoc(\''+t+'\')">新建工单</button>';
- var addBtn=t==='deliver'
-  ?'<button class="b" onclick="deliverNew()">添加清单</button>'
-  :'<button class="b" onclick="newFinDoc(\''+t+'\')">添加清单</button>';
- var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin()+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办 <b>'+doneFin()+'</b></button>';
- return '<div class="card pad mb-3 flex justify-between items-center flex-wrap gap-2"><div class="flex gap-2">'+newBtn+addBtn+'</div><div class="flex gap-2">'+queueBtns+'</div></div>'
- +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button></div>'
+ var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin(t)+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办 <b>'+doneFin(t)+'</b></button>';
+ return '<div class="card pad mb-3 flex gap-2 flex-wrap items-center">'+newBtn+'<input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button><span style="flex:1"></span><div class="flex gap-2">'+queueBtns+'</div></div>'
  +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>数量单位</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div></div>';
 }
 window.finQueue=function(q){queue=q;curNo='';render()};
@@ -554,6 +553,7 @@ function finEditorHTML(d){
 /* ---- 全局动作 ---- */
 window.render=function(){
  var crumbEl=document.getElementById('crumb');if(crumbEl)crumbEl.textContent=NAMES[VIEW]||NAMES.register;
+ var ttlEl=document.getElementById('ttl');if(ttlEl)ttlEl.textContent=(NAMES[VIEW]||NAMES.register).split(' / ').pop();
  notifyParent();
  if(VIEW==='detail'){curNo='';renderDetail();centerRelevantColumns(document.getElementById('main'));return}
  var t=VIEW==='return'?'wreturn':VIEW;

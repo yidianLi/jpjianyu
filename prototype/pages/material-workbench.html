@@ -508,7 +508,7 @@ function post(d){
 }
 
 /* ===== 5. 视图状态与渲染（无页内切换：每个视图只能从左侧二级菜单一对一进入，URL view 即唯一入口） ===== */
-var view='request',mode='list',curNo='',sub='doc',queue='待办',kw='';
+var view='request',mode='list',curNo='',sub='doc',queue='待办',kw='',backView='';
 function notifyParentRoute(){
   if(!/from=app/.test(location.search))return;
   var ids={materialCode:'materialCode',request:'materialRequest',register:'materialRegister',reject:'materialReject',inbound:'materialInbound',issue:'materialIssue',wreturn:'materialWReturn',return:'materialReturn',stock:'',onhand:'inventoryOnhand',ledger:'inventoryLedger'};
@@ -621,22 +621,38 @@ function renderPlace(){
   map.stock=(sub==='ledger')?'仓储作业 / 库存记录':'仓储作业 / 仓库库存';
   var el=document.getElementById('crumbBack');if(el)el.textContent='';
 }
-function pendingCount(){if(SRV.todo!=null)return SRV.todo;return DB.doc.filter(function(d){return d.status==='已保存'||d.status==='已驳回'}).length}
-function doneCount(){if(SRV.done!=null)return SRV.done;return DB.doc.filter(function(d){return d.status==='已审批'||d.status==='已作废'||d.status==='已冲红'}).length}
-var SRV={todo:null,done:null};
+function isDocView(){return view==='request'||view==='receive'||view==='register'||view==='reject'||view==='inbound'||view==='issue'||view==='wreturn'||view==='return'}
+function viewTypes(){if(!isDocView())return null;return view==='receive'?['register','inbound','reject']:[view]}
+function typesIn(d){var ts=viewTypes();return !ts||ts.indexOf(d.type)>=0}
+/* 待办/已办口径=当前页签的单据类型，与下方列表严格一致；后端可达时按类型取真数(DRAFT+APPROVING=待办,POSTED=已办) */
+function pendingCount(){var S=window.SRV||{};if(S.todo!=null&&S.todoKey===(view||''))return S.todo;return DB.doc.filter(function(d){return typesIn(d)&&(d.status==='草稿'||d.status==='已保存'||d.status==='已驳回')}).length}
+function doneCount(){var S=window.SRV||{};if(S.done!=null&&S.doneKey===(view||''))return S.done;return DB.doc.filter(function(d){return typesIn(d)&&(d.status==='已审批'||d.status==='已作废'||d.status==='已冲红')}).length}
+window.SRV=window.SRV||{todo:null,done:null,todoKey:'',doneKey:''};
 function refreshSrvCounts(){if(!window.WmsAi)return;
  function get(path){return window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('no');return r.json();});}
- get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){SRV.todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
- get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){var t=(j&&j.total!=null)?j.total:((j&&j.data)||[]).length;SRV.done=t;try{render();}catch(e){}}).catch(function(){});}
+ function tot(j){return (j&&j.total!=null)?j.total:((j&&j.data)||[]).length}
+ var S=window.SRV=window.SRV||{todo:null,done:null,todoKey:'',doneKey:''};
+ if(!isDocView()){/* 台账/明细页：KPI 沿用全局口径 */
+  if(S.todoKey==='global')return;S.todoKey='global';S.doneKey='global';
+  get('/web/dashboard').then(function(j){var k=j&&j.data&&j.data.kpi;if(k&&k.todo!=null){S.todo=k.todo;try{render();}catch(e){}}}).catch(function(){});
+  get('/web/docs?biz_status=POSTED&page_size=1').then(function(j){S.done=tot(j);try{render();}catch(e){}}).catch(function(){});
+  return}
+ var map={request:'SQ',register:'DJ',reject:'JS',inbound:'RK',issue:'LY',wreturn:'TK',return:'TK'};
+ var dt=map[view];
+ if(!dt)return;/* receive=登记+入库+拒收三类型合并，后端无多类型聚合，用本地合并计数 */
+ if(S.todoKey===view)return;S.todoKey=view;S.doneKey=view;
+ Promise.all([get('/web/docs?dtype='+dt+'&biz_status=DRAFT&page_size=1'),get('/web/docs?dtype='+dt+'&biz_status=APPROVING&page_size=1'),get('/web/docs?dtype='+dt+'&biz_status=POSTED&page_size=1')]).then(function(rs){S.todo=tot(rs[0])+tot(rs[1]);S.done=tot(rs[2]);try{render();}catch(e){}}).catch(function(){});
+}
 function whCount(){var a=[];DB.stock.forEach(function(s){if(a.indexOf(s.wh)<0)a.push(s.wh)});return a.length}
 function renderBar(){
   var d=docBy(curNo),edit=mode==='edit'&&!!d,locked=edit&&(d.status==='已审批'||d.status==='已作废');
   var b=[];
   if(edit)b.push('<button class="b" data-act="backnav" title="返回" aria-label="返回">← 返回</button>');
   if(!edit)b.push('<button class="b pri" data-act="new">新建工单</button>');
-  b.push('<button class="b" data-act="addline"'+(edit&&!locked?'':' disabled')+'>添加清单</button>');
+  if(edit)b.push('<button class="b" data-act="addline"'+(locked?' disabled':'')+'>添加清单</button>');
   if(edit&&!locked&&(d.type==='request'||d.type==='register')){b.push('<button class="b" data-act="newocr">新建OCR识别单</button>');b.push('<button class="b" data-act="ocrfill">OCR识别记录</button>');}
   if(edit)b.push('<span class="sm mut" role="status" aria-live="polite">已自动保存</span>');
+  if(!edit)b.push('<input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button>');
   b.push('<span style="flex:1"></span>');
   b.push('<button class="b '+(queue==='待办'?'on':'')+'" data-act="queue" data-q="待办">待办 <b>'+pendingCount()+'</b></button>');
   b.push('<button class="b '+(queue==='已办'?'on':'')+'" data-act="queue" data-q="已办">已办 <b>'+doneCount()+'</b></button>');
@@ -663,6 +679,7 @@ function render(){
   document.getElementById('ttl').textContent=(view==='onhand'?'仓库库存':view==='ledger'?'库存记录':(VIEWS[view]||VIEWS.request).name);
   notifyParentRoute();
   renderPlace();
+  refreshSrvCounts();
   if(view==='onhand'||view==='ledger'||view==='stock'){renderStock();centerRelevantColumns(document.getElementById('main'));return}
   if(view==='materialCode'){renderMaterialDetailByItem();centerRelevantColumns(document.getElementById('main'));return}
   renderBar();
@@ -709,7 +726,6 @@ function renderList(){
     return '<tr><td><b class="link" data-act="open" data-no="'+esc(d.no)+'">'+esc(d.no)+'</b>'+(d.reversed?' <span class="sm red">已冲 '+fmt(d.reversed)+'</span>':'')+'</td><td>'+esc(d.date)+'</td><td>'+esc(destination(d))+'</td><td>'+esc(customers(d))+'</td><td>'+esc(brief)+'</td><td>'+unitSum(d.lines)+'</td><td class="num">¥'+fmt(amount(d.lines))+'</td><td>'+tag(d.status)+'</td><td class="ops">'+opsFor(d)+'</td></tr>';
   }).join('');
   document.getElementById('main').innerHTML=
-    '<div class="card pad mb-3 flex gap-2 flex-wrap items-center"><input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div>'+
     '<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>工单号</th><th>工单日期</th><th>物料去向</th><th>所属客户</th><th>物料明细</th><th>按单位合计</th><th>参考金额</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9" class="mut" style="text-align:center;padding:34px">当前没有'+esc(queue)+'的'+VIEWS[view].name+'工单</td></tr>')+'</tbody></table></div><div class="pad sm mut">共 '+list.length+' 条 · 数量按单位分组，不跨单位相加 · 表：stock_doc + stock_doc_line</div></div>';
 }
 function lineCell(d,l,i,c){
@@ -880,36 +896,37 @@ function renderMaterial(){
   return;
 }
 /* 后端库存覆盖:有真数据时用服务端行替换本地台账展示,查询/库区/流水跳转照用 */
-var SRV={on:false,stock:[],ledger:[],busy:false,at:0};
+/* SRV 在此页只有一份(计数+库存共用)：这里只补库存字段,不得整体重新声明覆盖计数键 */
+window.SRV=window.SRV||{};window.SRV.on=false;window.SRV.stock=[];window.SRV.ledger=[];window.SRV.busy=false;window.SRV.at=0;
 function syncStockSrv(){
-  if(!window.WmsStock||SRV.busy)return;
-  if(Date.now()-SRV.at<30000)return;
-  SRV.busy=true;
+  if(!window.WmsStock||window.SRV.busy)return;
+  if(Date.now()-window.SRV.at<30000)return;
+  window.SRV.busy=true;
   WmsStock.onhand({page_size:200}).then(function(j){
     var rows=(j&&j.data)||[];
-    if(rows.length){SRV.on=true;SRV.stock=rows.map(function(r){return {code:r.material_code||r.product_code||'',wh:r.wh||'',loc:r.loc||'',batch:r.batch_no||'',unit:'',on:Number(r.on_hand)||0,avail:Number(r.avail)||0,pending:Number(r.pending)||0,qua:Number(r.quarantine)||0,at:'',srv:1};});}
+    if(rows.length){window.SRV.on=true;window.SRV.stock=rows.map(function(r){return {code:r.material_code||r.product_code||'',wh:r.wh||'',loc:r.loc||'',batch:r.batch_no||'',unit:'',on:Number(r.on_hand)||0,avail:Number(r.avail)||0,pending:Number(r.pending)||0,qua:Number(r.quarantine)||0,at:'',srv:1};});}
     return WmsStock.ledger({page_size:100});
   }).then(function(j2){
     var rows2=(j2&&j2.data)||[];
-    if(rows2.length){SRV.ledger=rows2.map(function(r){return {t:String(r.at||''),doc:r.doc_no||'',biz:r.biz||'',code:r.material_code||r.product_code||'',batch:r.batch_no||'',wh:r.wh||'',loc:r.loc||'',dir:String(r.dir==null?'':r.dir),qty:r.qty,unit:r.unit||'',before:'',after:'',field:'',by:r.by_user||'',note:'',srv:1};});}
-  }).catch(function(){}).then(function(){SRV.busy=false;SRV.at=Date.now();if(typeof renderStock==='function')renderStock();});
+    if(rows2.length){window.SRV.ledger=rows2.map(function(r){return {t:String(r.at||''),doc:r.doc_no||'',biz:r.biz||'',code:r.material_code||r.product_code||'',batch:r.batch_no||'',wh:r.wh||'',loc:r.loc||'',dir:String(r.dir==null?'':r.dir),qty:r.qty,unit:r.unit||'',before:'',after:'',field:'',by:r.by_user||'',note:'',srv:1};});}
+  }).catch(function(){}).then(function(){window.SRV.busy=false;window.SRV.at=Date.now();if(typeof renderStock==='function')renderStock();});
 }
 function renderStock(){
   var body='';
   if(sub!=='onhand'&&sub!=='ledger')sub='onhand';
   if(sub==='onhand'){
-    var STK=SRV.on?SRV.stock:DB.stock;
+    var STK=window.SRV.on?window.SRV.stock:DB.stock;
     var whs=[];STK.forEach(function(s){if(whs.indexOf(s.wh)<0)whs.push(s.wh)});
     var scope=window.onhandScope||'';
     var list=STK.filter(function(s){var m=mat(s.code);return (!kw||(s.code+m.name+s.batch+s.wh+s.loc).toLowerCase().indexOf(kw.toLowerCase())>=0)&&(!scope||s.wh===scope)});
     var rows=list.map(function(s){var m=mat(s.code),al=alertOf(s),gi=STK.indexOf(s);
       return '<tr><td><b>'+esc(s.code)+'</b></td><td>'+esc(m.name)+'</td><td>'+esc(m.spec||'—')+'</td><td>'+esc(s.wh)+'</td><td>'+esc(s.loc)+'</td><td>'+esc(s.batch)+'</td><td>'+esc(s.unit)+'</td><td class="num"><b>'+fmt(s.on)+'</b></td><td class="num grn"><b>'+fmt(s.avail)+'</b></td><td class="num org">'+fmt(s.pending)+'</td><td class="num">'+fmt(s.qua)+'</td><td class="num">'+fmt(m.min)+'</td><td class="num">'+fmt(m.max)+'</td><td>'+tag(al)+'</td><td class="sm mut">'+esc(s.at)+'</td><td><span class="link" data-act="flow" data-code="'+esc(s.code)+'">流水</span>'+(s.srv?'':' <span class="link" data-act="quick" data-i="'+gi+'">发起领用</span>')+'</td></tr>'}).join('');
     var whBtns='<button class="b '+(scope?'':'on')+'" data-act="whscope" data-wh="">全部库区</button>'+whs.map(function(w){return '<button class="b '+(scope===w?'on':'')+'" data-act="whscope" data-wh="'+esc(w)+'">'+esc(w)+'</button>'}).join('');
-    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>仓库库存 inventory_stock</b><span class="sm mut">由 stock_ledger 派生，页面只读，不可直接改数 · 可用 = 账面 − 待检 − 隔离 − 冻结'+(SRV.on?' · <b>后端真数据</b>':'')+'</span></div>'+
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>仓库库存 inventory_stock</b><span class="sm mut">由 stock_ledger 派生，页面只读，不可直接改数 · 可用 = 账面 − 待检 − 隔离 − 冻结'+(window.SRV.on?' · <b>后端真数据</b>':'')+'</span></div>'+
       '<div class="pad" style="border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b class="sm">库区视角：</b>'+whBtns+'<span style="flex:1"></span><input class="f" style="max-width:240px" placeholder="物料 / 批次 / 仓库 / 库区" value="'+esc(kw)+'" data-role="kw"><button class="b" data-act="search">查询</button></div>'+
       '<div class="tblwrap"><table class="t"><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>仓库</th><th>库区</th><th>批次</th><th>数量单位</th><th>账面</th><th>可用</th><th>待检</th><th>隔离</th><th>最低</th><th>最高</th><th>预警</th><th>最后变动</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无库存</td></tr>')+'</tbody></table></div></div>';
   }else{
-    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><b>库存记录 stock_ledger</b> <span class="sm mut">只增不改不删 · 冲红为反向流水并指向原单 · 账实核对以本表为准</span><span style="flex:1"></span><button class="b" data-act="cmp">数据比对</button></div><div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>物料</th><th>批次</th><th>仓库</th><th>库区</th><th>方向</th><th>数量</th><th>数量单位</th><th>变动前</th><th>变动后</th><th>分量</th><th>操作人</th><th>备注</th><th>操作</th></tr></thead><tbody>'+((SRV.on?SRV.ledger:DB.ledger).map(function(x){var m=mat(x.code);return '<tr><td>'+esc(x.t)+'</td><td class="link" data-act="open" data-no="'+esc(x.doc)+'">'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc((m.name||'')+' '+x.code)+'</td><td>'+esc(x.batch)+'</td><td>'+esc(x.wh)+'</td><td>'+esc(x.loc)+'</td><td>'+tag(x.dir)+'</td><td class="num">'+qtyVal(x.qty)+'</td><td>'+esc(x.unit||'—')+'</td><td class="num">'+fmt(x.before)+'</td><td class="num">'+fmt(x.after)+'</td><td>'+esc(x.field)+'</td><td>'+esc(x.by)+'</td><td class="sm mut">'+esc(x.note||'')+'</td><td><span class="link" data-act="godetail" data-key="'+esc(x.code+'|'+x.batch+'|'+x.wh+'|'+x.loc)+'">明细</span></td></tr>'}).join('')||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无流水</td></tr>')+'</tbody></table></div></div>';
+    body='<div class="card"><div class="pad" style="border-bottom:1px solid var(--line)"><b>库存记录 stock_ledger</b> <span class="sm mut">只增不改不删 · 冲红为反向流水并指向原单 · 账实核对以本表为准</span><span style="flex:1"></span><button class="b" data-act="cmp">数据比对</button></div><div class="tblwrap"><table class="t"><thead><tr><th>时间</th><th>单据</th><th>业务</th><th>物料</th><th>批次</th><th>仓库</th><th>库区</th><th>方向</th><th>数量</th><th>数量单位</th><th>变动前</th><th>变动后</th><th>分量</th><th>操作人</th><th>备注</th><th>操作</th></tr></thead><tbody>'+((window.SRV.on?window.SRV.ledger:DB.ledger).map(function(x){var m=mat(x.code);return '<tr><td>'+esc(x.t)+'</td><td class="link" data-act="open" data-no="'+esc(x.doc)+'">'+esc(x.doc)+'</td><td>'+esc(x.biz)+'</td><td>'+esc((m.name||'')+' '+x.code)+'</td><td>'+esc(x.batch)+'</td><td>'+esc(x.wh)+'</td><td>'+esc(x.loc)+'</td><td>'+tag(x.dir)+'</td><td class="num">'+qtyVal(x.qty)+'</td><td>'+esc(x.unit||'—')+'</td><td class="num">'+fmt(x.before)+'</td><td class="num">'+fmt(x.after)+'</td><td>'+esc(x.field)+'</td><td>'+esc(x.by)+'</td><td class="sm mut">'+esc(x.note||'')+'</td><td><span class="link" data-act="godetail" data-key="'+esc(x.code+'|'+x.batch+'|'+x.wh+'|'+x.loc)+'">明细</span></td></tr>'}).join('')||'<tr><td colspan="16" class="mut" style="text-align:center;padding:28px">暂无流水</td></tr>')+'</tbody></table></div></div>';
   }
   var kpiTitle=sub==='ledger'?'库存记录':'仓库库存';
   var kpiUnit=sub==='ledger'?'物料+批次+仓库+库区':'仓库+库区+物料+批次';
@@ -1019,6 +1036,11 @@ function goLegacy(page){try{if(parent&&parent.go)parent.go(page,page==='transfer
 function cur(){return docBy(curNo)}
 var ACT={
   backnav:function(){
+    if(backView){var bv=backView;backView='';
+      var bookIds={onhand:'inventoryOnhand',ledger:'inventoryLedger'};
+      if(bookIds[bv]){try{if(parent&&parent.go){parent.go(bookIds[bv]);return}}catch(e){}}
+      if(bv==='ledger')sub='ledger';else if(bv==='onhand')sub='onhand';
+      view=bv;mode='list';curNo='';render();return}
     var target=view==='request'?'materialRequest':view==='receive'?'materialReceive':view==='register'?'materialReceive':view==='reject'?'materialReceive':view==='inbound'?'materialReceive':view==='issue'?'materialIssue':view==='wreturn'?'materialWReturn':view==='return'?'materialReturn':'materialCode';
     try{if(parent&&parent.go){parent.go(target);return}}catch(e){}
     if(history.length>1)history.back();
@@ -1037,6 +1059,7 @@ var ACT={
   var d=blankDoc(view);DB.doc.unshift(d);save();edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
   newrecv:function(el){var t=el.dataset.t||'register';var d=blankDoc(t);DB.doc.unshift(d);save();document.getElementById('dlgRoot').classList.add('hide');view=t;edit(d.no);toast('已创建 '+d.no+'（草稿，尚未保存）')},
   open:function(el){var d=docBy(el.dataset.no);if(!d){toast('未找到单据 '+el.dataset.no+'（可能是流水示例数据）',1);return}
+    if(view==='onhand'||view==='ledger'||view==='stock')backView=view;
     var key=d.srv_no||(d.srv?d.no:'');
     if(key&&window.WmsDoc&&WmsDoc.getDoc){WmsDoc.getDoc(key).then(function(srv){if(srv)applySrvDetail(d,srv);save();view=d.type;mode='edit';curNo=d.no;render();}).catch(function(){view=d.type;mode='edit';curNo=d.no;render();});return;}
     view=d.type;mode='edit';curNo=d.no;render()},
@@ -1234,7 +1257,7 @@ var ACT={
   sources:function(el){renderSourceDialog(el)},
   materialsources:function(el){renderMaterialSourcesDialog(el.dataset.code)},
   materialbatches:function(el){renderMaterialDimensionDialog(el.dataset.code,'batch')},
-  quick:function(el){var s=DB.stock[Number(el.dataset.i)];view='issue';var d=blankDoc('issue');d.wh=s.wh;d.lines=[{code:s.code,unit:s.unit,qty:'',price:mat(s.code).price||0,batch:s.batch,loc:s.loc}];DB.doc.unshift(d);save();edit(d.no);toast('已按库存行预填领用单，请填写实发数量')},
+  quick:function(el){var s=DB.stock[Number(el.dataset.i)];if(view==='onhand'||view==='ledger'||view==='stock')backView=view;view='issue';var d=blankDoc('issue');d.wh=s.wh;d.lines=[{code:s.code,unit:s.unit,qty:'',price:mat(s.code).price||0,batch:s.batch,loc:s.loc}];DB.doc.unshift(d);save();edit(d.no);toast('已按库存行预填领用单，请填写实发数量')},
   godetail:function(el){var p=String(el.dataset.key||'').split('|');view='materialCode';mode='list';curNo='';kw=p[0];render();
     /* 定位到目标行：物料明细页以该物料过滤，kw 保证只剩相关行 */
     var trs=document.querySelectorAll('#main tbody tr');for(var i=0;i<trs.length;i++){if(trs[i].textContent.indexOf(p[1])>=0){trs[i].style.background='#fff7e0';setTimeout((function(r){return function(){r.style.background=''}})(trs[i]),1600);break}}},
