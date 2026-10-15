@@ -23,6 +23,7 @@ def create_wo(body: dict, authed: dict = Depends(auth.need_auth),
             ver = str(row[0])
     if not ver:
         return resp.fail(400, "BOM_VERSION_REQUIRED:须指定启用版本")
+    db.rollback()
     with db.begin():
         wo_no = posting.make_doc_no(db, "WO")
         db.execute(text("INSERT INTO wo_task(wo_no,product_code,bom_version,"
@@ -99,6 +100,7 @@ def prod_plan_create(body: dict, authed: dict = Depends(auth.need_auth),
             ver = str(row[0])
     if not ver:
         return resp.fail(400, "该成品无启用版BOM")
+    db.rollback()
     with db.begin():
         plan_no = posting.make_doc_no(db, "PP")
         db.execute(text("INSERT INTO prod_plan(plan_no,order_no,product_code,"
@@ -158,6 +160,7 @@ def prod_plan_to_wo(plan_no: str, body: dict,
                       {"n": plan_no}).mappings().first()
     if not plan:
         return resp.fail(404, "生产计划不存在")
+    db.rollback()
     with db.begin():
         wo_no = posting.make_doc_no(db, "WO")
         db.execute(text("INSERT INTO wo_task(wo_no,product_code,bom_version,"
