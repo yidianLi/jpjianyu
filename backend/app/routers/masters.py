@@ -79,6 +79,37 @@ def bom_lines(code: str, ver: str, authed: dict = Depends(auth.need_auth),
     return resp.ok([dict(r) for r in rows], total=len(rows))
 
 
+@router.get("/masters/boms/active_ref")
+def bom_active_ref(product_code: str = "",
+                   qty: float = 1,
+                   authed: dict = Depends(auth.need_auth),
+                   db: Session = Depends(get_db)):
+    """启用版BOM展开:参考用量=计划数×单耗×(1+损耗率),供领料/计划调用."""
+    if not product_code:
+        return resp.fail(400, "成品编码必填")
+    head = db.execute(text("SELECT product_code,version FROM bom_master"
+                           " WHERE product_code=:c AND status='启用' LIMIT 1"),
+                      {"c": product_code}).mappings().first()
+    if not head:
+        return resp.fail(404, "该成品无启用版BOM")
+    rows = db.execute(text("SELECT material_code,qty,unit,loss_rate FROM bom_line"
+                           " WHERE product_code=:c AND version=:v ORDER BY line_no"),
+                      {"c": product_code, "v": head["version"]}).mappings().all()
+    try:
+        plan = float(qty or 0)
+    except Exception:
+        plan = 0
+    out = []
+    for r in rows:
+        per = float(r["qty"] or 0)
+        loss = float(r["loss_rate"] or 0)
+        out.append({"material_code": r["material_code"], "unit": r["unit"],
+                    "per_qty": per, "loss_rate": loss,
+                    "ref_qty": round(plan * per * (1 + loss), 3)})
+    return resp.ok({"product_code": product_code, "version": head["version"],
+                    "plan_qty": plan, "lines": out}, total=len(out))
+
+
 @router.get("/masters/warehouses")
 def warehouses(authed: dict = Depends(auth.need_auth),
                db: Session = Depends(get_db)):
