@@ -69,7 +69,7 @@ def batches(material_code: str = "", authed: dict = Depends(auth.need_auth),
     args.update({"o": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT batch_no,material_code,partner_id,source_doc_no,"
                            "created_at,created_by FROM batch WHERE " + cond +
-                           " ORDER BY created_at DESC LIMIT :o,:n"),
+                           " ORDER BY created_at DESC LIMIT :n OFFSET :o"),
                       args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 

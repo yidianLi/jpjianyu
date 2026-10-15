@@ -35,7 +35,7 @@ def fetch_ledger(db, doc_no="", code="", page=1, size=50):
     args.update({"off": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT id,doc_no,line_no,sid,material_code,product_code,"
                            "batch_no,barcode,wh,loc,qty,unit,dir,biz,by_user,"
-                           "device,`at`,idem_key FROM stock_ledger"
+                           "device,at,idem_key FROM stock_ledger"
                            " WHERE " + where + " ORDER BY id DESC LIMIT :n OFFSET :off"), args).mappings().all()
     return [dict(r) for r in rows], int(total)
 

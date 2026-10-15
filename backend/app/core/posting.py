@@ -1,5 +1,6 @@
 """写事务:建单/提交/过账/审批.同事务写状态+流水+现存+审计."""
 from sqlalchemy import text
+from app.core import dialect
 
 NO_POST = {"SQ", "JS", "PD"}
 TYPE_SID = {"DJ": 10000, "JS": 10200, "RK": 10100, "LY": 10400,
@@ -9,8 +10,10 @@ TYPE_SID = {"DJ": 10000, "JS": 10200, "RK": 10100, "LY": 10400,
 
 
 def make_doc_no(db, prefix):
-    db.execute(text("INSERT IGNORE INTO sys_sequence(seq_name,cid,next_val,remark)"
-                    " VALUES('DOC_MAIN.DOC_NO',0,10000001,'单据主键池')"))
+    db.execute(text(dialect.insert_ignore_prefix() +
+                    " INTO sys_sequence(seq_name,cid,next_val,remark)"
+                    " VALUES('DOC_MAIN.DOC_NO',0,10000001,'单据主键池')" +
+                    dialect.insert_ignore_suffix(["seq_name"])))
     row = db.execute(text("SELECT next_val FROM sys_sequence WHERE seq_name=:n"),
                      {"n": "DOC_MAIN.DOC_NO"}).mappings().first()
     nxt = int(row["next_val"]) if row else 10000001
@@ -115,11 +118,15 @@ def post(db, doc_no, dtype, by_user, device=""):
                     "y": by_user, "v": device, "k": key})
         signed = qty if is_in else -qty
         ln = dict(line)
+        tail = (" ON DUPLICATE KEY UPDATE on_hand=on_hand+:d,"
+                "avail=avail+:d,partner_id=VALUES(partner_id)"
+                if dialect.IS_MYSQL else
+                " ON CONFLICT (material_code,product_code,batch_no,wh,loc)"
+                " DO UPDATE SET on_hand=stock_onhand.on_hand+:d,"
+                "avail=stock_onhand.avail+:d,partner_id=EXCLUDED.partner_id")
         db.execute(text("INSERT INTO stock_onhand(material_code,product_code,"
                         "batch_no,wh,loc,on_hand,avail,partner_id)"
-                        " VALUES(:m,:p,:b,'',:l,:q,:q,:o)"
-                        " ON DUPLICATE KEY UPDATE on_hand=on_hand+:d,"
-                        "avail=avail+:d,partner_id=VALUES(partner_id)"),
+                        " VALUES(:m,:p,:b,'',:l,:q,:q,:o)" + tail),
                    {"m": ln.get("material_code") or "",
                     "p": ln.get("product_code") or "",
                     "b": ln.get("batch_no") or "",

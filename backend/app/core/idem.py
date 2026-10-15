@@ -2,6 +2,7 @@
 import json
 from fastapi import Header, HTTPException
 from sqlalchemy import text
+from app.core import dialect
 
 
 def idem_key(key: str = Header(default="", alias="Idempotency-Key")) -> str:
@@ -46,8 +47,8 @@ def put(key: str, data: dict):
         db = _db()
         try:
             db.execute(text("INSERT INTO idem_log(idem_key,response)"
-                            " VALUES(:k,:r) ON DUPLICATE KEY UPDATE"
-                            " response=VALUES(response)"),
+                            " VALUES(:k,:r)" +
+                            dialect.upsert_tail(["idem_key"], ["response"])),
                        {"k": key, "r": json.dumps(data, ensure_ascii=False)})
             db.commit()
         finally:

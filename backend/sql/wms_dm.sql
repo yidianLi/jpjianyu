@@ -1,0 +1,910 @@
+-- 由 gen_portable_ddl.py 生成(达梦 DM8)
+-- 部署前请用目标库执行校验;建议配合达梦 DTS 迁移工具。
+-- =====================================================================
+-- WMS 重构版 DDL (MySQL 5.6 / InnoDB / utf8mb4 / 可直接执行)
+-- 重构依据: NB3 方法论 docs/nb3-database-design-method.md 第10条
+--   可抄7条: 1.AUTOCODE定长分级码 2.容量声明 3.SID语义状态码 4.中央发号
+--             5.O_/N_快照 6.父码xN子表编码 7.排序键分离
+--   要避6条: 1.无外键->本库用"逻辑外键+全索引+注释溯源"(5.6/分表下不用物理FK,见说明)
+--             2.double存金额->全DECIMAL 3.int(N)显示宽度->一律INT/BIGINT不带宽度
+--             4.utf8->全utf8mb4 5.STATE一词多义->拆 enabled/biz_status/flow_status
+--             6.Sxxx宽表流转矩阵->用 flow_def/flow_instance/sys_perm行式表达,禁ALTER加列
+-- 库名: wms;63表=0组编号中枢4 + 物料线/成品线BOM/仓储地点/工单单据/支撑;MySQL5.6可直接执行
+-- 约定: 单据前缀全集 SQ/DJ/JS/RK/LY/TL/TK/DB/PD/TZ/CP/JJ/TC;MVP先用 DJ/RK/LY/TL/PD
+--       stock_ledger只增不改,PD不动账;idem_key=doc_no:line_no:biz唯一;数量必带qty+unit;溯源到BT批级
+-- 5.6注意: 无CHECK(应用层guards)/无JSON(TEXT存JSON)/无CTE窗口函数/CREATE INDEX无IF NOT EXISTS
+-- =====================================================================
+-- V2.3 2026-09-20 对齐菜单截图:仓储=仓库库存/库存记录/库区管理/库存调仓/库存盘点;物料=明细/申请领料SQ/登记DJ/拒收JS/入库RK/领用LY/车间退料TK回仓/退库TK冲红;成品=明细/登记CP/入库RK-FIN/退仓TC/交付JJ;SQ=申请领料(只申请不扣账)
+
+
+
+CREATE DATABASE IF NOT EXISTS `wms` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+USE `wms`;
+
+SET NAMES utf8mb4;
+
+
+-- ============ 0组:编号中枢(NB3可抄1/2/3/4落地) ============
+-- 容量声明(NB3可抄2):编码容量由配置声明,不是硬编码
+CREATE TABLE IF NOT EXISTS sys_config(
+ cfg_key VARCHAR(50) NOT NULL PRIMARY KEY,
+ cfg_value VARCHAR(255) NOT NULL,
+ remark VARCHAR(255) DEFAULT NULL
+);
+
+
+-- 中央发号器(NB3可抄4):SEQNAME=表.字段 或 表.字段_动作码;NEXTVAL单独存,不依赖AUTO_INCREMENT
+CREATE TABLE IF NOT EXISTS sys_sequence(
+ seq_name VARCHAR(64) NOT NULL PRIMARY KEY,
+ cid BIGINT DEFAULT NULL,
+ next_val BIGINT NOT NULL DEFAULT 10000001,
+ table_list VARCHAR(255) DEFAULT NULL,
+ remark VARCHAR(64) DEFAULT NULL
+);
+
+
+-- 语义状态码(NB3可抄3):SID手工语义号,非自增;万位分域,百位分动作,x50为变体
+-- fs借鉴:1xxxx=资产域动作;本库:10xxx=入库系 11xxx=出库系 12xxx=仓内系 13xxx=盘点系 14xxx=终态系 18xxx=耗材系
+CREATE TABLE IF NOT EXISTS sys_biz_state(
+ sid INT NOT NULL PRIMARY KEY,
+ biz VARCHAR(16) NOT NULL,
+ name VARCHAR(64) NOT NULL,
+ bill_no_format VARCHAR(24) DEFAULT NULL,
+ state_status TINYINT NOT NULL DEFAULT 1,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ inc_flag TINYINT NOT NULL DEFAULT 0,
+ dec_flag TINYINT NOT NULL DEFAULT 0,
+ remark VARCHAR(255) DEFAULT NULL
+);
+
+
+-- 方法字典(NB3可抄3附):挂在SID下,METHOD_CODE固定01/02/99(99=其他)
+CREATE TABLE IF NOT EXISTS sys_bill_method(
+ bmid INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ sid INT NOT NULL,
+ method_code VARCHAR(8) NOT NULL,
+ method_name VARCHAR(64) NOT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1
+);
+
+CREATE INDEX idx_method_sid ON sys_bill_method (sid);
+
+
+-- ============ A组:业务核心 ============
+-- 物料线:mat_category(分类树) -> mat_master(档案,三计量) -> batch/material_item(实物)
+CREATE TABLE IF NOT EXISTS mat_category(
+ cat_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ parent_code VARCHAR(32) DEFAULT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ sort INT NOT NULL DEFAULT 0,
+ enabled TINYINT NOT NULL DEFAULT 1
+);
+
+CREATE INDEX idx_mcat_parent ON mat_category (parent_code);
+
+CREATE INDEX idx_mcat_auto ON mat_category (autocode);
+
+CREATE TABLE IF NOT EXISTS mat_master(
+ material_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ cat_code VARCHAR(32) DEFAULT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(128) NOT NULL,
+ spec VARCHAR(128) DEFAULT NULL,
+ base_unit VARCHAR(16) NOT NULL,
+ pack_unit VARCHAR(16) DEFAULT NULL,
+ pack_qty DECIMAL(18,3) NOT NULL DEFAULT 1.000,
+ sub_unit VARCHAR(16) DEFAULT NULL,
+ sub_qty DECIMAL(18,3) DEFAULT NULL,
+ manage_mode VARCHAR(16) NOT NULL DEFAULT 'QTY',
+ price_ref DECIMAL(18,2) DEFAULT NULL,
+ max_qty DECIMAL(18,3) DEFAULT NULL,
+ min_qty DECIMAL(18,3) DEFAULT NULL,
+ shelf_life_days INT DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE INDEX idx_mat_cat ON mat_master (cat_code);
+
+CREATE TABLE IF NOT EXISTS batch(
+ batch_no VARCHAR(32) NOT NULL PRIMARY KEY,
+ material_code VARCHAR(32) NOT NULL,
+ partner_id VARCHAR(64) DEFAULT NULL,
+ source_doc_no VARCHAR(64) DEFAULT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ created_by VARCHAR(64) DEFAULT NULL
+);
+
+CREATE INDEX idx_batch_mat ON batch (material_code);
+
+CREATE TABLE IF NOT EXISTS material_item(
+ barcode VARCHAR(64) NOT NULL PRIMARY KEY,
+ material_code VARCHAR(32) NOT NULL,
+ batch_no VARCHAR(32) NOT NULL,
+ source_doc_no VARCHAR(64) DEFAULT NULL,
+ status VARCHAR(16) NOT NULL DEFAULT '在库'
+);
+
+CREATE INDEX idx_item_mat ON material_item (material_code);
+
+CREATE INDEX idx_item_batch ON material_item (batch_no);
+
+CREATE TABLE IF NOT EXISTS stock_onhand(
+ material_code VARCHAR(32) NOT NULL DEFAULT '',
+ product_code VARCHAR(32) NOT NULL DEFAULT '',
+ batch_no VARCHAR(32) NOT NULL,
+ wh VARCHAR(32) NOT NULL,
+ loc VARCHAR(64) NOT NULL,
+ on_hand DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ avail DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ pending DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ quarantine DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ frozen DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ partner_id VARCHAR(64) DEFAULT NULL,
+ PRIMARY KEY(material_code, product_code, batch_no, wh, loc)
+);
+
+CREATE TABLE IF NOT EXISTS stock_ledger(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ doc_no VARCHAR(64) NOT NULL,
+ line_no INT NOT NULL DEFAULT 1,
+ sid INT DEFAULT NULL,
+ material_code VARCHAR(32) DEFAULT NULL,
+ product_code VARCHAR(32) DEFAULT NULL,
+ batch_no VARCHAR(32) DEFAULT NULL,
+ barcode VARCHAR(64) DEFAULT NULL,
+ wh VARCHAR(32) DEFAULT NULL,
+ loc VARCHAR(64) DEFAULT NULL,
+ qty DECIMAL(18,3) NOT NULL,
+ unit VARCHAR(16) NOT NULL,
+ dir CHAR(1) NOT NULL,
+ biz VARCHAR(16) NOT NULL,
+ by_user VARCHAR(64) NOT NULL,
+ device VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ idem_key VARCHAR(128) NOT NULL UNIQUE
+);
+
+CREATE INDEX ix_ledger_doc ON stock_ledger (doc_no);
+
+CREATE INDEX ix_ledger_mat ON stock_ledger (material_code);
+
+CREATE INDEX ix_ledger_prod ON stock_ledger (product_code);
+
+CREATE INDEX ix_ledger_batch ON stock_ledger (batch_no);
+
+CREATE INDEX ix_ledger_barcode ON stock_ledger (barcode);
+
+CREATE INDEX ix_ledger_sid ON stock_ledger (sid);
+
+CREATE TABLE IF NOT EXISTS stock_doc_ref(
+ id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ from_doc VARCHAR(64) NOT NULL,
+ to_doc VARCHAR(64) NOT NULL,
+ rel VARCHAR(32) NOT NULL
+);
+
+CREATE UNIQUE INDEX uk_doc_ref ON stock_doc_ref (from_doc, to_doc, rel);
+
+-- 一单一状态(NB3:一张工单只干一件事),O_/N_快照在doc_line/pd_line/transfer_ship上体现
+CREATE TABLE IF NOT EXISTS doc_main(
+ doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ type VARCHAR(8) NOT NULL,
+ sid INT DEFAULT NULL,
+ bmid INT DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
+ handler VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ partner_id VARCHAR(64) DEFAULT NULL,
+ src_order_no VARCHAR(64) DEFAULT NULL,
+ ordered_at TIMESTAMP DEFAULT NULL,
+ shipped_at TIMESTAMP DEFAULT NULL,
+ arrived_at TIMESTAMP DEFAULT NULL,
+ qc_at TIMESTAMP DEFAULT NULL
+
+);
+
+CREATE INDEX idx_doc_type ON doc_main (type);
+
+CREATE INDEX idx_doc_sid ON doc_main (sid);
+
+CREATE INDEX idx_doc_biz ON doc_main (biz_status);
+
+CREATE TABLE IF NOT EXISTS doc_line(
+ doc_no VARCHAR(64) NOT NULL,
+ line_no INT NOT NULL,
+ o_qty DECIMAL(18,3) DEFAULT NULL,
+ n_qty DECIMAL(18,3) DEFAULT NULL,
+ o_loc VARCHAR(64) DEFAULT NULL,
+ n_loc VARCHAR(64) DEFAULT NULL,
+ material_code VARCHAR(32) DEFAULT NULL,
+ product_code VARCHAR(32) DEFAULT NULL,
+ bom_version VARCHAR(16) DEFAULT NULL,
+ batch_no VARCHAR(32) DEFAULT NULL,
+ qty DECIMAL(18,3) NOT NULL,
+ unit VARCHAR(16) NOT NULL,
+ loc VARCHAR(64) DEFAULT NULL,
+ qc_result VARCHAR(32) DEFAULT NULL,
+ reason VARCHAR(255) DEFAULT NULL,
+ PRIMARY KEY(doc_no, line_no)
+);
+
+CREATE INDEX ix_line_mat ON doc_line (material_code);
+
+CREATE INDEX ix_line_prod ON doc_line (product_code);
+
+CREATE TABLE IF NOT EXISTS doc_attachment(
+ id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ doc_no VARCHAR(64) NOT NULL,
+ kind VARCHAR(32) NOT NULL,
+ ref TEXT NOT NULL,
+ by_user VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_attach_doc ON doc_attachment (doc_no);
+
+
+-- ============ B组:存证审计 ============
+CREATE TABLE IF NOT EXISTS scan_log(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ code VARCHAR(64) NOT NULL,
+ result VARCHAR(16) NOT NULL,
+ doc_no VARCHAR(64) DEFAULT NULL,
+ by_user VARCHAR(64) DEFAULT NULL,
+ device VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+);
+
+CREATE INDEX idx_scan_code ON scan_log (code);
+
+CREATE INDEX idx_scan_doc ON scan_log (doc_no);
+
+CREATE TABLE IF NOT EXISTS audit_log(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ by_user VARCHAR(64) NOT NULL,
+ action VARCHAR(64) NOT NULL,
+ doc_no VARCHAR(64) DEFAULT NULL,
+ biz_type VARCHAR(16) DEFAULT NULL,
+ result VARCHAR(16) NOT NULL DEFAULT '已完成',
+ o_val VARCHAR(255) DEFAULT NULL,
+ n_val VARCHAR(255) DEFAULT NULL,
+ device VARCHAR(64) DEFAULT NULL,
+ detail TEXT DEFAULT NULL
+
+);
+
+CREATE INDEX idx_audit_doc ON audit_log (doc_no);
+
+CREATE INDEX idx_audit_user ON audit_log (by_user);
+
+
+-- ============ C组:OCR/问答日志 ============
+CREATE TABLE IF NOT EXISTS ocr_document(
+ ocr_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ doc_no VARCHAR(64) DEFAULT NULL,
+ conf DECIMAL(8,4) DEFAULT NULL,
+ ref TEXT DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ocr_field_result(
+ ocr_id VARCHAR(64) NOT NULL,
+ field VARCHAR(64) NOT NULL,
+ candidate TEXT DEFAULT NULL,
+ conf DECIMAL(8,4) DEFAULT NULL,
+ PRIMARY KEY(ocr_id, field)
+);
+
+CREATE TABLE IF NOT EXISTS ai_qa_log(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ by_user VARCHAR(64) DEFAULT NULL,
+ question TEXT NOT NULL,
+ sql_text TEXT NOT NULL,
+ rows_count INT DEFAULT NULL,
+ ms INT DEFAULT NULL
+);
+
+
+-- ============ D组:问答平台前台(可抄1/6/7:树+子表编码+排序分离) ============
+CREATE TABLE IF NOT EXISTS ai_category(
+ cat_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ parent_id VARCHAR(32) DEFAULT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ icon VARCHAR(64) DEFAULT NULL,
+ gidx INT NOT NULL DEFAULT 0,
+ idx INT NOT NULL DEFAULT 0,
+ sort INT NOT NULL DEFAULT 0,
+ enabled CHAR(1) NOT NULL DEFAULT '1'
+);
+
+CREATE TABLE IF NOT EXISTS ai_shortcut(
+ shortcut_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ cat_id VARCHAR(32) NOT NULL,
+ type VARCHAR(16) NOT NULL,
+ title VARCHAR(128) NOT NULL,
+ sort INT NOT NULL DEFAULT 0,
+ role_allow VARCHAR(255) DEFAULT NULL
+);
+
+CREATE INDEX idx_shortcut_cat ON ai_shortcut (cat_id);
+
+CREATE TABLE IF NOT EXISTS ai_prompt_tpl(
+ tpl_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ cat_id VARCHAR(32) NOT NULL,
+ version VARCHAR(16) NOT NULL,
+ content TEXT NOT NULL,
+ ab_group VARCHAR(16) DEFAULT NULL
+);
+
+CREATE INDEX idx_tpl_cat ON ai_prompt_tpl (cat_id);
+
+CREATE TABLE IF NOT EXISTS ai_conversation(
+ sess_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ cat_id VARCHAR(32) DEFAULT NULL,
+ by_user VARCHAR(64) DEFAULT NULL,
+ title VARCHAR(255) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_message(
+ msg_id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ sess_id VARCHAR(64) NOT NULL,
+ role VARCHAR(8) NOT NULL,
+ content TEXT NOT NULL,
+ format VARCHAR(16) DEFAULT NULL
+);
+
+CREATE INDEX ix_msg_sess ON ai_message (sess_id);
+
+CREATE TABLE IF NOT EXISTS ai_feedback(
+ msg_id BIGINT NOT NULL PRIMARY KEY,
+ result VARCHAR(16) NOT NULL,
+ reason VARCHAR(255) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_favorite(
+ by_user VARCHAR(64) NOT NULL,
+ kind VARCHAR(16) NOT NULL,
+ ref_id VARCHAR(64) NOT NULL,
+ sort INT NOT NULL DEFAULT 0,
+ PRIMARY KEY(by_user, kind, ref_id)
+);
+
+
+-- ============ E组:数据源集成 ============
+CREATE TABLE IF NOT EXISTS ds_source(
+ src_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ kind VARCHAR(16) NOT NULL,
+ host VARCHAR(128) DEFAULT NULL,
+ port INT DEFAULT NULL,
+ db_name VARCHAR(64) DEFAULT NULL,
+ read_user VARCHAR(64) DEFAULT NULL,
+ sync_mode VARCHAR(16) NOT NULL DEFAULT '直连',
+ period VARCHAR(32) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ds_table_allow(
+ src_id VARCHAR(32) NOT NULL,
+ table_name VARCHAR(64) NOT NULL,
+ alias VARCHAR(64) DEFAULT NULL,
+ PRIMARY KEY(src_id, table_name)
+);
+
+CREATE TABLE IF NOT EXISTS ds_field_allow(
+ src_id VARCHAR(32) NOT NULL,
+ table_name VARCHAR(64) NOT NULL,
+ field VARCHAR(64) NOT NULL,
+ alias VARCHAR(64) DEFAULT NULL,
+ mask VARCHAR(16) DEFAULT NULL,
+ row_scope VARCHAR(255) DEFAULT NULL,
+ PRIMARY KEY(src_id, table_name, field)
+);
+
+CREATE TABLE IF NOT EXISTS ds_category_scope(
+ cat_id VARCHAR(32) NOT NULL,
+ src_id VARCHAR(32) NOT NULL,
+ table_name VARCHAR(64) NOT NULL,
+ PRIMARY KEY(cat_id, src_id, table_name)
+);
+
+CREATE TABLE IF NOT EXISTS ds_join_rel(
+ src_a VARCHAR(32) NOT NULL,
+ table_a VARCHAR(64) NOT NULL,
+ field_a VARCHAR(64) NOT NULL,
+ src_b VARCHAR(32) NOT NULL,
+ table_b VARCHAR(64) NOT NULL,
+ field_b VARCHAR(64) NOT NULL,
+ PRIMARY KEY(src_a, table_a, field_a, src_b, table_b, field_b)
+);
+
+
+-- ============ F组:知识记忆 ============
+CREATE TABLE IF NOT EXISTS kb_memory(
+ mem_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ layer VARCHAR(8) NOT NULL,
+ content TEXT NOT NULL,
+ hit_count INT NOT NULL DEFAULT 0,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+
+);
+
+CREATE INDEX ix_mem_layer ON kb_memory (layer);
+
+CREATE TABLE IF NOT EXISTS kb_public_doc(
+ doc_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ title VARCHAR(255) NOT NULL,
+ chunk TEXT NOT NULL,
+ version VARCHAR(16) DEFAULT NULL,
+ scope VARCHAR(255) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kb_evolve_log(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ msg_id BIGINT DEFAULT NULL,
+ rule VARCHAR(255) DEFAULT NULL,
+ batch_result TEXT DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============ G组:分析/大屏(可抄6:dash_id派生comp_id) ============
+CREATE TABLE IF NOT EXISTS an_report_tpl(
+ tpl_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ kind VARCHAR(16) NOT NULL,
+ dim TEXT DEFAULT NULL,
+ metric TEXT DEFAULT NULL,
+ threshold TEXT DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dash_component(
+ dash_id VARCHAR(32) NOT NULL,
+ comp_id VARCHAR(32) NOT NULL,
+ type VARCHAR(32) NOT NULL,
+ bind_cfg TEXT DEFAULT NULL,
+ refresh_sec INT NOT NULL DEFAULT 300,
+ role_allow VARCHAR(255) DEFAULT NULL,
+ PRIMARY KEY(dash_id, comp_id)
+);
+
+
+-- ============ H组:权限(行式矩阵,禁Sxxx宽表避坑6) ============
+CREATE TABLE IF NOT EXISTS sys_role(
+ role_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ cat_allow VARCHAR(500) DEFAULT NULL,
+ func_allow VARCHAR(500) DEFAULT NULL,
+ data_scope VARCHAR(500) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sys_user_role(
+ username VARCHAR(64) NOT NULL,
+ role_id VARCHAR(32) NOT NULL,
+ PRIMARY KEY(username, role_id)
+);
+
+
+-- ============ I组:基础资料 ============
+-- 成品线:prod_category(分类) -> product_master(档案,CP-独立编码) -> bom_master/bom_line(配方:成品=>物料明细)
+-- 物料配置/成品配置/BOM配置关系:物料管进出计量,成品管接单交付,BOM是配方桥(一成品多版本,领料按BOM展开,完工按BOM倒冲)
+CREATE TABLE IF NOT EXISTS prod_category(
+ cat_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ parent_code VARCHAR(32) DEFAULT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ sort INT NOT NULL DEFAULT 0,
+ enabled TINYINT NOT NULL DEFAULT 1
+);
+
+CREATE INDEX idx_pcat_parent ON prod_category (parent_code);
+
+CREATE TABLE IF NOT EXISTS product_master(
+ product_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ cat_code VARCHAR(32) DEFAULT NULL,
+ name VARCHAR(128) NOT NULL,
+ spec VARCHAR(128) DEFAULT NULL,
+ style VARCHAR(64) DEFAULT NULL,
+ customer VARCHAR(64) DEFAULT NULL,
+ base_unit VARCHAR(16) NOT NULL DEFAULT '件',
+ price_ref DECIMAL(18,2) DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE INDEX idx_prod_cat ON product_master (cat_code);
+
+CREATE TABLE IF NOT EXISTS bom_master(
+ product_code VARCHAR(32) NOT NULL,
+ version VARCHAR(16) NOT NULL,
+ handler VARCHAR(64) DEFAULT NULL,
+ eff_date TIMESTAMP DEFAULT NULL,
+ status VARCHAR(16) NOT NULL DEFAULT '草稿',
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(product_code, version)
+);
+
+CREATE TABLE IF NOT EXISTS bom_line(
+ product_code VARCHAR(32) NOT NULL,
+ version VARCHAR(16) NOT NULL,
+ line_no INT NOT NULL,
+ material_code VARCHAR(32) NOT NULL,
+ qty DECIMAL(18,3) NOT NULL,
+ unit VARCHAR(16) NOT NULL,
+ loss_rate DECIMAL(8,4) NOT NULL DEFAULT 0.0000,
+ PRIMARY KEY(product_code, version, line_no)
+
+);
+
+CREATE INDEX ix_bomline_mat ON bom_line (material_code);
+
+-- 仓储域:只管物料和成品的进出与存放,不管配方;进出全走单据(doc_main+ledger),本域只存地点
+CREATE TABLE IF NOT EXISTS warehouse(
+ wh_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ parent_code VARCHAR(32) DEFAULT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ wh_type VARCHAR(32) DEFAULT NULL,
+ stock_kind VARCHAR(16) DEFAULT NULL,
+ manager VARCHAR(64) DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE TABLE IF NOT EXISTS location(
+ loc_code VARCHAR(64) NOT NULL PRIMARY KEY,
+ wh_code VARCHAR(32) NOT NULL,
+ autocode VARCHAR(32) DEFAULT NULL,
+ zone_label VARCHAR(64) DEFAULT NULL,
+ capacity DECIMAL(18,3) DEFAULT NULL,
+ qr_code VARCHAR(128) DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE INDEX idx_loc_wh ON location (wh_code);
+
+CREATE TABLE IF NOT EXISTS customer(
+ cust_id VARCHAR(32) NOT NULL PRIMARY KEY,
+ name VARCHAR(128) NOT NULL,
+ cust_type VARCHAR(32) DEFAULT NULL,
+ contact VARCHAR(64) DEFAULT NULL,
+ phone VARCHAR(32) DEFAULT NULL,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+-- 组织树(NB3可抄1标杆):autocode定长3位/级,字符串排序即树序;level由autocode长度推导,另存冗余
+CREATE TABLE IF NOT EXISTS org_node(
+ node_code VARCHAR(64) NOT NULL PRIMARY KEY,
+ autocode VARCHAR(32) NOT NULL,
+ lowest TINYINT NOT NULL DEFAULT 1,
+ name VARCHAR(64) NOT NULL,
+ level VARCHAR(16) NOT NULL,
+ parent_code VARCHAR(64) DEFAULT NULL,
+ leader VARCHAR(64) DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE INDEX idx_org_parent ON org_node (parent_code);
+
+CREATE INDEX idx_org_autocode ON org_node (autocode);
+
+CREATE TABLE IF NOT EXISTS doc_template(
+ tpl_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ biz VARCHAR(16) NOT NULL,
+ version VARCHAR(16) NOT NULL,
+ content TEXT NOT NULL,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+
+-- ============ J组:成品+盘点 ============
+CREATE TABLE IF NOT EXISTS pd_task(
+ pd_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ sid INT DEFAULT NULL,
+ mode VARCHAR(16) NOT NULL DEFAULT '人工临时',
+ wh_code VARCHAR(32) DEFAULT NULL,
+ scope TEXT DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿',
+ handler VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- O_/N_快照+差异(NB3可抄5):book=O_账面 real=N_实盘 diff=差异
+CREATE TABLE IF NOT EXISTS pd_line(
+ pd_no VARCHAR(64) NOT NULL,
+ line_no INT NOT NULL,
+ o_qty DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ n_qty DECIMAL(18,3) DEFAULT NULL,
+ diff_qty DECIMAL(18,3) DEFAULT NULL,
+ material_code VARCHAR(32) NOT NULL,
+ batch_no VARCHAR(32) DEFAULT NULL,
+ book_qty DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ real_qty DECIMAL(18,3) DEFAULT NULL,
+ unit VARCHAR(16) NOT NULL,
+ reason VARCHAR(255) DEFAULT NULL,
+ PRIMARY KEY(pd_no, line_no)
+
+);
+
+CREATE INDEX ix_pdline_mat ON pd_line (material_code);
+
+CREATE TABLE IF NOT EXISTS deliver_sign(
+ doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ receiver VARCHAR(64) NOT NULL,
+ sign_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ sender VARCHAR(64) DEFAULT NULL,
+ proof_ref TEXT DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS label_print(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ code VARCHAR(64) NOT NULL,
+ kind VARCHAR(16) NOT NULL,
+ content VARCHAR(255) DEFAULT NULL,
+ printed_by VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_label_code ON label_print (code);
+
+CREATE TABLE IF NOT EXISTS fee_settle(
+ settle_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ customer VARCHAR(64) NOT NULL,
+ period VARCHAR(32) NOT NULL,
+ qty_send DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_issue DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_fin DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ amount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿',
+ confirm_note VARCHAR(255) DEFAULT NULL,
+ confirmed_by VARCHAR(64) DEFAULT NULL,
+ confirmed_at TIMESTAMP DEFAULT NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============ K组:工单/审批流(行式流转,禁Sxxx宽表) ============
+CREATE TABLE IF NOT EXISTS flow_def(
+ flow_key VARCHAR(64) NOT NULL PRIMARY KEY,
+ doc_type VARCHAR(16) NOT NULL,
+ steps_cfg TEXT NOT NULL
+);
+
+CREATE INDEX idx_flow_doctype ON flow_def (doc_type);
+
+CREATE TABLE IF NOT EXISTS flow_instance(
+ doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ flow_key VARCHAR(64) NOT NULL,
+ cur_step VARCHAR(16) NOT NULL DEFAULT 'S1',
+ flow_status VARCHAR(16) NOT NULL DEFAULT '草稿',
+ approver VARCHAR(64) DEFAULT NULL,
+ updated_at TIMESTAMP DEFAULT NULL,
+ hist TEXT DEFAULT NULL
+);
+
+CREATE INDEX idx_flow_key ON flow_instance (flow_key);
+
+CREATE TABLE IF NOT EXISTS wo_task(
+ wo_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ product_code VARCHAR(32) NOT NULL,
+ bom_version VARCHAR(16) DEFAULT NULL,
+ qty_plan DECIMAL(18,3) NOT NULL,
+ qty_done DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ workshop VARCHAR(64) DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿'
+);
+
+CREATE INDEX idx_wo_product ON wo_task (product_code);
+
+CREATE TABLE IF NOT EXISTS sale_order(
+ order_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ customer VARCHAR(64) NOT NULL,
+ product_code VARCHAR(32) NOT NULL,
+ qty_order DECIMAL(18,3) NOT NULL,
+ due_date DATE DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿'
+);
+
+CREATE INDEX idx_so_cust ON sale_order (customer);
+
+CREATE TABLE IF NOT EXISTS prod_plan(
+ plan_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ order_no VARCHAR(64) DEFAULT NULL,
+ product_code VARCHAR(32) NOT NULL,
+ bom_version VARCHAR(16) DEFAULT NULL,
+ qty_plan DECIMAL(18,3) NOT NULL,
+ workshop VARCHAR(64) DEFAULT NULL,
+ start_date DATE DEFAULT NULL,
+ due_date DATE DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿'
+);
+
+CREATE INDEX idx_pp_prod ON prod_plan (product_code);
+
+
+-- ============ L组:报表中心 ============
+CREATE TABLE IF NOT EXISTS rpt_config(
+ rpt_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ category VARCHAR(32) NOT NULL,
+ period_type VARCHAR(16) NOT NULL,
+ scope_cfg TEXT DEFAULT NULL,
+ auto_cron VARCHAR(64) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS rpt_instance(
+ rpt_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ rpt_code VARCHAR(32) NOT NULL,
+ period VARCHAR(32) DEFAULT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT '草稿',
+ content_ref TEXT DEFAULT NULL,
+ generated_by VARCHAR(64) DEFAULT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_rpt_code ON rpt_instance (rpt_code);
+
+CREATE TABLE IF NOT EXISTS print_template(
+ tpl_code VARCHAR(32) NOT NULL PRIMARY KEY,
+ name VARCHAR(128) NOT NULL,
+ doc_type VARCHAR(16) NOT NULL,
+ title VARCHAR(128) NOT NULL,
+ header_note VARCHAR(255) DEFAULT NULL,
+ footer_note VARCHAR(255) DEFAULT NULL,
+ columns_cfg TEXT NOT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============ M组:系统管理扩展 ============
+CREATE TABLE IF NOT EXISTS sys_user(
+ username VARCHAR(64) NOT NULL PRIMARY KEY,
+ name VARCHAR(64) NOT NULL,
+ password_hash VARCHAR(128) DEFAULT NULL,
+ phone VARCHAR(32) DEFAULT NULL,
+ data_scope VARCHAR(500) DEFAULT NULL,
+ enabled TINYINT NOT NULL DEFAULT 1,
+ status VARCHAR(16) NOT NULL DEFAULT '启用',
+ last_login TIMESTAMP DEFAULT NULL,
+ last_device VARCHAR(64) DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS equipment(
+ eq_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ kind VARCHAR(32) NOT NULL,
+ sn VARCHAR(128) DEFAULT NULL,
+ holder VARCHAR(64) DEFAULT NULL,
+ status VARCHAR(16) NOT NULL DEFAULT '启用'
+);
+
+CREATE TABLE IF NOT EXISTS sync_queue(
+ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+ payload TEXT NOT NULL,
+ biz_status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+ retries INT NOT NULL DEFAULT 0,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============ N组:调仓/对账/权限矩阵 ============
+-- O_/N_快照标杆:apply=O_申请 sent=过程 recv=N_实收
+CREATE TABLE IF NOT EXISTS transfer_ship(
+ doc_no VARCHAR(64) NOT NULL PRIMARY KEY,
+ from_wh VARCHAR(32) NOT NULL,
+ to_wh VARCHAR(32) NOT NULL,
+ from_loc VARCHAR(64) DEFAULT NULL,
+ to_loc VARCHAR(64) DEFAULT NULL,
+ o_qty DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_apply DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_sent DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ n_qty DECIMAL(18,3) DEFAULT NULL,
+ qty_recv DECIMAL(18,3) DEFAULT NULL,
+ unit VARCHAR(16) NOT NULL,
+ carrier VARCHAR(64) DEFAULT NULL,
+ plate VARCHAR(32) DEFAULT NULL,
+ eta TIMESTAMP DEFAULT NULL,
+ diff_status VARCHAR(16) NOT NULL DEFAULT '无差异'
+);
+
+CREATE INDEX idx_ship_to ON transfer_ship (to_wh);
+
+CREATE TABLE IF NOT EXISTS fee_settle_line(
+ settle_no VARCHAR(64) NOT NULL,
+ line_no INT NOT NULL,
+ o_qty_send DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ n_qty_confirm DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ material_code VARCHAR(32) NOT NULL,
+ qty_send DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_issue DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_fin DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ qty_confirm DECIMAL(18,3) NOT NULL DEFAULT 0.000,
+ unit VARCHAR(16) NOT NULL,
+ PRIMARY KEY(settle_no, line_no)
+);
+
+CREATE TABLE IF NOT EXISTS sys_perm(
+ role_id VARCHAR(32) NOT NULL,
+ action VARCHAR(32) NOT NULL,
+ allowed CHAR(1) NOT NULL DEFAULT '0',
+ PRIMARY KEY(role_id, action)
+);
+
+
+-- ============ 初始种子(容量声明+SID+发号器,保证空库可跑) ============
+INSERT INTO sys_config(cfg_key,cfg_value,remark) VALUES
+('ORG_LEVEL_COUNT','6','组织级数:监区/楼栋/楼层/车间/班组/工位'),
+('ORG_LEVEL_PER','1000','每级容量1000,与autocode/CID容量联动(NB3可抄2)'),
+('DOC_NO_SERIAL_LEN','6','单号流水位宽[SERIAL:6]')
+ON DUPLICATE KEY UPDATE cfg_value=VALUES(cfg_value);
+
+INSERT INTO sys_biz_state(sid,biz,name,bill_no_format,state_status,enabled,inc_flag,dec_flag) VALUES
+(10100,'RK','入库', 'RK[SERIAL:6]',1,1,1,0),
+(10400,'LY','领用', 'LY[SERIAL:6]',1,1,0,1),
+(10410,'TL','调仓领用','TL[SERIAL:6]',1,1,0,0),
+(13100,'PD','实物盘点','PD[SERIAL:6]',0,1,0,0),
+(10000,'DJ','物料登记', 'DJ[SERIAL:6]',1,1,0,0),
+(10200,'JS','来料拒收', 'JS[SERIAL:6]',0,1,0,0),
+(15000,'TK','物料退库', 'TK[SERIAL:6]',1,1,1,0),
+(15050,'TC','成品退仓', 'TC[SERIAL:6]',1,1,0,0),
+(19000,'DB','调仓', 'DB[SERIAL:6]',1,1,0,0),
+(19100,'TZ','库存调整', 'TZ[SERIAL:6]',1,1,0,0),
+(11200,'CP','成品登记', 'CP[SERIAL:6]',0,1,0,0),
+(11300,'RK','成品入库', 'RK[SERIAL:6]',1,1,1,0),
+(11400,'JJ','成品交付', 'JJ[SERIAL:6]',1,1,0,1),
+(11500,'WO','生产工单', 'WO[SERIAL:6]',0,1,0,0),
+(11600,'SQ','申请领料', 'SQ[SERIAL:6]',0,1,0,0)
+ON DUPLICATE KEY UPDATE name=VALUES(name);
+
+INSERT INTO sys_sequence(seq_name,cid,next_val,remark) VALUES
+('DOC_MAIN.DOC_NO',0,10000001,'单据主键池'),
+('DOC_MAIN.DOC_NO_RK',0,10000001,'入库单号'),
+('DOC_MAIN.DOC_NO_LY',0,10000001,'领用单号'),
+('STOCK_LEDGER.ID',0,10000001,'流水代理键池'),
+('PD_TASK.PD_NO',0,10000001,'盘点单号'),
+('DOC_MAIN.DOC_NO_CP',0,10000001,'成品登记单号'),
+('DOC_MAIN.DOC_NO_JJ',0,10000001,'交付单号'),
+('DOC_MAIN.DOC_NO_SQ',0,10000001,'申请领料单号'),
+('WO_TASK.WO_NO',0,10000001,'生产工单号')
+ON DUPLICATE KEY UPDATE next_val=GREATEST(next_val,VALUES(next_val));
+
+INSERT INTO sys_bill_method(sid, method_code, method_name, enabled) VALUES
+(10100,'01','正常采购',1),(10100,'02','自建转固',1),(10100,'99','其他方式',1),
+(10400,'01','新人领用',1),(10400,'02','日常领用',1),(10400,'99','其他领用',1),
+(10410,'01','出差借用',1),(10410,'02','客户借用',1),
+(13100,'01','日常盘点',1),
+(19000,'01','日常调仓',1),(19000,'99','其他调仓',1),
+(10200,'01','整批拒收',1),(10200,'02','部分拒收',1),(10200,'99','其他拒收',1),
+(15000,'01','车间余料回仓',1),(15000,'02','入库冲红',1),(15000,'03','损坏退还',1),
+(11200,'01','成品建档',1),
+(11300,'01','成品完工入库',1),(11300,'02','委托回厂',1),
+(11400,'01','客户交付',1),(11400,'02','本厂暂存转出',1),
+(19100,'01','盘盈盘亏调整',1),(19100,'02','库位纠正',1),
+(11500,'01','计划下达',1),(11500,'02','返工补单',1),
+(11600,'01','车间申请',1),(11600,'02','计划申请',1)
+ON DUPLICATE KEY UPDATE method_name=VALUES(method_name);
+
+
+
+
+
+
+-- 正式版幂等落库:Idempotency-Key与响应快照,重启不丢
+CREATE TABLE IF NOT EXISTS idem_log(
+ idem_key VARCHAR(128) NOT NULL PRIMARY KEY,
+ response TEXT NOT NULL,
+ at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

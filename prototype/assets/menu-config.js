@@ -8,7 +8,7 @@
     transfer:'transfer.html', approveFlow:'approve-flow.html',
     finished:'finished.html',
     base:'base.html', warehouseArchive:'warehouse-archive.html', locationArchive:'location-archive.html', customerArchive:'customer-archive.html', docs:'docs.html', ocr:'ocr.html', scanlog:'scanlog.html', qrcode:'qrcode.html',
-    stocktake:'stocktake.html', report:'report.html', reportConfig:'report-config.html', audit:'audit.html', processingFee:'processing-fee.html', ai:'ai.html', users:'users.html', equipment:'equipment.html', ocrResult:'ocr-result.html',
+    stocktake:'stocktake.html', report:'report.html', reportConfig:'report-config.html', printTemplate:'print-template.html', audit:'audit.html', processingFee:'processing-fee.html', ai:'ai.html', users:'users.html', equipment:'equipment.html', ocrResult:'ocr-result.html',
     materialRequest:'material-workbench.html', materialReceive:'material-workbench.html', materialRegister:'material-workbench.html', materialReject:'material-workbench.html', materialInbound:'material-workbench.html', materialIssue:'material-workbench.html', materialWReturn:'material-workbench.html', materialReturn:'material-workbench.html', materialStock:'material-workbench.html',
     inventoryOnhand:'material-workbench.html', inventoryLedger:'material-workbench.html',
     finishedDetail:'finished.html', finishedRegister:'finished.html', finishedInbound:'finished.html', finishedReturn:'finished.html', finishedDeliver:'finished.html', finishedOut:'finished.html', finishedSign:'finished.html',
@@ -19,7 +19,7 @@
     login:'login', home:'home', dashboard:'dashboard', location:'location', materialCode:'materialCode',
     transfer:'transfer', workshop:'materialRequest', workshopReceive:'materialIssue', return:'materialWReturn',
      finished:'finished', base:'base', baseBom:'baseBom', baseMat:'baseMat', baseOrg:'baseOrg', baseLoc:'baseLoc', baseProd:'baseProd', baseTpl:'baseTpl', warehouseArchive:'warehouseArchive', locationArchive:'locationArchive', customerArchive:'customerArchive', docs:'docs', ocr:'ocr', scanlog:'scanlog', qrcode:'qrcode',
-    stocktake:'stocktake', report:'report', reportConfig:'reportConfig', audit:'audit', processingFee:'processingFee', ai:'ai', users:'users', equipment:'equipment', ocrResult:'ocrResult',
+    stocktake:'stocktake', report:'report', reportConfig:'reportConfig', printTemplate:'printTemplate', audit:'audit', processingFee:'processingFee', ai:'ai', users:'users', equipment:'equipment', ocrResult:'ocrResult',
     materialRequest:'materialRequest', materialReceive:'materialReceive', materialRegister:'materialRegister', materialReject:'materialReject', materialInbound:'materialInbound', materialIssue:'materialIssue', materialWReturn:'materialWReturn', materialReturn:'materialReturn', materialStock:'materialStock',
     inventoryOnhand:'inventoryOnhand', inventoryLedger:'inventoryLedger',
     finishedDetail:'finishedDetail', finishedRegister:'finishedRegister', finishedInbound:'finishedInbound', finishedReturn:'finishedReturn', finishedDeliver:'finishedDeliver', finishedOut:'finishedOut', finishedSign:'finishedSign'
@@ -28,7 +28,7 @@
     {id:'g0', label:'工作台', icon:'fa-gauge', children:[
       {id:'home', label:'首页', tab:''},
       {id:'dashboard', label:'业务运营驾驶舱', tab:''},
-      {id:'fieldApp', label:'现场作业APP', tab:''},
+      /* 现场作业APP 为独立应用，不在 PC 后台菜单露出（直接访问 /index 或 ../mobile-app/index.html 打开） */
       {id:'ai', label:'AI问数', tab:''}]},
     /* g1 仓储作业含仓库库存/库存记录/库区管理/库存调仓/库存盘点；物料管理 8 个工单+明细 */
     {id:'g1', label:'仓储作业', icon:'fa-warehouse', children:[
@@ -71,7 +71,8 @@
       {id:'audit', label:'操作审计', tab:''}]},
     {id:'g8', label:'报表中心', icon:'fa-chart-line', children:[
       {id:'report', label:'报表中心', tab:''},
-      {id:'reportConfig', label:'报表配置', tab:''}]},
+      {id:'reportConfig', label:'报表配置', tab:''},
+      {id:'printTemplate', label:'打印模板', tab:''}]},
     {id:'g9', label:'系统管理', icon:'fa-gear', children:[
       {id:'users', label:'用户管理', tab:''},
       {id:'equipment', label:'设备管理', tab:''},

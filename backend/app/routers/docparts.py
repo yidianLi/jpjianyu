@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/docs/{doc_no}/attachments")
 def attachments(doc_no: str, authed: dict = Depends(auth.need_auth),
                 db: Session = Depends(get_db)):
-    rows = db.execute(text("SELECT id,kind,ref,by_user,`at` FROM doc_attachment"
+    rows = db.execute(text("SELECT id,kind,ref,by_user,at FROM doc_attachment"
                            " WHERE doc_no=:d ORDER BY id DESC"),
                       {"d": doc_no}).mappings().all()
     return resp.ok([dict(r) for r in rows], total=len(rows))
@@ -65,7 +65,7 @@ def fee_settles(customer: str = "", period: str = "",
     rows = db.execute(text("SELECT settle_no,customer,period,qty_send,qty_issue,"
                            "qty_fin,amount,biz_status,confirm_note,confirmed_by,"
                            "confirmed_at,updated_at FROM fee_settle WHERE " + cond +
-                           " ORDER BY updated_at DESC LIMIT :o,:n"),
+                           " ORDER BY updated_at DESC LIMIT :n OFFSET :o"),
                       args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 

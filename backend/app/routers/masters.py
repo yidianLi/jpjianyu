@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth
+from app.core import resp, auth, dialect
 from app.core.db import get_db
 
 router = APIRouter()
@@ -267,8 +267,9 @@ def bom_create(body: dict, adm: dict = Depends(auth.need_admin),
         return resp.fail(400, "BOM行不能为空")
     with db.begin():
         db.execute(text("INSERT INTO bom_master(product_code,version,handler,"
-                        "eff_date,status) VALUES(:c,:v,:h,NOW(),'草稿')"
-                        " ON DUPLICATE KEY UPDATE handler=VALUES(handler)"),
+                        "eff_date,status) VALUES(:c,:v,:h,NOW(),'草稿')" +
+                        dialect.upsert_tail(["product_code", "version"],
+                                            ["handler"])),
                    {"c": code, "v": ver, "h": body.get("handler")})
         db.execute(text("DELETE FROM bom_line WHERE product_code=:c"
                         " AND version=:v"), {"c": code, "v": ver})

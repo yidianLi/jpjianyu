@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, guards
+from app.core import resp, auth, guards, dialect
 from app.core.db import get_db
 from app.adapters import qwen, paddle
 
@@ -61,8 +61,8 @@ def ocr(body: OcrReq, authed: dict = Depends(auth.need_auth),
                 "r": ";".join(out.get("issues") or [])[:2000]})
     for n, row in enumerate(rows[:50], 1):
         db.execute(text("INSERT INTO ocr_field_result(ocr_id,field,candidate,conf)"
-                        " VALUES(:i,:f,:c,:n)"
-                        " ON DUPLICATE KEY UPDATE candidate=VALUES(candidate)"),
+                        " VALUES(:i,:f,:c,:n)" +
+                        dialect.upsert_tail(["ocr_id", "field"], ["candidate"])),
                    {"i": oid, "f": "row%d" % n, "c": json.dumps(row,
                     ensure_ascii=False)[:2000],
                     "n": float(row.get("conf") or 0.0)})

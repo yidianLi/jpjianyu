@@ -84,6 +84,32 @@ def export_fee(authed: dict = Depends(auth.need_auth),
     return _resp(xlsx.build_xlsx(head, body, "加工费对账"), "fee.xlsx")
 
 
+@router.get("/export/print.xlsx")
+def export_print(tpl_code: str, doc_no: str,
+                 authed: dict = Depends(auth.need_auth),
+                 db: Session = Depends(get_db)):
+    """按打印模板导出单据为 Excel(★报表自定义:入库验收单/领用签字单等)."""
+    import json as _json
+    tpl = db.execute(text("SELECT title,columns_cfg FROM print_template"
+                          " WHERE tpl_code=:c"), {"c": tpl_code}).mappings().first()
+    if not tpl:
+        return _resp(xlsx.build_xlsx(["提示"], [["模板不存在"]], "打印"), "print.xlsx")
+    try:
+        cols = _json.loads(tpl["columns_cfg"] or "[]")
+    except (ValueError, TypeError):
+        cols = []
+    keys = [c["k"] for c in cols]
+    head = [c.get("label") or c["k"] for c in cols]
+    lines = db.execute(text("SELECT line_no,material_code,product_code,batch_no,"
+                            "qty,unit,loc,o_loc,n_loc,o_qty,n_qty,qc_result,"
+                            "reason,bom_version FROM doc_line WHERE doc_no=:d"
+                            " ORDER BY line_no"), {"d": doc_no}).mappings().all()
+    body = [[str(dict(ln).get(k)) if dict(ln).get(k) is not None else ""
+             for k in keys] for ln in lines]
+    return _resp(xlsx.build_xlsx(head, body, tpl["title"] or "打印"),
+                 "%s-%s.xlsx" % (tpl_code, doc_no))
+
+
 @router.get("/export/arrival.xlsx")
 def export_arrival(authed: dict = Depends(auth.need_auth),
                    db: Session = Depends(get_db)):

@@ -651,6 +651,17 @@ CREATE TABLE IF NOT EXISTS rpt_instance(
   `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '时间',
   KEY idx_rpt_code (rpt_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报表实例';
+CREATE TABLE IF NOT EXISTS print_template(
+  tpl_code VARCHAR(32) NOT NULL PRIMARY KEY COMMENT '模板码PT级',
+  name VARCHAR(128) NOT NULL COMMENT '模板名称',
+  doc_type VARCHAR(16) NOT NULL COMMENT '适用单据前缀:RK入库/LY领用/DB调拨等',
+  title VARCHAR(128) NOT NULL COMMENT '打印标题',
+  header_note VARCHAR(255) DEFAULT NULL COMMENT '表头说明',
+  footer_note VARCHAR(255) DEFAULT NULL COMMENT '表脚说明(签字栏等)',
+  columns_cfg TEXT NOT NULL COMMENT '列定义JSON[{k,label,w}]',
+  enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='打印报表模板(可自定义修改)';
 
 -- ============ M组:系统管理扩展 ============
 CREATE TABLE IF NOT EXISTS sys_user(

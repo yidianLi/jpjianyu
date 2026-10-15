@@ -44,7 +44,7 @@ def sale_orders(authed: dict = Depends(auth.need_auth),
     total = db.execute(text("SELECT COUNT(*) FROM sale_order")).scalar() or 0
     rows = db.execute(text("SELECT order_no,customer,product_code,qty_order,"
                            "due_date,biz_status FROM sale_order"
-                           " ORDER BY order_no DESC LIMIT :o,:n"),
+                           " ORDER BY order_no DESC LIMIT :n OFFSET :o"),
                       {"o": (p - 1) * s, "n": s}).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
