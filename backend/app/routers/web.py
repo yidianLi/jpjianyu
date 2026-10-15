@@ -16,6 +16,7 @@ class DocLineReq(BaseModel):
     material_code: str = ""
     product_code: str = ""
     bom_version: Optional[str] = None
+    batch_no: Optional[str] = None
     qty: Any = None
     unit: str = ""
     loc: Optional[str] = None
@@ -68,10 +69,31 @@ def batches(material_code: str = "", authed: dict = Depends(auth.need_auth),
                        args).scalar() or 0
     args.update({"o": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT batch_no,material_code,partner_id,source_doc_no,"
-                           "created_at,created_by FROM batch WHERE " + cond +
+                           "created_at,created_by,expire_date FROM batch WHERE " + cond +
                            " ORDER BY created_at DESC LIMIT :n OFFSET :o"),
                       args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
+
+
+@router.get("/stock/expiry")
+def expiry(days: int = 30, authed: dict = Depends(auth.need_auth),
+           db: Session = Depends(get_db)):
+    """临期预警:效期在 N 天内的批次(含已过期),按效期排序.只读."""
+    days = max(1, min(365, int(days or 30)))
+    import datetime as _dt
+    cutoff = (_dt.date.today() + _dt.timedelta(days=days)).isoformat()
+    rows = db.execute(text("SELECT b.batch_no,b.material_code,b.expire_date,"
+                           "COALESCE(SUM(o.on_hand),0) AS on_hand"
+                           " FROM batch b LEFT JOIN stock_onhand o"
+                           " ON o.batch_no=b.batch_no"
+                           " AND o.material_code=b.material_code"
+                           " WHERE b.expire_date IS NOT NULL"
+                           " AND b.expire_date<=:c"
+                           " GROUP BY b.batch_no,b.material_code,b.expire_date"
+                           " ORDER BY b.expire_date"),
+                      {"c": cutoff}).mappings().all()
+    out = [dict(r) for r in rows]
+    return resp.ok(out, total=len(out))
 
 
 @router.get("/stock/items")
@@ -92,7 +114,7 @@ def items(batch_no: str = "", status: str = "",
     args.update({"o": (page - 1) * size, "n": size})
     rows = db.execute(text("SELECT barcode,material_code,batch_no,source_doc_no,"
                            "status FROM material_item WHERE " + where +
-                           " LIMIT :o,:n"), args).mappings().all()
+                           " LIMIT :n OFFSET :o"), args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
 

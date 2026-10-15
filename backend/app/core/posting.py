@@ -4,7 +4,7 @@ from app.core import dialect
 
 NO_POST = {"SQ", "JS", "PD"}
 TYPE_SID = {"DJ": 10000, "JS": 10200, "RK": 10100, "LY": 10400,
-            "TK": 15000, "TC": 15050, "DB": 19000, "TZ": 19100,
+            "TK": 15000, "TC": 15050, "BF": 15300, "DB": 19000, "TZ": 19100,
             "PD": 13100, "CP": 11200, "JJ": 11400, "WO": 11500,
             "SQ": 11600}
 
@@ -35,10 +35,11 @@ def create(db, dtype, handler, lines, extra=None):
                 "o4": extra.get("qc_at"), "p": extra.get("partner_id")})
     for i, line in enumerate(lines, 1):
         db.execute(text("INSERT INTO doc_line(doc_no,line_no,material_code,"
-                        "product_code,bom_version,qty,unit,loc)"
-                        " VALUES(:d,:n,:m,:p,:b,:q,:u,:l)"),
+                        "product_code,bom_version,batch_no,qty,unit,loc)"
+                        " VALUES(:d,:n,:m,:p,:b,:bt,:q,:u,:l)"),
                    {"d": doc_no, "n": i, "m": line.get("material_code"),
                     "p": line.get("product_code"), "b": line.get("bom_version"),
+                    "bt": line.get("batch_no"),
                     "q": line.get("qty"), "u": line.get("unit"),
                     "l": line.get("loc")})
     db.execute(text("INSERT INTO flow_instance(doc_no,flow_key,cur_step,flow_status)"
@@ -102,7 +103,7 @@ def post(db, doc_no, dtype, by_user, device=""):
         if dup:
             continue
         qty = float(line["qty"] or 0)
-        if dtype == "LY":
+        if dtype in ("LY", "BF"):
             left = avail_of(db, line["material_code"], line["product_code"],
                             line["batch_no"], None, line["loc"])
             if qty > left:
@@ -132,6 +133,25 @@ def post(db, doc_no, dtype, by_user, device=""):
                     "b": ln.get("batch_no") or "",
                     "l": ln.get("loc") or "", "q": signed, "d": signed,
                     "o": owner})
+        # 入库类过账顺带建批次档案:效期=保质天数推算,供临期预警用
+        if is_in and ln.get("batch_no") and ln.get("material_code"):
+            shelf = db.execute(text("SELECT shelf_life_days FROM mat_master"
+                                    " WHERE material_code=:m"),
+                               {"m": ln.get("material_code")}).scalar()
+            exp = None
+            if shelf:
+                try:
+                    import datetime as _dt
+                    exp = (_dt.date.today() +
+                           _dt.timedelta(days=int(shelf))).isoformat()
+                except (ValueError, TypeError, OverflowError):
+                    exp = None
+            db.execute(text("INSERT INTO batch(batch_no,material_code,"
+                            "source_doc_no,created_by,expire_date)"
+                            " VALUES(:b,:m,:d,:y,:e)" +
+                            dialect.upsert_tail(["batch_no"], ["expire_date"])),
+                       {"b": ln.get("batch_no"), "m": ln.get("material_code"),
+                        "d": doc_no, "y": by_user, "e": exp})
     db.execute(text("UPDATE doc_main SET biz_status='POSTED' WHERE doc_no=:d"),
                {"d": doc_no})
     db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"

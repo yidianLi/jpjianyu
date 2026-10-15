@@ -43,7 +43,22 @@ def formula():
 
 
 def alerts(db):
-    rows = db.execute(text("SELECT pd_no AS doc, '盘点未关闭' AS reason FROM pd_task"
+    rows = db.execute(text("SELECT pd_no AS doc FROM pd_task"
                            " WHERE biz_status<>'关闭' LIMIT 10")).mappings().all()
-    return [{"doc": r["doc"], "reason": r["reason"],
-             "link": "/docs.html?code=" + r["doc"]} for r in rows]
+    out = [{"doc": r["doc"], "reason": "盘点未关闭",
+            "link": "/docs.html?code=" + r["doc"]} for r in rows]
+    try:
+        import datetime as _dt
+        cutoff = (_dt.date.today() + _dt.timedelta(days=30)).isoformat()
+        exp = db.execute(text("SELECT batch_no,expire_date FROM batch"
+                              " WHERE expire_date IS NOT NULL"
+                              " AND expire_date<=:c"
+                              " ORDER BY expire_date LIMIT 10"),
+                         {"c": cutoff}).mappings().all()
+        for r in exp:
+            out.append({"doc": r["batch_no"],
+                        "reason": "临期/过期(效期%s)" % r["expire_date"],
+                        "link": "/docs.html?code=" + r["batch_no"]})
+    except Exception:
+        pass
+    return out

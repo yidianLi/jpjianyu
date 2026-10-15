@@ -116,7 +116,8 @@ CREATE TABLE IF NOT EXISTS batch(
  partner_id VARCHAR(64) DEFAULT NULL,
  source_doc_no VARCHAR(64) DEFAULT NULL,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
- created_by VARCHAR(64) DEFAULT NULL
+ created_by VARCHAR(64) DEFAULT NULL,
+ expire_date DATE DEFAULT NULL
 );
 
 CREATE INDEX idx_batch_mat ON batch (material_code);
@@ -860,6 +861,7 @@ INSERT INTO sys_biz_state(sid,biz,name,bill_no_format,state_status,enabled,inc_f
 (10200,'JS','来料拒收', 'JS[SERIAL:6]',0,1,0,0),
 (15000,'TK','物料退库', 'TK[SERIAL:6]',1,1,1,0),
 (15050,'TC','成品退仓', 'TC[SERIAL:6]',1,1,0,0),
+(15300,'BF','报废处置', 'BF[SERIAL:6]',1,1,0,1),
 (19000,'DB','调仓', 'DB[SERIAL:6]',1,1,0,0),
 (19100,'TZ','库存调整', 'TZ[SERIAL:6]',1,1,0,0),
 (11200,'CP','成品登记', 'CP[SERIAL:6]',0,1,0,0),

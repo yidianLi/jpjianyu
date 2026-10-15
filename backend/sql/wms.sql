@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS batch(
   source_doc_no VARCHAR(64) DEFAULT NULL COMMENT '来源单号',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间(DATETIME,禁TIMESTAMP)',
   created_by VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+  expire_date DATE DEFAULT NULL COMMENT '效期:入库按保质天数推算,供临期预警',
   KEY idx_batch_mat (material_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='批次表';
 CREATE TABLE IF NOT EXISTS material_item(
@@ -745,6 +746,7 @@ INSERT INTO sys_biz_state(sid,biz,name,bill_no_format,state_status,enabled,inc_f
 (10200,'JS','来料拒收', 'JS[SERIAL:6]',0,1,0,0),
 (15000,'TK','物料退库', 'TK[SERIAL:6]',1,1,1,0),
 (15050,'TC','成品退仓', 'TC[SERIAL:6]',1,1,0,0),
+(15300,'BF','报废处置', 'BF[SERIAL:6]',1,1,0,1),
 (19000,'DB','调仓', 'DB[SERIAL:6]',1,1,0,0),
 (19100,'TZ','库存调整', 'TZ[SERIAL:6]',1,1,0,0),
 (11200,'CP','成品登记', 'CP[SERIAL:6]',0,1,0,0),
