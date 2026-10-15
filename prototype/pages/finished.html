@@ -240,6 +240,16 @@ window.finSetKw=function(v){kw=String(v||'')};
 try{var _p=new URLSearchParams(location.search);if(_p.get('doc'))curNo=_p.get('doc')||''}catch(e){}
 var deliverMode='list';
 try{var _m=new URLSearchParams(location.search);if(_m.get('mode')==='new'||_m.get('mode')==='edit')deliverMode='edit'}catch(e){}
+window.PLAN={orders:[],plans:[],demand:[],curPlan:''};
+function planApi(m,path,body){if(!window.WmsAi)return Promise.reject(new Error('后端未连接'));return window.WmsAi.ready.then(function(){var o={method:m,headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}};if(body){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body);}return fetch(window.WmsAi.base+path,o);}).then(function(r){return r.json().then(function(j){if(!r.ok||j.code!==200)throw new Error(j.msg||('HTTP '+r.status));return j;});});}
+function planLoad(){planApi('GET','/web/sale_orders?page_size=100').then(function(j){window.PLAN.orders=(j&&j.data)||[];try{renderPlanBar();}catch(e){}}).catch(function(){});planApi('GET','/web/prod_plans?page_size=100').then(function(j){window.PLAN.plans=(j&&j.data)||[];try{renderPlanBar();}catch(e){}}).catch(function(){});}
+function planNewOrder(){var c=prompt('客户名称:','恒达服饰');if(!c)return;var p=prompt('成品编码:','CP-JK-001');if(!p)return;var q=Number(prompt('订货数(件):','500')||0);if(!q)return;var d=prompt('交期(YYYY-MM-DD):','2026-10-30')||'';planApi('POST','/web/sale_orders',{customer:c,product_code:p,qty_order:q,due_date:d}).then(function(){toast('订单已下达');planLoad();}).catch(function(e){toast('下单失败:'+e.message,1);});}
+function planNew(){var p=prompt('成品编码:','CP-JK-001');if(!p)return;var q=Number(prompt('计划产量(件):','500')||0);if(!q)return;var w=prompt('车间:','缝制一车间')||'';var d=prompt('交期(YYYY-MM-DD):','2026-10-30')||'';planApi('POST','/web/prod_plans',{product_code:p,qty_plan:q,workshop:w,due_date:d}).then(function(){toast('计划已下达');planLoad();}).catch(function(e){toast('建计划失败:'+e.message,1);});}
+function planDemand(no){window.PLAN.curPlan=no;planApi('GET','/web/prod_plans/'+encodeURIComponent(no)+'/demand').then(function(j){window.PLAN.demand=(j&&j.data&&j.data.lines)||[];try{renderPlanBar();}catch(e){}}).catch(function(e){toast('展开失败:'+e.message,1);});}
+function planToWo(){var no=window.PLAN.curPlan;if(!no){toast('先点一条计划再转工单',1);return;}planApi('POST','/web/prod_plans/'+encodeURIComponent(no)+'/to_wo',{}).then(function(j){toast('已转工单:'+((j&&j.data&&j.data.wo_no)||''));}).catch(function(e){toast('转工单失败:'+e.message,1);});}
+function renderPlanBar(){var el=document.getElementById('planBar');if(!el)return;var P=window.PLAN;el.innerHTML='<b>生产计划</b> <button onclick="planNewOrder()">+订单</button> <button onclick="planNew()">+计划</button> <button onclick="planToWo()">转工单</button><br><b>订单</b> ('+P.orders.length+') '+P.orders.slice(0,3).map(function(o){return o.order_no+' '+o.customer+' '+o.qty_order+'件';}).join(' / ')+'<br><b>计划</b> ('+P.plans.length+') '+P.plans.map(function(o){return '<a href="javascript:void(0)" onclick="planDemand(\\\''+o.plan_no+'\\\')">'+o.plan_no+'</a> '+o.product_code+' '+o.qty_plan+'件';}).join(' / ')+'<br><b>需求</b>'+(P.curPlan?'（'+P.curPlan+'）':'')+' '+(P.demand.length?P.demand.map(function(x){return x.material_code+' 需'+x.need_qty+' 现'+x.onhand_qty+' 缺'+x.gap_qty;}).join('；'):'点计划单号展开');}
+document.addEventListener('DOMContentLoaded',function(){try{planLoad();}catch(e){}});
+/* 生产计划真数据:订单/计划/需求展开/转工单(后端produce口,失败留空) */
 function notifyParent(){
  if(!/from=app/.test(location.search))return;
  var id={detail:'finishedDetail',register:'finishedRegister',inbound:'finishedInbound',wreturn:'finishedReturn',deliver:'finishedDeliver'}[VIEW];
@@ -446,7 +456,8 @@ function finListHTML(t){
   ?'<button class="b pri" onclick="deliverNew()">新建工单</button>'
   :'<button class="b pri" onclick="newFinDoc(\''+t+'\')">新建工单</button>';
  var queueBtns='<button class="b '+(queue==='待办'?'on':'')+'" onclick="finQueue(\'待办\')">待办 <b>'+pendingFin(t)+'</b></button><button class="b '+(queue==='已办'?'on':'')+'" onclick="finQueue(\'已办\')">已办 <b>'+doneFin(t)+'</b></button>';
- return '<div class="card pad mb-3 flex gap-2 flex-wrap items-center">'+newBtn+'<input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button><span style="flex:1"></span><div class="flex gap-2">'+queueBtns+'</div></div>'
+ return '<div class="card pad mb-3" id="planBar">生产计划加载中…</div>'
+ +'<div class="card pad mb-3 flex gap-2 flex-wrap items-center">'+newBtn+'<input class="f" style="max-width:280px" placeholder="搜索工单号 / 物料 / 单位" value="'+esc(kw)+'" data-role="kw" oninput="finSetKw(this.value)"><button class="b" onclick="render()">查询</button><span style="flex:1"></span><div class="flex gap-2">'+queueBtns+'</div></div>'
  +'<div class="card"><div class="tblwrap"><table class="t"><thead><tr><th>单号</th><th>日期</th><th>'+(t==='deliver'?'接收人/时间':t==='inbound'?'仓库/关联登记':t==='wreturn'?'类型/原入库':'客户/车间')+'</th><th>成品明细</th><th>数量</th><th>数量单位</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="mut" style="text-align:center;padding:28px">当前没有'+esc(queue)+'单据</td></tr>')+'</tbody></table></div></div>';
 }
 window.finQueue=function(q){queue=q;curNo='';render()};

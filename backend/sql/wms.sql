@@ -601,6 +601,27 @@ CREATE TABLE IF NOT EXISTS wo_task(
   biz_status VARCHAR(16) NOT NULL DEFAULT '草稿' COMMENT '业务状态',
   KEY idx_wo_product (product_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生产工单(成品线:接单=>领料=>完工=>入库)';
+CREATE TABLE IF NOT EXISTS sale_order(
+  order_no VARCHAR(64) NOT NULL PRIMARY KEY COMMENT '客户订单号SO[SERIAL:6]',
+  customer VARCHAR(64) NOT NULL COMMENT '客户=customer.name',
+  product_code VARCHAR(32) NOT NULL COMMENT '成品',
+  qty_order DECIMAL(18,3) NOT NULL COMMENT '订货数',
+  due_date DATE DEFAULT NULL COMMENT '交期',
+  biz_status VARCHAR(16) NOT NULL DEFAULT '草稿' COMMENT '草稿/已下达/已关闭',
+  KEY idx_so_cust (customer)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户订单(生产计划来源)';
+CREATE TABLE IF NOT EXISTS prod_plan(
+  plan_no VARCHAR(64) NOT NULL PRIMARY KEY COMMENT '生产计划号PP[SERIAL:6]',
+  order_no VARCHAR(64) DEFAULT NULL COMMENT '来源订单(可空=自主排产)',
+  product_code VARCHAR(32) NOT NULL COMMENT '成品',
+  bom_version VARCHAR(16) DEFAULT NULL COMMENT '展开用版本',
+  qty_plan DECIMAL(18,3) NOT NULL COMMENT '计划产量',
+  workshop VARCHAR(64) DEFAULT NULL COMMENT '车间',
+  start_date DATE DEFAULT NULL COMMENT '开工',
+  due_date DATE DEFAULT NULL COMMENT '交期',
+  biz_status VARCHAR(16) NOT NULL DEFAULT '草稿' COMMENT '草稿/已下达/已关闭',
+  KEY idx_pp_prod (product_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生产计划(订单=>计划=>工单,需求按BOM展开)';
 
 -- ============ L组:报表中心 ============
 CREATE TABLE IF NOT EXISTS rpt_config(
