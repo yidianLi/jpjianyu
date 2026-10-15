@@ -51,7 +51,8 @@ def fetch_docs(db, dtype="", status="", page=1, size=20, with_lines=False):
     where = " AND ".join(cond)
     total = db.execute(text("SELECT COUNT(*) c FROM doc_main WHERE " + where), args).scalar() or 0
     args.update({"off": (page - 1) * size, "n": size})
-    rows = db.execute(text("SELECT doc_no,type,sid,bmid,biz_status,handler,`at`"
+    rows = db.execute(text("SELECT doc_no,type,sid,bmid,biz_status,handler,`at`,"
+                           "src_order_no,ordered_at,shipped_at,arrived_at,qc_at"
                            " FROM doc_main WHERE " + where +
                            " ORDER BY `at` DESC LIMIT :n OFFSET :off"), args).mappings().all()
     out = [dict(r) for r in rows]
@@ -72,7 +73,8 @@ def fetch_docs(db, dtype="", status="", page=1, size=20, with_lines=False):
 
 
 def fetch_doc_detail(db, doc_no):
-    head = db.execute(text("SELECT doc_no,type,sid,bmid,biz_status,handler,`at`"
+    head = db.execute(text("SELECT doc_no,type,sid,bmid,biz_status,handler,`at`,"
+                           "src_order_no,ordered_at,shipped_at,arrived_at,qc_at"
                            " FROM doc_main WHERE doc_no=:d"), {"d": doc_no}).mappings().first()
     if not head:
         return None, []

@@ -167,8 +167,13 @@ CREATE TABLE IF NOT EXISTS doc_main(
   bmid INT DEFAULT NULL COMMENT '方法->sys_bill_method.bmid',
   biz_status VARCHAR(16) NOT NULL DEFAULT 'DRAFT' COMMENT '业务状态(与enabled/flow_status分离)',
   handler VARCHAR(64) DEFAULT NULL COMMENT '经办人',
-  `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '制单时间'
-,
+  `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '制单时间',
+  src_order_no VARCHAR(64) DEFAULT NULL COMMENT '来源订单(到货关联客户订单)',
+  ordered_at DATETIME DEFAULT NULL COMMENT '下单时间(四时间戳1)',
+  shipped_at DATETIME DEFAULT NULL COMMENT '发货时间(四时间戳2)',
+  arrived_at DATETIME DEFAULT NULL COMMENT '实到时间(四时间戳3)',
+  qc_at DATETIME DEFAULT NULL COMMENT '验收时间(四时间戳4)',
+
   KEY `idx_doc_type` (`type`),
   KEY `idx_doc_sid` (`sid`),
   KEY `idx_doc_biz` (`biz_status`)

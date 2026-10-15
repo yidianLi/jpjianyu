@@ -199,6 +199,59 @@ def wo_finish(wo_no: str, body: dict, authed: dict = Depends(auth.need_auth),
     return resp.ok({"wo_no": wo_no, "rk_no": doc_no, "biz_status": "完工"})
 
 
+@router.get("/arrival_analysis")
+def arrival_analysis(authed: dict = Depends(auth.need_auth),
+                     db: Session = Depends(get_db)):
+    """到货分析三张表:准时率/欠料缺口/供应商排行."""
+    orders = db.execute(text("SELECT order_no,customer,product_code,qty_order,"
+                             "due_date FROM sale_order"
+                             " WHERE biz_status<>'已关闭'")).mappings().all()
+    ontime, late, open_gap = 0, 0, []
+    for o in orders:
+        got = db.execute(text("SELECT COALESCE(SUM(l.qty),0) q,"
+                               "MAX(m.arrived_at) a FROM doc_main m"
+                               " JOIN doc_line l ON l.doc_no=m.doc_no"
+                               " WHERE m.src_order_no=:o AND m.type IN"
+                               " ('DJ','RK') AND m.biz_status='POSTED'"),
+                         {"o": o["order_no"]}).mappings().first()
+        gq = float(got["q"] or 0)
+        need = float(o["qty_order"] or 0)
+        due = str(o["due_date"] or "")
+        arr = str(got["a"] or "")
+        if gq >= need and need > 0:
+            if due and arr and arr[:10] <= due[:10]:
+                ontime += 1
+            elif not due:
+                ontime += 1
+            else:
+                late += 1
+        elif need > 0:
+            late += 1
+            open_gap.append({"order_no": o["order_no"],
+                             "customer": o["customer"], "need": need,
+                             "arrived": gq, "gap": round(need - gq, 3),
+                             "due_date": due})
+    sup = db.execute(text("SELECT '供应商' AS name,"
+                           "COUNT(*) AS arrivals,"
+                           "SUM(CASE WHEN arrived_at IS NOT NULL"
+                           " THEN 1 ELSE 0 END) AS ontime"))
+    try:
+        sup_rows = [dict(r) for r in
+                    db.execute(text("SELECT COALESCE(handler,'—') AS name,"
+                                    "COUNT(*) AS arrivals FROM doc_main"
+                                    " WHERE type IN ('DJ','RK')"
+                                    " GROUP BY handler"
+                                    " ORDER BY arrivals DESC LIMIT 10"))
+                    .mappings().all()]
+    except Exception:
+        sup_rows = []
+    total = ontime + late
+    return resp.ok({"punctual": {"ontime": ontime, "late": late,
+                                 "rate": round(ontime / total, 3)
+                                 if total else 1},
+                    "gaps": open_gap, "suppliers": sup_rows}, total=len(open_gap))
+
+
 @router.post("/deliver_signs")
 def deliver_sign(body: dict, authed: dict = Depends(auth.need_auth),
                  db: Session = Depends(get_db)):

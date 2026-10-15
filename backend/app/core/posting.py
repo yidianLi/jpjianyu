@@ -19,11 +19,16 @@ def make_doc_no(db, prefix):
     return "%s%06d" % (prefix, nxt % 1000000)
 
 
-def create(db, dtype, handler, lines):
+def create(db, dtype, handler, lines, extra=None):
     doc_no = make_doc_no(db, dtype)
-    db.execute(text("INSERT INTO doc_main(doc_no,type,sid,biz_status,handler)"
-                    " VALUES(:d,:t,:s,'DRAFT',:h)"),
-               {"d": doc_no, "t": dtype, "s": TYPE_SID[dtype], "h": handler})
+    extra = extra or {}
+    db.execute(text("INSERT INTO doc_main(doc_no,type,sid,biz_status,handler,"
+                    "src_order_no,ordered_at,shipped_at,arrived_at,qc_at)"
+                    " VALUES(:d,:t,:s,'DRAFT',:h,:o,:o1,:o2,:o3,:o4)"),
+               {"d": doc_no, "t": dtype, "s": TYPE_SID[dtype], "h": handler,
+                "o": extra.get("src_order_no"), "o1": extra.get("ordered_at"),
+                "o2": extra.get("shipped_at"), "o3": extra.get("arrived_at"),
+                "o4": extra.get("qc_at")})
     for i, line in enumerate(lines, 1):
         db.execute(text("INSERT INTO doc_line(doc_no,line_no,material_code,"
                         "product_code,bom_version,qty,unit,loc)"
