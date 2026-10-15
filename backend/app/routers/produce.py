@@ -116,11 +116,14 @@ def prod_plan_create(body: dict, authed: dict = Depends(auth.need_auth),
 def prod_plan_demand(plan_no: str, authed: dict = Depends(auth.need_auth),
                      db: Session = Depends(get_db)):
     """计划需求展开:计划量×BOM单耗×(1+损耗),并扣减adineg可用."""
-    plan = db.execute(text("SELECT product_code,bom_version,qty_plan"
-                            " FROM prod_plan WHERE plan_no=:n"),
+    plan = db.execute(text("SELECT p.product_code,p.bom_version,p.qty_plan,"
+                            "o.customer FROM prod_plan p LEFT JOIN sale_order o"
+                            " ON o.order_no=p.order_no"
+                            " WHERE p.plan_no=:n"),
                       {"n": plan_no}).mappings().first()
     if not plan:
         return resp.fail(404, "生产计划不存在")
+    cust = plan["customer"] or ""
     lines = db.execute(text("SELECT material_code,qty,unit,loss_rate"
                             " FROM bom_line WHERE product_code=:p"
                             " AND version=:v ORDER BY line_no"),
@@ -130,9 +133,16 @@ def prod_plan_demand(plan_no: str, authed: dict = Depends(auth.need_auth),
     for r in lines:
         need = round(float(plan["qty_plan"]) * float(r["qty"] or 0)
                      * (1 + float(r["loss_rate"] or 0)), 3)
-        inv = db.execute(text("SELECT COALESCE(SUM(avail_qty),0) a"
-                              " FROM stock_onhand WHERE material_code=:m"),
-                         {"m": r["material_code"]}).scalar() or 0
+        if cust:
+            inv = db.execute(text("SELECT COALESCE(SUM(avail),0) a"
+                                  " FROM stock_onhand WHERE material_code=:m"
+                                  " AND partner_id=:c"),
+                             {"m": r["material_code"],
+                              "c": cust}).scalar() or 0
+        else:
+            inv = db.execute(text("SELECT COALESCE(SUM(avail),0) a"
+                                  " FROM stock_onhand WHERE material_code=:m"),
+                             {"m": r["material_code"]}).scalar() or 0
         out.append({"material_code": r["material_code"], "unit": r["unit"],
                     "need_qty": need, "onhand_qty": float(inv),
                     "gap_qty": round(need - float(inv), 3)})
@@ -231,16 +241,12 @@ def arrival_analysis(authed: dict = Depends(auth.need_auth),
                              "customer": o["customer"], "need": need,
                              "arrived": gq, "gap": round(need - gq, 3),
                              "due_date": due})
-    sup = db.execute(text("SELECT '供应商' AS name,"
-                           "COUNT(*) AS arrivals,"
-                           "SUM(CASE WHEN arrived_at IS NOT NULL"
-                           " THEN 1 ELSE 0 END) AS ontime"))
     try:
         sup_rows = [dict(r) for r in
-                    db.execute(text("SELECT COALESCE(handler,'—') AS name,"
+                    db.execute(text("SELECT COALESCE(partner_id,'—') AS name,"
                                     "COUNT(*) AS arrivals FROM doc_main"
                                     " WHERE type IN ('DJ','RK')"
-                                    " GROUP BY handler"
+                                    " GROUP BY partner_id"
                                     " ORDER BY arrivals DESC LIMIT 10"))
                     .mappings().all()]
     except Exception:

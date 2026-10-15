@@ -25,6 +25,9 @@ class CreateDocReq(BaseModel):
     type: str
     handler: Optional[str] = None
     ref_doc: Optional[str] = None
+    partner_id: Optional[str] = None
+    src_order_no: Optional[str] = None
+    arrived_at: Optional[str] = None
     lines: List[DocLineReq] = Field(default_factory=list)
 
 
@@ -161,7 +164,9 @@ def create_doc(body: CreateDocReq, authed: dict = Depends(auth.need_auth),
     db.rollback()
     with db.begin():
         doc_no = posting.create(db, dtype, body.handler or "",
-                                lines)
+                                lines, {"partner_id": body.partner_id,
+                                        "src_order_no": body.src_order_no,
+                                        "arrived_at": body.arrived_at})
         if dtype == "LY":
             db.execute(text("INSERT INTO stock_doc_ref(from_doc,to_doc,rel)"
                             " VALUES(:f,:t,'领用-申请')"),

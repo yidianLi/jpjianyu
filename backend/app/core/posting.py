@@ -23,12 +23,13 @@ def create(db, dtype, handler, lines, extra=None):
     doc_no = make_doc_no(db, dtype)
     extra = extra or {}
     db.execute(text("INSERT INTO doc_main(doc_no,type,sid,biz_status,handler,"
-                    "src_order_no,ordered_at,shipped_at,arrived_at,qc_at)"
-                    " VALUES(:d,:t,:s,'DRAFT',:h,:o,:o1,:o2,:o3,:o4)"),
+                    "src_order_no,ordered_at,shipped_at,arrived_at,qc_at,"
+                    "partner_id)"
+                    " VALUES(:d,:t,:s,'DRAFT',:h,:o,:o1,:o2,:o3,:o4,:p)"),
                {"d": doc_no, "t": dtype, "s": TYPE_SID[dtype], "h": handler,
                 "o": extra.get("src_order_no"), "o1": extra.get("ordered_at"),
                 "o2": extra.get("shipped_at"), "o3": extra.get("arrived_at"),
-                "o4": extra.get("qc_at")})
+                "o4": extra.get("qc_at"), "p": extra.get("partner_id")})
     for i, line in enumerate(lines, 1):
         db.execute(text("INSERT INTO doc_line(doc_no,line_no,material_code,"
                         "product_code,bom_version,qty,unit,loc)"
@@ -80,6 +81,17 @@ def post(db, doc_no, dtype, by_user, device=""):
             return "404"
         return "POSTED" if cur["biz_status"] == "POSTED" else "LOCKED"
     lines = fetch_lines(db, doc_no)
+    head = db.execute(text("SELECT partner_id,src_order_no FROM doc_main"
+                           " WHERE doc_no=:d"), {"d": doc_no}).mappings().first()
+    owner = (head and head["partner_id"]) or ""
+    if not owner and head and head["src_order_no"]:
+        so = db.execute(text("SELECT customer FROM sale_order"
+                             " WHERE order_no=:o"),
+                        {"o": head["src_order_no"]}).mappings().first()
+        if so:
+            owner = so["customer"] or ""
+            db.execute(text("UPDATE doc_main SET partner_id=:c"
+                            " WHERE doc_no=:d"), {"c": owner, "d": doc_no})
     for line in lines:
         key = "%s:%s:%s" % (doc_no, line["line_no"], dtype)
         dup = db.execute(text("SELECT id FROM stock_ledger WHERE idem_key=:k"),
@@ -104,14 +116,15 @@ def post(db, doc_no, dtype, by_user, device=""):
         signed = qty if is_in else -qty
         ln = dict(line)
         db.execute(text("INSERT INTO stock_onhand(material_code,product_code,"
-                        "batch_no,wh,loc,on_hand,avail)"
-                        " VALUES(:m,:p,:b,'',:l,:q,:q)"
+                        "batch_no,wh,loc,on_hand,avail,partner_id)"
+                        " VALUES(:m,:p,:b,'',:l,:q,:q,:o)"
                         " ON DUPLICATE KEY UPDATE on_hand=on_hand+:d,"
-                        "avail=avail+:d"),
+                        "avail=avail+:d,partner_id=VALUES(partner_id)"),
                    {"m": ln.get("material_code") or "",
                     "p": ln.get("product_code") or "",
                     "b": ln.get("batch_no") or "",
-                    "l": ln.get("loc") or "", "q": signed, "d": signed})
+                    "l": ln.get("loc") or "", "q": signed, "d": signed,
+                    "o": owner})
     db.execute(text("UPDATE doc_main SET biz_status='POSTED' WHERE doc_no=:d"),
                {"d": doc_no})
     db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"

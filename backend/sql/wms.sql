@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS stock_onhand(
   pending DECIMAL(18,3) NOT NULL DEFAULT 0.000 COMMENT '待发',
   quarantine DECIMAL(18,3) NOT NULL DEFAULT 0.000 COMMENT '隔离',
   frozen DECIMAL(18,3) NOT NULL DEFAULT 0.000 COMMENT '冻结',
+  partner_id VARCHAR(64) DEFAULT NULL COMMENT '归属客户=customer.name,来料加工料属客户,缺口按此扣减',
   PRIMARY KEY(material_code, product_code, batch_no, wh, loc)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='现存快照(物料行product_code为空串,成品行material_code为空串)';
 CREATE TABLE IF NOT EXISTS stock_ledger(
@@ -168,6 +169,7 @@ CREATE TABLE IF NOT EXISTS doc_main(
   biz_status VARCHAR(16) NOT NULL DEFAULT 'DRAFT' COMMENT '业务状态(与enabled/flow_status分离)',
   handler VARCHAR(64) DEFAULT NULL COMMENT '经办人',
   `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '制单时间',
+  partner_id VARCHAR(64) DEFAULT NULL COMMENT '往来方=客户(来料方,送料与加工费结算同一口径)',
   src_order_no VARCHAR(64) DEFAULT NULL COMMENT '来源订单(到货关联客户订单)',
   ordered_at DATETIME DEFAULT NULL COMMENT '下单时间(四时间戳1)',
   shipped_at DATETIME DEFAULT NULL COMMENT '发货时间(四时间戳2)',
