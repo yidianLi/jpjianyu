@@ -132,7 +132,34 @@ function syncBaseSrv(path,body){
   return fetch(window.WmsAi.base+path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')},body:JSON.stringify(body||{})});
  }).then(function(r){return r.json().then(function(j){if(!r.ok||j.code!==200)throw new Error(j.msg||('HTTP '+r.status));return j;});});
 }
-function syncBomProduct(){var select=document.getElementById('bomProd'),info=document.getElementById('bomProdInfo'),confirm=document.getElementById('bomConfirm'),version=document.getElementById('bomVersion');if(!select||!info)return;var option=select.options[select.selectedIndex];if(!option||!option.value){info.textContent='请选择成品；如果列表中没有，请先到“成品档案”建档。';if(confirm)confirm.textContent='请选择成品并配置物料组成。';return;}var d=option.dataset;info.textContent='成品编码：'+option.value+'　名称：'+d.name+'　款号：'+d.style+'　客户：'+d.customer+'　单位：'+d.unit+'　当前BOM：'+d.current;if(confirm)confirm.textContent=option.value+' '+d.name+' · '+(version&&version.value.trim()?version.value.trim():'待填写版本')+' · 启用后领料按本BOM计算参考用量。';}
+function bomGet(path){if(!window.WmsAi)return Promise.reject(new Error('后端未连接'));return window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+path,{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.code!==200)throw new Error(j.msg||('HTTP '+r.status));return j;});});}
+function escBom(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function bomStatusTag(st){return st==='启用'?'<span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span>':st==='草稿'?'<span class="bg-orange-100 text-orange-600 px-2 rounded-full">草稿</span>':'<span class="bg-slate-100 text-slate-500 px-2 rounded-full">停用</span>';}
+/* BOM列表真数据:GET /web/masters/boms,失败保留演示行 */
+function loadBomList(){var body=document.getElementById('bomBody');if(!body)return;
+ bomGet('/web/masters/boms?page_size=100').then(function(j){
+  var rows=(j&&j.data)||[];
+  if(!rows.length)return;
+  window.BOM_ROWS=rows;
+  body.innerHTML=rows.map(function(r,i){
+   return '<tr class="border-b hover:bg-blue-50"><td class="py-2 font-bold">'+escBom(r.product_code)+'</td><td>'+escBom(r.version)+'</td><td class="text-slate-500">以启用版行项为准，点击查看</td><td>'+escBom(r.handler||'—')+'</td><td>'+bomStatusTag(r.status)+'</td><td class="whitespace-nowrap"><button type="button" onclick="openBomViewSrv('+i+',this)" class="text-blue-600 font-bold mr-3">查看</button></td></tr>';
+  }).join('');
+ }).catch(function(){});
+}
+function openBomViewSrv(i,source){var rows=window.BOM_ROWS||[];var r=rows[i];if(!r)return;
+ var view=document.getElementById('bomView'),list=document.getElementById('bomList'),wiz=document.getElementById('bomWiz');if(!view)return;
+ bomViewLastFocus=source||document.activeElement;
+ if(list)list.classList.add('hidden');if(wiz)wiz.classList.add('hidden');view.classList.remove('hidden');
+ document.getElementById('bomViewTitle').textContent=r.product_code+' · '+r.version;
+ document.getElementById('bomViewMeta').textContent='状态：'+r.status+'　·　负责人：'+(r.handler||'—');
+ document.getElementById('bomViewSummary').textContent='后端真数据 · 物料组成将作为领料时的参考用量。';
+ var body=document.getElementById('bomViewBody');body.innerHTML='<tr><td colspan="5" class="py-8 text-center text-slate-400">加载中…</td></tr>';
+ bomGet('/web/masters/boms/'+encodeURIComponent(r.product_code)+'/'+encodeURIComponent(r.version)+'/lines').then(function(j){
+  var lines=(j&&j.data)||[];
+  body.innerHTML=lines.length?lines.map(function(x){return '<tr class="border-b"><td class="py-2 font-bold">'+escBom(x.material_code)+'</td><td>—</td><td>'+escBom(x.unit||'')+'</td><td>'+escBom(x.qty)+'</td><td>'+(Math.round(Number(x.loss_rate||0)*1000)/10)+'%</td></tr>';}).join(''):'<tr><td colspan="5" class="py-8 text-center text-slate-400">该版本暂无物料组成</td></tr>';
+ }).catch(function(){body.innerHTML='<tr><td colspan="5" class="py-8 text-center text-slate-400">加载失败</td></tr>';});
+ var edit=document.getElementById('bomViewEdit');edit.onclick=function(){toast('BOM行维护请走新建版本（启用后旧版自动停用）',1);};setTimeout(function(){edit.focus();},0);}
+document.addEventListener('DOMContentLoaded',function(){try{loadBomList();}catch(e){}});
 var BOM_VIEW_DATA={
  'bom-v3':{product:'HD-JK-24秋',version:'V3',status:'启用',owner:'张建国',updated:'09-12',items:[['HD-OXF-001 牛津布','藏青 150D','米','2.0','3%'],['HD-ZP-011 拉链','黑色 20cm','条','1.0','1%'],['HD-NK-005 纽扣','白色 四孔','个','5.0','2%']]},
  'bom-v4':{product:'HD-JK-24秋',version:'V4',status:'草稿',owner:'张建国',updated:'草稿',items:[]},
@@ -187,6 +214,9 @@ function finWiz(kind){
  if(kind==='prod'){var pc=gv('prodCode'),pn=gv('prodName');
   if(pc&&pn){syncBaseSrv('/web/masters/products',{product_code:pc,name:pn,spec:gv('prodSpecTxt'),base_unit:gv('prodUnit')||'件'}).then(function(){toast('已同步后端成品：'+pc);}).catch(function(e){toast('后端同步失败（需管理员）:'+e.message+'，本地已保存',1);});}
   lsSet(kind+'|'+CUR[kind].id,{step:3,done:3,visited:3,updated:Date.now()});refreshProg();toast('成品档案已建立：'+CUR[kind].id+'，下一步可到BOM管理配置物料组成');setTimeout(function(){closeWiz('prod');},700);return;}
+ if(kind==='bom'){var bp2=gv('bomProd'),bv=gv('bomVersion');
+  if(bp2&&bv){syncBaseSrv('/web/masters/boms',{product_code:bp2,version:bv,handler:'',lines:window.BOM_DRAFT_LINES||[{material_code:'HD-OXF-001',qty:2.5,unit:'米',loss_rate:0.02},{material_code:'HD-ZP-011',qty:1,unit:'件',loss_rate:0},{material_code:'HD-NK-005',qty:5,unit:'件',loss_rate:0.01}]}).then(function(){toast('已同步后端BOM：'+bp2+' '+bv+'（草稿）');loadBomList();}).catch(function(e){toast('后端同步失败（需管理员）:'+e.message+'，本地已保存',1);});}
+  lsSet(kind+'|'+CUR[kind].id,{step:3,done:3,visited:3,updated:Date.now()});refreshProg();toast('BOM已保存：'+CUR[kind].id+'，请到后端启用版本');setTimeout(function(){closeWiz('bom');},700);return;}
 if(kind==='tpl'){lsSet(kind+'|'+CUR[kind].id,{step:3,done:3,visited:3,updated:Date.now()});refreshProg();toast('模板已启用并推送AI：结果请到 单据中心/OCR工作台 查看候选字段');setTimeout(function(){closeWiz('tpl');if(typeof goPage==='function')goPage('ocr');},900);return;}
 if(kind==='wh'){var id=CUR.wh.id,name=(document.getElementById('whName')||{}).value||'',type=(document.getElementById('whType')||{}).value||'外部租仓',lead=(document.getElementById('whLead')||{}).value||'';var isEdit=id.indexOf('-new-')<0;
 if(!isEdit){var row=rowOf(id);if(row){row.setAttribute('data-removed','');row.style.display='';var tds=row.children;tds[0].innerHTML='<b>'+id+'</b> · '+name;tds[1].textContent=type;tds[2].textContent='0库区 / 0库区（待建）';tds[3].textContent=lead;tds[5].innerHTML='<span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span>';tds[6].innerHTML='<button onclick="openWhDetail(\''+id+'\')" class="text-blue-600 font-bold">详情</button> <button onclick="openWiz(\'wh\',\''+id+'\')" class="text-slate-600 font-bold">编辑</button> <button onclick="askDeleteWh(\''+id+'\')" class="text-red-500 font-bold">删除</button>';}else{var body=document.getElementById('whBody');var tr=document.createElement('tr');tr.className='border-b hover:bg-blue-50';tr.setAttribute('data-wh',id);tr.innerHTML='<td class="py-2 font-bold">'+id+' · '+name+'</td><td>'+type+'</td><td>0库区 / 0库区（待建）</td><td>'+lead+'</td><td><span class="bg-slate-100 text-slate-500 px-2 rounded-full">未开始</span></td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td><button onclick="openWhDetail(\''+id+'\')" class="text-blue-600 font-bold">详情</button> <button onclick="openWiz(\'wh\',\''+id+'\')" class="text-slate-600 font-bold">编辑</button> <button onclick="askDeleteWh(\''+id+'\')" class="text-red-500 font-bold">删除</button></td>';var draftRow=document.getElementById('whDraftRow');body.insertBefore(tr,draftRow);}
