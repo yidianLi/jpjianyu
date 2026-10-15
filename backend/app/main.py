@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from app.core.resp import fail
 from app.core import auth as _auth
-from app.routers import web, app_, ai, masters, sysadm, reports, transfer, produce, docparts
+from app.routers import web, app_, ai, masters, sysadm, reports, transfer, produce, docparts, export
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -45,6 +45,7 @@ app.include_router(reports.router, prefix="/api/v1/web")
 app.include_router(transfer.router, prefix="/api/v1/web")
 app.include_router(produce.router, prefix="/api/v1/web")
 app.include_router(docparts.router, prefix="/api/v1/web")
+app.include_router(export.router, prefix="/api/v1/web")
 app.include_router(app_.router, prefix="/api/v1/app")
 app.include_router(ai.router, prefix="/api/v1/ai")
 
@@ -83,8 +84,39 @@ def _asset_versioned(m: "re.Match") -> str:
     return "/proto/assets/%s?v=%d" % (name, v)
 
 
+# ---------------------------------------------------------------------------
+# 外部 CDN 本地化:源 HTML 里的 tailwind / font-awesome / unsplash 外链在返回时
+# 改写到 /proto/assets/ 下的本地副本,消除首屏对外部 CDN 的依赖。
+# 实测首屏慢的根因就是这几个外链(cdn.tailwindcss.com ~1.8s、cdnjs.cloudflare.com
+# ~4s、images.unsplash.com ~0.6s),本地化后本地仅 0.15–0.4s。
+# 只改返回内容、不动源 HTML,既覆盖全部页面,又避免与工作区里其他人未提交的
+# 页面改动冲突;本地文件扁平放在 /proto/assets/ 下,.js/.css 自动吃到 ?v=mtime 指纹。
+# ---------------------------------------------------------------------------
+_CDN_TAILWIND_RE = re.compile(r"https://cdn\.tailwindcss\.com(?:/[0-9.]+)?")
+_CDN_FONTAWESOME_RE = re.compile(
+    r"https://cdnjs\.cloudflare\.com/ajax/libs/font-awesome/[0-9.]+/css/all\.min\.css")
+_CDN_UNSPLASH_RE = re.compile(
+    r"https://images\.unsplash\.com/photo-([0-9A-Za-z\-]+)\?[^\"'\s>)]*")
+_UNSPLASH_LOCAL = {
+    "1553413077-190dd305871c": "/proto/assets/img/warehouse.jpg",
+    "1587293852726-70cdb56c2866": "/proto/assets/img/store-scene.jpg",
+    "1586528116311-ad8dd3c8310d": "/proto/assets/img/logistics.jpg",
+    "1560250097-0b93528c311a": "/proto/assets/img/avatar.jpg",
+}
+
+
+def _localize_cdn(html: str) -> str:
+    """外部 CDN 引用(尚未本地化时)替换为 /proto/assets/ 下的本地副本."""
+    html = _CDN_TAILWIND_RE.sub("/proto/assets/tailwind.min.js", html)
+    html = _CDN_FONTAWESOME_RE.sub("/proto/assets/fontawesome.min.css", html)
+    html = _CDN_UNSPLASH_RE.sub(
+        lambda m: _UNSPLASH_LOCAL.get(m.group(1), m.group(0)), html)
+    return html
+
+
 def _beautify(html: str) -> str:
-    """相对资源改绝对路径;*.html 跳转改无扩展名(保留 ?query / #hash)."""
+    """外链 CDN 本地化;相对资源改绝对路径;*.html 跳转改无扩展名(保留 ?query / #hash)."""
+    html = _localize_cdn(html)
     html = _ASSET_RE.sub("/proto/assets/", html)
     html = _ASSET_ROOT_RE.sub("/proto/assets/", html)
     html = _ASSET_VER_RE.sub(_asset_versioned, html)
