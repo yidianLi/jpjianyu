@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth
+from app.core import resp, auth, posting
 from app.core.db import get_db
 
 router = APIRouter()
@@ -63,9 +63,67 @@ def fee_settles(customer: str = "", period: str = "",
                        args).scalar() or 0
     args.update({"o": (p - 1) * s, "n": s})
     rows = db.execute(text("SELECT settle_no,customer,period,qty_send,qty_issue,"
-                           "qty_fin,amount,biz_status,updated_at FROM fee_settle WHERE " + cond +
-                           " LIMIT :o,:n"), args).mappings().all()
+                           "qty_fin,amount,biz_status,confirm_note,confirmed_by,"
+                           "confirmed_at,updated_at FROM fee_settle WHERE " + cond +
+                           " ORDER BY updated_at DESC LIMIT :o,:n"),
+                      args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
+
+
+@router.get("/fee_settles/{settle_no}")
+def fee_settle_detail(settle_no: str, authed: dict = Depends(auth.need_auth),
+                      db: Session = Depends(get_db)):
+    head = db.execute(text("SELECT settle_no,customer,period,qty_send,qty_issue,"
+                           "qty_fin,amount,biz_status,confirm_note,confirmed_by,"
+                           "confirmed_at,updated_at FROM fee_settle"
+                           " WHERE settle_no=:n"),
+                      {"n": settle_no}).mappings().first()
+    if not head:
+        return resp.fail(404, "对账单不存在")
+    lines = db.execute(text("SELECT line_no,material_code,qty_send,qty_issue,"
+                            "qty_fin,qty_confirm,unit FROM fee_settle_line"
+                            " WHERE settle_no=:n ORDER BY line_no"),
+                       {"n": settle_no}).mappings().all()
+    out = dict(head)
+    out["lines"] = [dict(r) for r in lines]
+    return resp.ok(out)
+
+
+@router.post("/fee_settles")
+def fee_settle_create(body: dict, authed: dict = Depends(auth.need_auth),
+                      db: Session = Depends(get_db)):
+    if not body.get("customer") or not body.get("period"):
+        return resp.fail(400, "客户与账期必填")
+    lines = body.get("lines") or []
+    if not lines:
+        return resp.fail(400, "对账明细不能为空")
+    for ln in lines:
+        if not ln.get("material_code") or not str(ln.get("unit") or ""):
+            return resp.fail(400, "明细须含物料与单位")
+    qs = sum(float(ln.get("qty_send") or 0) for ln in lines)
+    qi = sum(float(ln.get("qty_issue") or 0) for ln in lines)
+    qf = sum(float(ln.get("qty_fin") or 0) for ln in lines)
+    amt = float(body.get("amount") or 0)
+    db.rollback()
+    with db.begin():
+        settle_no = posting.make_doc_no(db, "DZ")
+        db.execute(text("INSERT INTO fee_settle(settle_no,customer,period,"
+                        "qty_send,qty_issue,qty_fin,amount,biz_status)"
+                        " VALUES(:n,:c,:p,:s,:i,:f,:a,'草稿')"),
+                   {"n": settle_no, "c": body["customer"], "p": body["period"],
+                    "s": qs, "i": qi, "f": qf, "a": amt})
+        for i, ln in enumerate(lines, 1):
+            db.execute(text("INSERT INTO fee_settle_line(settle_no,line_no,"
+                            "material_code,qty_send,qty_issue,qty_fin,"
+                            "qty_confirm,unit) VALUES(:n,:l,:m,:s,:i,:f,:cf,:u)"),
+                       {"n": settle_no, "l": i, "m": ln["material_code"],
+                        "s": ln.get("qty_send") or 0,
+                        "i": ln.get("qty_issue") or 0,
+                        "f": ln.get("qty_fin") or 0,
+                        "cf": ln.get("qty_confirm") or 0, "u": ln["unit"]})
+    return resp.ok({"settle_no": settle_no, "biz_status": "草稿",
+                    "qty_send": qs, "qty_issue": qi, "qty_fin": qf,
+                    "amount": amt})
 
 
 @router.post("/fee_settles/{settle_no}/confirm")
@@ -74,10 +132,14 @@ def fee_confirm(settle_no: str, body: dict,
                db: Session = Depends(get_db)):
     if not body.get("confirmed"):
         return resp.fail(400, "请勾选确认无误")
+    note = str(body.get("note") or "").strip()
     with db.begin():
-        hit = db.execute(text("UPDATE fee_settle SET biz_status='确认',updated_at=NOW()"
+        hit = db.execute(text("UPDATE fee_settle SET biz_status='确认',"
+                              "confirm_note=:t,confirmed_by=:u,"
+                              "confirmed_at=NOW(),updated_at=NOW()"
                               " WHERE settle_no=:s AND biz_status<>'确认'"),
-                         {"s": settle_no})
+                         {"t": note, "u": authed.get("username") or "",
+                          "s": settle_no})
         if not hit.rowcount:
             row = db.execute(text("SELECT biz_status FROM fee_settle"
                                   " WHERE settle_no=:s"),
@@ -88,6 +150,6 @@ def fee_confirm(settle_no: str, body: dict,
                             "replay": True})
     db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"
                     " VALUES(:y,'对账确认',:d,'加工费','已完成')"),
-               {"y": "web-user", "d": settle_no})
+               {"y": authed.get("username") or "web-user", "d": settle_no})
     db.commit()
     return resp.ok({"settle_no": settle_no, "biz_status": "确认"})

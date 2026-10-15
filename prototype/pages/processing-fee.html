@@ -35,10 +35,10 @@ body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
       </div>
 
       <section class="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-label="对账摘要">
-        <div class="card p-3"><div class="text-xs text-slate-400">待核对</div><div id="pending-count" class="text-xl font-extrabold mt-1 text-amber-600">2</div><div class="text-[11px] text-slate-400 mt-1">需回到单据确认</div></div>
-        <div class="card p-3"><div class="text-xs text-slate-400">已核对</div><div id="done-count" class="text-xl font-extrabold mt-1 text-emerald-600">18</div><div class="text-[11px] text-slate-400 mt-1">本期已归档</div></div>
-        <div class="card p-3"><div class="text-xs text-slate-400">本期确认量</div><div id="fee-qty" class="text-xl font-extrabold mt-1 text-blue-700">4,840 件</div><div class="text-[11px] text-slate-400 mt-1">按客户确认量统计</div></div>
-        <div class="card p-3"><div class="text-xs text-slate-400">参考金额</div><div id="fee-amt" class="text-xl font-extrabold mt-1 text-slate-800">¥12,800</div><div class="text-[11px] text-slate-400 mt-1">不作为财务凭证</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">待核对</div><div id="pending-count" class="text-xl font-extrabold mt-1 text-amber-600">—</div><div class="text-[11px] text-slate-400 mt-1" id="pending-tip">需回到单据确认</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">已核对</div><div id="done-count" class="text-xl font-extrabold mt-1 text-emerald-600">—</div><div class="text-[11px] text-slate-400 mt-1">本期已归档</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">本期确认量</div><div id="fee-qty" class="text-xl font-extrabold mt-1 text-blue-700">—</div><div class="text-[11px] text-slate-400 mt-1">仅统计已核对单 · 按单位分列</div></div>
+        <div class="card p-3"><div class="text-xs text-slate-400">参考金额</div><div id="fee-amt" class="text-xl font-extrabold mt-1 text-slate-800">—</div><div class="text-[11px] text-slate-400 mt-1">仅统计已核对单 · 不作为财务凭证</div></div>
       </section>
 
       <section class="card p-4" aria-labelledby="fee-list-title">
@@ -74,11 +74,17 @@ var FEES=[
 ];
 function toast(message){var el=document.getElementById('fee-toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(el._timer);el._timer=setTimeout(function(){el.classList.add('hidden');},2200);}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
-function paintFeeStats(list){var pend=0,done=0,qty=0,amt=0;
+/* KPI 口径与列表筛选严格一致：待核对只算 status==='待核对'；有差异单独计数（不混入待核对）；
+   确认量按单位分列累计（修复米/件混加 bug）；金额仅累计已核对单 */
+function paintFeeStats(list){var pend=0,done=0,diff=0,amt=0;var qtyByUnit={};
  (list||[]).forEach(function(f){var n=Number(String(f.qtyNum!=null?f.qtyNum:f.qty).replace(/[^0-9.]/g,''))||0;var a=Number(String(f.amtNum!=null?f.amtNum:f.amount).replace(/[^0-9.]/g,''))||0;
-  if(f.status==='已核对'||f.status==='确认'){done++;qty+=n;amt+=a;}else{pend++;}});
- var p=document.getElementById('pending-count'),d=document.getElementById('done-count'),q=document.getElementById('fee-qty'),m=document.getElementById('fee-amt');
- if(p)p.textContent=pend;if(d)d.textContent=done;if(q)q.textContent=qty.toLocaleString()+' 件';if(m)m.textContent='¥'+amt.toLocaleString();}
+  if(f.status==='已核对'||f.status==='确认'){done++;amt+=a;var u=f.unit||(String(f.qty).match(/米|件|个|卷|箱/)||['件'])[0];qtyByUnit[u]=(qtyByUnit[u]||0)+n;}
+  else if(f.status==='有差异'){diff++;}else{pend++;}});
+ var p=document.getElementById('pending-count'),d=document.getElementById('done-count'),q=document.getElementById('fee-qty'),m=document.getElementById('fee-amt'),tip=document.getElementById('pending-tip');
+ if(p)p.textContent=pend;if(d)d.textContent=done;
+ if(tip)tip.textContent='需回到单据确认'+(diff?' · 另有 '+diff+' 项有差异':'');
+ if(q){var parts=Object.keys(qtyByUnit).map(function(u){return qtyByUnit[u].toLocaleString()+' '+u;});q.textContent=parts.length?parts.join(' · '):'0';}
+ if(m)m.textContent='¥'+amt.toLocaleString();}
 function statusClass(status){return status==='已核对'?'fee-done':status==='有差异'?'fee-diff':'fee-pending';}
 function renderFees(){var q=(document.getElementById('fee-q').value||'').trim().toLowerCase(),customer=document.getElementById('fee-customer').value,workshop=document.getElementById('fee-workshop').value,status=document.getElementById('fee-status').value,from=document.getElementById('fee-from').value,to=document.getElementById('fee-to').value,rows=FEES.filter(function(f){var hay=[f.id,f.customer,f.order,f.workshop,f.qty,f.amount,f.status].join(' ').toLowerCase();return(!q||hay.indexOf(q)>-1)&&(!customer||f.customer===customer)&&(!workshop||f.workshop===workshop)&&(!status||f.status===status)&&(!from||f.date>=from)&&(!to||f.date<=to);});paintFeeStats(FEES);document.getElementById('fee-body').innerHTML=rows.map(function(f){return '<tr><td><b class="text-blue-700">'+esc(f.id)+'</b></td><td><b>'+esc(f.customer)+'</b><br><span class="text-slate-400">'+esc(f.order)+'</span></td><td>'+esc(f.workshop)+'</td><td>'+esc(f.qty)+'</td><td>'+esc(f.price)+'</td><td><b>'+esc(f.amount)+'</b></td><td><span class="fee-status '+statusClass(f.status)+'">'+esc(f.status)+'</span></td><td class="text-slate-400">'+esc(f.date.slice(5))+' '+esc(f.time)+'</td><td><button type="button" class="fee-action" onclick="viewFee(\''+esc(f.id)+'\')">查看</button> <button type="button" class="fee-action ml-2" onclick="editFee(\''+esc(f.id)+'\')">编辑</button> '+(f.status==='待核对'||f.status==='有差异'?'<button type="button" class="fee-action ml-2" onclick="confirmFee(\''+esc(f.id)+'\')">核对</button>':'')+'</td></tr>';}).join('');document.getElementById('fee-count').textContent='当前显示 '+rows.length+' 条';document.getElementById('fee-empty').hidden=rows.length>0;}
 function openFeeModal(){var modal=document.getElementById('fee-modal');modal.hidden=false;document.body.style.overflow='hidden';modal._returnFocus=document.activeElement;modal.querySelector('.fee-modal-close').focus();}
@@ -94,7 +100,7 @@ window.WmsAi.ready.then(function(){
  return fetch(window.WmsAi.base+'/web/fee_settles/'+encodeURIComponent(f.id)+'/confirm',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')},body:JSON.stringify({confirmed:true,note:form.financeNote.value.trim()})});
 }).then(function(r){return r.json().then(function(j){if(!r.ok||j.code!==200)throw new Error(j.msg||('HTTP '+r.status));return j;});}).then(function(){doLocal();}).catch(function(e){toast('后端确认失败,本地未动:'+e.message,true);});}
 function resetFees(){['fee-q','fee-customer','fee-workshop','fee-status'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('fee-from').value='2026-09-01';document.getElementById('fee-to').value='2026-09-12';renderFees();toast('筛选条件已重置');}
-function exportFees(){toast('对账记录已导出（当前筛选结果）');}
+function exportFees(){if(!window.WmsAi){toast('后端未连接');return;}window.WmsAi.ready.then(function(){return fetch(window.WmsAi.base+'/web/export/fee.xlsx',{headers:{'Authorization':'Bearer '+(localStorage.getItem('wms_token')||'')}});}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.blob();}).then(function(b){var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='加工费对账.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);toast('对账记录已导出 Excel');}).catch(function(e){toast('导出失败:'+e.message);});}
 document.getElementById('fee-modal').addEventListener('click',function(event){if(event.target===this)closeFeeDetail();});
 document.addEventListener('keydown',function(event){var modal=document.getElementById('fee-modal');if(modal.hidden)return;if(event.key==='Escape'){event.preventDefault();closeFeeDetail();return;}if(event.key==='Tab'){var focusables=modal.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])');if(!focusables.length)return;var first=focusables[0],last=focusables[focusables.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 ['fee-q','fee-customer','fee-workshop','fee-status','fee-from','fee-to'].forEach(function(id){document.getElementById(id).addEventListener('input',renderFees);document.getElementById(id).addEventListener('change',renderFees);});
@@ -116,13 +122,11 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!rows.length || !window.FEES) return;
     rows.forEach(function(x){
       if(!x.settle_no) return;
-      var period = String(x.period || '');
-      var date = period.length === 7 ? period + '-12' : (period || '');
-      var row = {id: x.settle_no, customer: x.customer || '', order: period,
+      var row = {id: x.settle_no, customer: x.customer || '', order: x.settle_no,
         workshop: '', qty: '送' + num(x.qty_send) + ' · 发' + num(x.qty_issue) + ' · 成' + num(x.qty_fin),
-        qtyNum: num(x.qty_fin), amtNum: num(x.amount),
-        price: '', amount: '¥' + num(x.amount), status: x.biz_status || '草稿',
-        date: date, time: '', note: '后端对账', dirty: false, srv: 1};
+        qtyNum: num(x.qty_fin), unit: x.unit || '件', amtNum: num(x.amount),
+        price: '', amount: '¥' + num(x.amount), status: ({'确认':'已核对','归档':'已核对'})[x.biz_status] || (x.biz_status==='有差异'?'有差异':'待核对'),
+        date: String(x.updated_at || '').slice(0, 10), time: '', note: '后端对账', dirty: false, srv: 1};
       var ex = window.FEES.filter(function(f){ return f.id === row.id; })[0];
       if(ex){ Object.keys(row).forEach(function(k){ ex[k] = row[k]; }); }
       else{ window.FEES.unshift(row); }

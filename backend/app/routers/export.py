@@ -62,6 +62,28 @@ def export_docs(authed: dict = Depends(auth.need_auth),
     return _resp(xlsx.build_xlsx(head, body, "单据明细"), "docs.xlsx")
 
 
+@router.get("/export/fee.xlsx")
+def export_fee(authed: dict = Depends(auth.need_auth),
+               db: Session = Depends(get_db), customer: str = ""):
+    cond, args = ["1=1"], {}
+    if customer:
+        cond.append("customer=:c")
+        args["c"] = customer
+    rows = db.execute(text("SELECT settle_no,customer,period,qty_send,"
+                           "qty_issue,qty_fin,amount,biz_status,confirmed_by,"
+                           "confirm_note,updated_at FROM fee_settle WHERE " +
+                           " AND ".join(cond) +
+                           " ORDER BY updated_at DESC LIMIT 100000"),
+                      args).mappings().all()
+    head = ["对账单号", "客户", "账期", "送货数", "发料数", "成品数", "参考金额",
+            "状态", "核对人", "财务备注", "更新时间"]
+    body = [[r["settle_no"], r["customer"], r["period"], r["qty_send"],
+             r["qty_issue"], r["qty_fin"], r["amount"], r["biz_status"],
+             r["confirmed_by"], r["confirm_note"],
+             str(r["updated_at"] or "")] for r in rows]
+    return _resp(xlsx.build_xlsx(head, body, "加工费对账"), "fee.xlsx")
+
+
 @router.get("/export/arrival.xlsx")
 def export_arrival(authed: dict = Depends(auth.need_auth),
                    db: Session = Depends(get_db)):
