@@ -35,13 +35,13 @@ def create(db, dtype, handler, lines, extra=None):
                 "o4": extra.get("qc_at"), "p": extra.get("partner_id")})
     for i, line in enumerate(lines, 1):
         db.execute(text("INSERT INTO doc_line(doc_no,line_no,material_code,"
-                        "product_code,bom_version,batch_no,qty,unit,loc)"
-                        " VALUES(:d,:n,:m,:p,:b,:bt,:q,:u,:l)"),
+                        "product_code,bom_version,batch_no,qty,unit,loc,qc_result)"
+                        " VALUES(:d,:n,:m,:p,:b,:bt,:q,:u,:l,:qc)"),
                    {"d": doc_no, "n": i, "m": line.get("material_code"),
                     "p": line.get("product_code"), "b": line.get("bom_version"),
                     "bt": line.get("batch_no"),
                     "q": line.get("qty"), "u": line.get("unit"),
-                    "l": line.get("loc")})
+                    "l": line.get("loc"), "qc": line.get("qc_result")})
     db.execute(text("INSERT INTO flow_instance(doc_no,flow_key,cur_step,flow_status)"
                     " VALUES(:d,:f,'S1','草稿')"), {"d": doc_no, "f": dtype})
     return doc_no
@@ -133,6 +133,12 @@ def post(db, doc_no, dtype, by_user, device=""):
             if qty > left:
                 raise ValueError("OVER_ISSUE:实发%.3f>可用%.3f" % (qty, left))
         is_in = dtype in ("RK", "CP")
+        signed = qty if is_in else -qty
+        # 入库行若标记待检(qc_result=待检),总量计入但落在"隔离(待检)"分量,
+        # 可用为0;质检判定(pass/fail)再把它搬去可用或冻结.避免待检料被误发.
+        is_qc_in = bool(is_in and str(line.get("qc_result") or "") == "待检")
+        in_avail = 0 if is_qc_in else signed
+        in_quar = signed if is_qc_in else 0
         db.execute(text("INSERT INTO stock_ledger(doc_no,line_no,sid,material_code,"
                         "product_code,batch_no,qty,unit,dir,biz,by_user,device,idem_key)"
                         " VALUES(:d,:n,:s,:m,:p,:b,:q,:u,:r,:z,:y,:v,:k)"),
@@ -141,22 +147,24 @@ def post(db, doc_no, dtype, by_user, device=""):
                     "b": line["batch_no"], "q": qty, "u": line["unit"],
                     "r": "1" if is_in else "-1", "z": dtype,
                     "y": by_user, "v": device, "k": key})
-        signed = qty if is_in else -qty
         ln = dict(line)
-        tail = (" ON DUPLICATE KEY UPDATE on_hand=on_hand+:d,"
-                "avail=avail+:d,partner_id=VALUES(partner_id)"
+        qcol = "quarantine=quarantine+:q" if is_qc_in else "avail=avail+:q"
+        tail = (" ON DUPLICATE KEY UPDATE on_hand=on_hand+:d," + qcol +
+                ",partner_id=VALUES(partner_id)"
                 if dialect.IS_MYSQL else
                 " ON CONFLICT (material_code,product_code,batch_no,wh,loc)"
-                " DO UPDATE SET on_hand=stock_onhand.on_hand+:d,"
-                "avail=stock_onhand.avail+:d,partner_id=EXCLUDED.partner_id")
+                " DO UPDATE SET on_hand=stock_onhand.on_hand+:d," +
+                ("quarantine=stock_onhand.quarantine+:q"
+                 if is_qc_in else "avail=stock_onhand.avail+:q") +
+                ",partner_id=EXCLUDED.partner_id")
         db.execute(text("INSERT INTO stock_onhand(material_code,product_code,"
-                        "batch_no,wh,loc,on_hand,avail,partner_id)"
-                        " VALUES(:m,:p,:b,'',:l,:q,:q,:o)" + tail),
+                        "batch_no,wh,loc,on_hand,avail,quarantine,partner_id)"
+                        " VALUES(:m,:p,:b,'',:l,:q,:av,:qu,:o)" + tail),
                    {"m": ln.get("material_code") or "",
                     "p": ln.get("product_code") or "",
                     "b": ln.get("batch_no") or "",
                     "l": ln.get("loc") or "", "q": signed, "d": signed,
-                    "o": owner})
+                    "av": in_avail, "qu": in_quar, "o": owner})
         # 入库类过账顺带建批次档案:效期=保质天数推算,供临期预警用
         if is_in and ln.get("batch_no") and ln.get("material_code"):
             shelf = db.execute(text("SELECT shelf_life_days,manage_mode"

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, posting
+from app.core import resp, auth, posting, dialect
 from app.core.db import get_db
 
 router = APIRouter()
@@ -82,8 +82,14 @@ def create_pd(body: dict, authed: dict = Depends(auth.need_auth),
                    {"p": pd_no, "m": str(body.get("mode") or "人工临时"),
                     "w": body["wh_code"], "s": str(body.get("scope") or ""),
                     "h": str(body.get("handler") or "")})
-        rows = db.execute(text("SELECT material_code,batch_no,on_hand,unit FROM stock_onhand"
-                               " WHERE wh=:w LIMIT 200"), {"w": body["wh_code"]}).mappings().all()
+        rows = db.execute(text("SELECT o.material_code,o.batch_no,o.on_hand,"
+                               "COALESCE(m.base_unit,p.base_unit,'') unit"
+                               " FROM stock_onhand o"
+                               " LEFT JOIN mat_master m ON m.material_code=o.material_code"
+                               " LEFT JOIN product_master p ON p.product_code=o.product_code"
+                               " WHERE o.wh=:w OR o.loc LIKE :wl LIMIT 200"),
+                          {"w": body["wh_code"],
+                           "wl": body["wh_code"] + "%"}).mappings().all()
         for i, r in enumerate(rows, 1):
             db.execute(text("INSERT INTO pd_line(pd_no,line_no,o_qty,material_code,"
                             "batch_no,book_qty,unit) VALUES(:p,:n,:o,:m,:b,:o,:u)"),
@@ -113,3 +119,80 @@ def pd_confirm(pd_no: str, body: dict, authed: dict = Depends(auth.need_auth),
                    {"p": pd_no})
     return resp.ok({"pd_no": pd_no, "biz_status": "复核",
                     "tip": "盘点不动账,差异走TK/RK调整单"})
+
+
+@router.post("/pd_tasks/{pd_no}/adjust")
+def pd_adjust(pd_no: str, authed: dict = Depends(auth.need_auth),
+              db: Session = Depends(get_db)):
+    """盘点差异→TZ 库存调整单并直接过账:盘盈按差异 RK 增账,盘亏按差异减账.
+    仅'复核/确认'态盘点可调账;对账后回写 pd_task 状态为'已调整'."""
+    task = db.execute(text("SELECT wh_code,biz_status FROM pd_task"
+                           " WHERE pd_no=:p"), {"p": pd_no}).mappings().first()
+    if not task:
+        return resp.fail(404, "盘点任务不存在")
+    if task["biz_status"] not in ("复核", "确认", "已复核"):
+        return resp.fail(403, "FLOW_STATE_DENIED:仅复核态盘点可生成调整单")
+    lines = db.execute(text("SELECT line_no,material_code,batch_no,unit,"
+                            "o_qty,n_qty,COALESCE(diff_qty,n_qty-o_qty) d"
+                            " FROM pd_line WHERE pd_no=:p AND n_qty IS NOT NULL"
+                            " AND COALESCE(diff_qty,n_qty-o_qty)<>0"),
+                       {"p": pd_no}).mappings().all()
+    if not lines:
+        db.rollback()
+        with db.begin():
+            db.execute(text("UPDATE pd_task SET biz_status='已调整'"
+                            " WHERE pd_no=:p"), {"p": pd_no})
+        return resp.ok({"pd_no": pd_no, "adjust_doc": None, "lines": 0,
+                        "tip": "无差异,盘点关闭"})
+    # 差异为正=盘盈(增账),为负=盘亏(减账);直接动账写流水+现存.
+    # 落账库位取该行现存记录的真实 loc(盘点范围按该仓),不再用仓码冒充库位.
+    db.rollback()
+    adjusted = []
+    with db.begin():
+        for ln in lines:
+            diff = float(ln["d"] or 0)
+            real = db.execute(text("SELECT loc FROM stock_onhand WHERE "
+                                   "material_code=:m AND batch_no=:b AND "
+                                   "(wh=:w OR loc LIKE :wl) LIMIT 1"),
+                              {"m": ln["material_code"], "b": ln["batch_no"] or "",
+                               "w": task["wh_code"],
+                               "wl": task["wh_code"] + "%"}).mappings().first()
+            loc = real["loc"] if real else task["wh_code"]
+            doc_no = posting.make_doc_no(db, "TZ")
+            db.execute(text("INSERT INTO doc_main(doc_no,type,sid,biz_status,"
+                            "handler) VALUES(:d,'TZ',19100,'POSTED',:h)"),
+                       {"d": doc_no, "h": authed.get("username") or ""})
+            db.execute(text("INSERT INTO doc_line(doc_no,line_no,material_code,"
+                            "batch_no,qty,unit,loc,reason) VALUES"
+                            "(:d,1,:m,:b,:q,:u,:l,:r)"),
+                       {"d": doc_no, "m": ln["material_code"],
+                        "b": ln["batch_no"], "q": abs(diff),
+                        "u": ln["unit"], "l": loc,
+                        "r": "盘点调整 %s %+g" % (pd_no, diff)})
+            is_in = diff > 0
+            key = "%s:1:TZ" % doc_no
+            db.execute(text("INSERT INTO stock_ledger(doc_no,line_no,sid,"
+                            "material_code,batch_no,qty,unit,dir,biz,by_user,"
+                            "device,idem_key) VALUES(:d,1,19100,:m,:b,:q,:u,"
+                            ":r,'TZ',:y,'',:k)"),
+                       {"d": doc_no, "m": ln["material_code"],
+                        "b": ln["batch_no"], "q": abs(diff), "u": ln["unit"],
+                        "r": "1" if is_in else "-1",
+                        "y": authed.get("username") or "", "k": key})
+            signed = abs(diff) if is_in else -abs(diff)
+            tail = (" ON DUPLICATE KEY UPDATE on_hand=on_hand+:s,avail=avail+:s"
+                    if dialect.IS_MYSQL
+                    else " ON CONFLICT (material_code,product_code,batch_no,wh,loc)"
+                    " DO UPDATE SET on_hand=stock_onhand.on_hand+:s,"
+                    "avail=stock_onhand.avail+:s")
+            db.execute(text("INSERT INTO stock_onhand(material_code,product_code,"
+                            "batch_no,wh,loc,on_hand,avail) VALUES(:m,'',:b,:w,"
+                            ":l,:s,:s)" + tail),
+                       {"m": ln["material_code"], "b": ln["batch_no"] or "",
+                        "w": "", "l": loc, "s": signed})
+            adjusted.append({"doc_no": doc_no, "material_code": ln["material_code"],
+                             "diff": diff})
+        db.execute(text("UPDATE pd_task SET biz_status='已调整' WHERE pd_no=:p"),
+                   {"p": pd_no})
+    return resp.ok({"pd_no": pd_no, "lines": len(adjusted),
+                    "adjust": adjusted})

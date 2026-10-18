@@ -34,7 +34,8 @@ def insert_ignore_prefix():
 
 
 def insert_ignore_suffix(key_cols):
-    """配合 insert_ignore_prefix 使用:非 MySQL 追加 ON CONFLICT DO NOTHING."""
+    """配合 insert_ignore_prefix 使用:非 MySQL 追加 ON CONFLICT DO NOTHING.
+    注意:MySQL 的 INSERT IGNORE 用于冲突即跳过;这里只保证同表同键幂等."""
     if IS_MYSQL:
         return ""
     return " ON CONFLICT (%s) DO NOTHING" % ", ".join(key_cols)

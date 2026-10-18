@@ -20,6 +20,7 @@ class DocLineReq(BaseModel):
     qty: Any = None
     unit: str = ""
     loc: Optional[str] = None
+    qc_result: Optional[str] = None
 
 
 class CreateDocReq(BaseModel):

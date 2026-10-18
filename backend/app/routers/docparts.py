@@ -17,6 +17,50 @@ def attachments(doc_no: str, authed: dict = Depends(auth.need_auth),
     return resp.ok([dict(r) for r in rows], total=len(rows))
 
 
+# 附件登记:照片/签收/发票等以引用路径(URL/对象存储键/文件服务地址)登记.
+# 只记引用不搬大文件,既省依赖(无 multipart)又便于对接对象存储/文件服务器.
+_ALLOW_KIND = ("照片", "签收", "发票", "凭证", "其它")
+
+
+@router.post("/docs/{doc_no}/attachments")
+def add_attachment(doc_no: str, body: dict,
+                   authed: dict = Depends(auth.need_auth),
+                   db: Session = Depends(get_db)):
+    ref = str(body.get("ref") or "").strip()
+    if not ref:
+        return resp.fail(400, "附件引用(ref)必填")
+    if len(ref) > 2000:
+        return resp.fail(400, "附件引用过长")
+    kind = str(body.get("kind") or "其它")
+    if kind not in _ALLOW_KIND:
+        return resp.fail(400, "附件类型非法(照片/签收/发票/凭证/其它)")
+    head = db.execute(text("SELECT 1 FROM doc_main WHERE doc_no=:d"),
+                      {"d": doc_no}).first()
+    if not head:
+        return resp.fail(404, "单据不存在")
+    db.rollback()
+    with db.begin():
+        db.execute(text("INSERT INTO doc_attachment(doc_no,kind,ref,by_user)"
+                        " VALUES(:d,:k,:r,:y)"),
+                   {"d": doc_no, "k": kind, "r": ref,
+                    "y": authed.get("username") or ""})
+    return resp.ok({"doc_no": doc_no, "kind": kind, "ref": ref})
+
+
+@router.delete("/docs/{doc_no}/attachments/{att_id}")
+def del_attachment(doc_no: str, att_id: int,
+                   authed: dict = Depends(auth.need_auth),
+                   db: Session = Depends(get_db)):
+    db.rollback()
+    with db.begin():
+        hit = db.execute(text("DELETE FROM doc_attachment"
+                              " WHERE id=:i AND doc_no=:d"),
+                         {"i": att_id, "d": doc_no})
+    if not hit.rowcount:
+        return resp.fail(404, "附件不存在")
+    return resp.ok({"doc_no": doc_no, "id": att_id, "deleted": True})
+
+
 @router.get("/stock/doc_refs")
 def doc_refs(from_doc: str = "", to_doc: str = "",
              authed: dict = Depends(auth.need_auth),

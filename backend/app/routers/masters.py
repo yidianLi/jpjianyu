@@ -11,7 +11,7 @@ router = APIRouter()
 def _list(db, sql, args, page, size):
     total = db.execute(text("SELECT COUNT(*) c FROM (%s) t" % sql), args).scalar() or 0
     args = dict(args, off=(page - 1) * size, n=size)
-    rows = db.execute(text(sql + " LIMIT :off,:n"), args).mappings().all()
+    rows = db.execute(text(sql + dialect.limit_offset("n", "off")), args).mappings().all()
     return [dict(r) for r in rows], int(total)
 
 
@@ -40,6 +40,56 @@ def materials(keyword: str = "", cat_code: str = "", enabled: int = 1,
                         "pack_qty,manage_mode,price_ref,max_qty,min_qty,enabled,status"
                         " FROM mat_master WHERE " + " AND ".join(cond), args, p, s)
     return resp.ok(rows, total=t)
+
+
+@router.post("/masters/materials/import")
+def materials_import(body: dict, authed: dict = Depends(auth.need_auth),
+                     db: Session = Depends(get_db)):
+    """批量导入物料:CSV 文本,列=material_code,cat_code,name,spec,base_unit,
+    pack_unit,pack_qty,manage_mode,price_ref(首行可为表头).逐行校验,错行不阻断其余."""
+    text_csv = str(body.get("csv") or "").strip()
+    if not text_csv:
+        return resp.fail(400, "CSV 内容为空")
+    rows = [ln for ln in text_csv.replace("\r", "").split("\n") if ln.strip()]
+    if rows and rows[0].lower().startswith(("material_code", "物料编码")):
+        rows = rows[1:]
+    ok_n, errs, seen = 0, [], set()
+    db.rollback()
+    with db.begin():
+        for i, line in enumerate(rows, 1):
+            cells = [c.strip() for c in line.split(",")]
+            cells += [""] * (9 - len(cells))
+            (code, cat, name, spec, unit, punit, pqty,
+             mode, price) = cells[:9]
+            if not code or not name or not unit:
+                errs.append({"row": i, "msg": "物料编码/名称/基本单位必填"})
+                continue
+            if code in seen:
+                errs.append({"row": i, "msg": "文件内重复编码 " + code})
+                continue
+            seen.add(code)
+            try:
+                pq = float(pqty or 1)
+            except ValueError:
+                pq = 1.0
+            try:
+                pr = float(price) if price else None
+            except ValueError:
+                pr = None
+            md = "CODE" if str(mode).upper() == "CODE" else "QTY"
+            db.execute(text("INSERT INTO mat_master(material_code,cat_code,name,"
+                            "spec,base_unit,pack_unit,pack_qty,manage_mode,price_ref,"
+                            "enabled) VALUES(:c,:cat,:n,:s,:u,:pu,:pq,:md,:pr,1)" +
+                            dialect.upsert_tail(
+                                ["material_code"],
+                                ["cat_code", "name", "spec", "base_unit",
+                                 "pack_unit", "pack_qty", "manage_mode",
+                                 "price_ref"])),
+                       {"c": code, "cat": cat or None, "n": name,
+                        "s": spec or None, "u": unit, "pu": punit or None,
+                        "pq": pq, "md": md, "pr": pr})
+            ok_n += 1
+    return resp.ok({"imported": ok_n, "failed": len(errs), "errors": errs[:20]})
 
 
 @router.get("/masters/products")
