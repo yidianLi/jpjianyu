@@ -43,6 +43,21 @@ def export_onhand(authed: dict = Depends(auth.need_auth),
                  "onhand.xlsx")
 
 
+# 兼容别名:演示/系统里常被口报或旧代码误用的导出名,统一兜到底(避免404翻车).
+@router.get("/export/stock.xlsx")
+def export_stock_alias(authed: dict = Depends(auth.need_auth),
+                       db: Session = Depends(get_db), wh: str = "",
+                       material_code: str = ""):
+    return export_onhand(authed=authed, db=db, wh=wh,
+                         material_code=material_code)
+
+
+@router.get("/export/docs")
+def export_docs_alias(authed: dict = Depends(auth.need_auth),
+                      db: Session = Depends(get_db)):
+    return export_docs(authed=authed, db=db)
+
+
 @router.get("/export/docs.xlsx")
 def export_docs(authed: dict = Depends(auth.need_auth),
                 db: Session = Depends(get_db), dtype: str = ""):
@@ -85,15 +100,25 @@ def export_fee(authed: dict = Depends(auth.need_auth),
 
 
 @router.get("/export/print.xlsx")
-def export_print(tpl_code: str, doc_no: str,
+def export_print(tpl_code: str = "", doc_no: str = "",
                  authed: dict = Depends(auth.need_auth),
                  db: Session = Depends(get_db)):
-    """按打印模板导出单据为 Excel(★报表自定义:入库验收单/领用签字单等)."""
+    """按打印模板导出单据为 Excel(★报表自定义:入库验收单/领用签字单等).
+    tpl_code/doc_no 省略时:自动取第一个模板 + 最近一张单据,避免漏参 422 直接抛错."""
     import json as _json
+    if not tpl_code:
+        row = db.execute(text("SELECT tpl_code FROM print_template"
+                              " ORDER BY tpl_code LIMIT 1")).scalar()
+        tpl_code = row or ""
+    if not doc_no:
+        row = db.execute(text("SELECT doc_no FROM doc_main"
+                              " ORDER BY at DESC LIMIT 1")).scalar()
+        doc_no = row or ""
     tpl = db.execute(text("SELECT title,columns_cfg FROM print_template"
                           " WHERE tpl_code=:c"), {"c": tpl_code}).mappings().first()
     if not tpl:
-        return _resp(xlsx.build_xlsx(["提示"], [["模板不存在"]], "打印"), "print.xlsx")
+        return _resp(xlsx.build_xlsx(["提示"], [["暂无打印模板，请先在报表打印配置中新建"]],
+                                     "打印"), "print.xlsx")
     try:
         cols = _json.loads(tpl["columns_cfg"] or "[]")
     except (ValueError, TypeError):

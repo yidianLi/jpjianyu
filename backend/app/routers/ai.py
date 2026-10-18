@@ -29,6 +29,7 @@ def ask(body: AskReq, authed: dict = Depends(auth.need_auth),
     if denied:
         return resp.fail(403, denied)
     sql = qwen.draft_sql(question)
+    mode = "rule" if sql in (qwen._rule_sql(question), qwen.STUB) else "llm"
     bad = guards.check_sql(sql)
     if bad:
         return resp.fail(403, bad)
@@ -43,7 +44,7 @@ def ask(body: AskReq, authed: dict = Depends(auth.need_auth),
                {"u": authed.get("username") or "web", "q": question[:1000],
                 "s": final[:2000], "n": len(data)})
     db.commit()
-    return resp.ok({"sql": final, "rows": data,
+    return resp.ok({"sql": final, "rows": data, "mode": mode,
                     "formula": "默认查快照onhand,仲裁查ledger"}, total=len(data))
 
 
