@@ -25,7 +25,7 @@
 
 <!-- P2 物料（含成品入口说明） -->
 <div id="p2" class="hidden space-y-4">
-<div id="matList" class="space-y-4"><div class="flex justify-between items-center"><div><b class="text-sm">物料档案记录 · 原料/辅料在此配置，成品请去“成品档案”</b><p class="text-xs text-slate-500">编码唯一 · 单位必填 · 成品编码 CP-开头统一在成品档案建档（自动关联BOM）· 未完成的档案可继续补充</p></div><div class="flex gap-2"><button onclick="toast('已批量导入 56 条')" class="text-xs border rounded-lg px-3 py-2">批量导入</button><button onclick="goPage('base','5')" class="text-xs border rounded-lg px-3 py-2 text-blue-700">去成品档案 →</button><button onclick="openWiz('mat',null)" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">+ 新增物料</button></div></div>
+<div id="matList" class="space-y-4"><div class="flex justify-between items-center"><div><b class="text-sm">物料档案记录 · 原料/辅料在此配置，成品请去“成品档案”</b><p class="text-xs text-slate-500">编码唯一 · 单位必填 · 成品编码 CP-开头统一在成品档案建档（自动关联BOM）· 未完成的档案可继续补充</p></div><div class="flex gap-2"><button onclick="openImport()" class="text-xs border rounded-lg px-3 py-2">批量导入</button><button onclick="goPage('base','5')" class="text-xs border rounded-lg px-3 py-2 text-blue-700">去成品档案 →</button><button onclick="openWiz('mat',null)" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">+ 新增物料</button></div></div>
 <div class="card p-4"><table class="w-full text-xs"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">编码/名称</th><th>类别/规格</th><th>单位/客户</th><th>进度</th><th>状态</th><th>操作</th></tr></thead><tbody id="matBody">
 <tr class="border-b"><td class="py-2 font-bold">HD-OXF-001 牛津布</td><td>面料/藏青150D</td><td>米/恒达</td><td data-prog="mat|HD-OXF-001"></td><td><span class="bg-emerald-100 text-emerald-700 px-2 rounded-full">启用</span></td><td><button onclick="openWiz('mat','HD-OXF-001')" class="text-blue-600 font-bold">查看</button></td></tr>
 <tr><td class="py-2 font-bold">HD-NK-009 铜扣<span class="ml-1 bg-orange-100 text-orange-600 px-2 rounded-full">草稿</span></td><td>辅料/待补充</td><td>个/恒达</td><td data-prog="mat|HD-NK-009"></td><td><span class="bg-orange-100 text-orange-600 px-2 rounded-full">草稿·1/3</span></td><td><button onclick="openWiz('mat','HD-NK-009')" class="text-blue-600 font-bold">继续办理</button></td></tr>
@@ -270,4 +270,18 @@ function tplGoOcr(){closeWiz('tpl');goPage('ocr');}
 refreshProg();
 setupTplCapture();
 (function(){function applyBaseTab(){var t='',vw='';try{var q=new URLSearchParams(location.search);t=q.get('tab')||'';vw=q.get('view')||'';}catch(e){}var ctx='';try{ctx=(window.__WMS_PAGE_CONTEXT&&window.__WMS_PAGE_CONTEXT.tab)||''}catch(e){}var key=t||ctx||vw||'';var map={'':'1','bom':'1','material':'2','org':'3','loc':'4','arch':'4','prod':'5','tpl':'6','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6'};var n=parseInt(map[key]||'1',10);if(typeof showBase==='function')showBase(n,true);}try{if(window.WMSView)window.__WMS_PAGE_READY=applyBaseTab;}catch(e){}applyBaseTab();})();
+/* 物料批量导入：CSV 文本→后端逐行校验入库 */
+function openImport(){var dlg=document.getElementById('impDlg');if(!dlg){buildImportDlg();dlg=document.getElementById('impDlg');}document.getElementById('impResult').innerHTML='';dlg.showModal();}
+function buildImportDlg(){
+ var d=document.createElement('dialog');d.id='impDlg';
+ d.className='rounded-2xl p-0 w-[560px] max-w-[94vw]';
+ d.innerHTML='<div class="p-5"><div class="flex justify-between items-center"><b class="text-sm">物料批量导入（CSV）</b><button onclick="document.getElementById(\'impDlg\').close()" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>'
+  +'<p class="text-xs text-slate-500 mt-2">列顺序：<code class="bg-slate-100 px-1 rounded">material_code,cat_code,name,spec,base_unit,pack_unit,pack_qty,manage_mode,price_ref</code>（首行可为表头；编码/名称/基本单位必填，manage_mode 填 CODE 为一物一码，否则 QTY）</p>'
+  +'<textarea id="impCsv" rows="8" placeholder="粘贴 CSV 内容，或点下方选择文件" class="w-full border rounded-lg p-2 text-xs font-mono mt-2"></textarea>'
+  +'<div class="flex gap-2 mt-2 text-xs"><button onclick="document.getElementById(\'impFile\').click()" class="border rounded-lg px-3 py-1.5">选择 CSV 文件</button><input id="impFile" type="file" accept=".csv,text/csv" class="hidden" onchange="impFileChg(this)"><span class="flex-1"></span><button onclick="doImport()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold">开始导入</button></div>'
+  +'<div id="impResult" class="mt-2 text-xs"></div></div>';
+ document.body.appendChild(d);
+}
+function impFileChg(inp){var f=inp.files&&inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(){document.getElementById('impCsv').value=String(r.result||'');toast('已载入文件：'+f.name);};r.readAsText(f,'utf-8');}
+function doImport(){var csv=(document.getElementById('impCsv').value||'').trim();if(!csv){toast('请粘贴 CSV 或选择文件');return;}if(!window.WmsImport){document.getElementById('impResult').innerHTML='<span class="text-red-600">后端未连接</span>';return;}var box=document.getElementById('impResult');box.innerHTML='<span class="text-slate-500">导入中…</span>';WmsImport.materials(csv).then(function(j){var d=j.data||{};var errs=(d.errors||[]).map(function(e){return '第'+e.row+'行：'+e.msg;}).join('<br>');box.innerHTML='<span class="text-emerald-600 font-bold">成功导入 '+d.imported+' 条</span>'+(d.failed?(' · <span class="text-red-600">失败 '+d.failed+' 条</span><div class="text-red-500 mt-1">'+errs+'</div>'):'');toast('导入完成：成功 '+d.imported+' 条');}).catch(function(e){box.innerHTML='<span class="text-red-600">导入失败：'+(e.message||e)+'</span>';});}
 </script></body></html>

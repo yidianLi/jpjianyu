@@ -110,6 +110,52 @@
     confirmPd: function(pdNo, lineNo, nQty){
       return post('/web/pd_tasks/' + encodeURIComponent(pdNo) + '/confirm',
         {line_no: lineNo || 1, n_qty: nQty}, idemKey(pdNo, lineNo || 1, 'PD'));
+    },
+    pdLines: function(pdNo){
+      return get('/web/pd_tasks/' + encodeURIComponent(pdNo) + '/lines');
+    },
+    pdAdjust: function(pdNo){
+      return post('/web/pd_tasks/' + encodeURIComponent(pdNo) + '/adjust', {},
+        idemKey('ADJ:' + pdNo, 1, 'TZ'));
+    }
+  };
+  /* 单据附件:登记引用(URL/对象存储键)+列表+删除.只记引用不搬文件. */
+  window.WmsAttach = {
+    list: function(docNo){
+      return get('/web/docs/' + encodeURIComponent(docNo) + '/attachments');
+    },
+    add: function(docNo, kind, ref){
+      return post('/web/docs/' + encodeURIComponent(docNo) + '/attachments',
+        {kind: kind || '其它', ref: ref || ''},
+        idemKey('ATT:' + docNo + ':' + Date.now(), 1, 'ATT')).then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return j;
+      });
+    },
+    del: function(docNo, id){
+      return fetch(BASE + '/web/docs/' + encodeURIComponent(docNo) +
+        '/attachments/' + encodeURIComponent(id),
+        {method: 'DELETE', headers: {'Authorization': 'Bearer ' + token()}})
+        .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json(); });
+    }
+  };
+  /* 库存分量动作:质检/冻结/解冻/待发/释放.定位=物料+成品+批次+库位. */
+  window.WmsStockOps = {
+    qc: function(p){ return post('/web/stock/qc', p || {}, idemKey('QC' + Date.now(), 1, 'QC')); },
+    freeze: function(p){ return post('/web/stock/freeze', p || {}, idemKey('FZ' + Date.now(), 1, 'FZ')); },
+    unfreeze: function(p){ return post('/web/stock/unfreeze', p || {}, idemKey('UF' + Date.now(), 1, 'UF')); },
+    reserve: function(p){ return post('/web/stock/reserve', p || {}, idemKey('RS' + Date.now(), 1, 'RS')); },
+    release: function(p){ return post('/web/stock/release', p || {}, idemKey('RL' + Date.now(), 1, 'RL')); }
+  };
+  /* 物料批量导入:CSV 文本 -> 逐行校验入库. */
+  window.WmsImport = {
+    materials: function(csv){
+      return post('/web/masters/materials/import', {csv: csv || ''},
+        idemKey('IMP' + Date.now(), 1, 'IMP')).then(function(j){
+        if(j && j.code !== 200) throw new Error(j.msg || ('code ' + j.code));
+        return j;
+      });
     }
   };
   /* 工单三连调:ensure建后端单→submit提审→approve节点→post过账,全经网关ready */
