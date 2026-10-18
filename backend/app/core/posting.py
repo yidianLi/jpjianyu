@@ -57,6 +57,30 @@ def submit(db, doc_no):
     return "APPROVING"
 
 
+def approve(db, doc_no, passed, approver, opinion=""):
+    """审批一步(单步审批模型):通过->APPROVED(待过账);退回->REJECTED.
+    仅 APPROVING 可审批,过账(post)只认 APPROVED 故未审批无法动账."""
+    row = db.execute(text("SELECT biz_status FROM doc_main WHERE doc_no=:d"),
+                     {"d": doc_no}).mappings().first()
+    if not row:
+        return "404"
+    if row["biz_status"] != "APPROVING":
+        return "LOCKED"
+    target = "APPROVED" if passed else "REJECTED"
+    db.execute(text("UPDATE doc_main SET biz_status=:s WHERE doc_no=:d"
+                    " AND biz_status='APPROVING'"),
+               {"s": target, "d": doc_no})
+    db.execute(text("UPDATE flow_instance SET cur_step='S2',flow_status=:s,"
+                    "approver=:u WHERE doc_no=:d"),
+               {"s": "通过" if passed else "退回", "u": approver, "d": doc_no})
+    db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,"
+                    "result,o_val,n_val) VALUES(:y,:a,:d,'单据',:r,:o,:n)"),
+               {"y": approver, "a": "审批通过" if passed else "审批退回",
+                "d": doc_no, "r": "APPROVED" if passed else "REJECTED",
+                "o": "APPROVING", "n": opinion or ""})
+    return "APPROVED" if passed else "REJECTED"
+
+
 def fetch_lines(db, doc_no):
     return db.execute(text("SELECT * FROM doc_line WHERE doc_no=:d"
                            " ORDER BY line_no"), {"d": doc_no}).mappings().all()
@@ -73,10 +97,10 @@ def avail_of(db, mat, prod, batch, wh, loc):
 def post(db, doc_no, dtype, by_user, device=""):
     if dtype in NO_POST:
         return "SKIP:不动账"
-    # 乐观锁抢单据头:仅当处于 APPROVING 时置为 POSTING,取 rowcount 判定是否抢到。
-    # 解决并发/重放下 stock_onhand 被重复增减的数据一致性问题。
+    # 审批门禁+乐观锁抢单据头:仅当处于 APPROVED(已审批)时置为 POSTING。
+    # 未审批(APPROVING/DRAFT)一律 LOCKED,保证"审批通过才动账"这条内控不可绕过。
     hit = db.execute(text("UPDATE doc_main SET biz_status='POSTING' "
-                          "WHERE doc_no=:d AND biz_status='APPROVING'"),
+                          "WHERE doc_no=:d AND biz_status='APPROVED'"),
                      {"d": doc_no})
     if not hit.rowcount:
         cur = db.execute(text("SELECT biz_status FROM doc_main WHERE doc_no=:d"),
@@ -135,15 +159,17 @@ def post(db, doc_no, dtype, by_user, device=""):
                     "o": owner})
         # 入库类过账顺带建批次档案:效期=保质天数推算,供临期预警用
         if is_in and ln.get("batch_no") and ln.get("material_code"):
-            shelf = db.execute(text("SELECT shelf_life_days FROM mat_master"
+            shelf = db.execute(text("SELECT shelf_life_days,manage_mode"
+                                    " FROM mat_master"
                                     " WHERE material_code=:m"),
-                               {"m": ln.get("material_code")}).scalar()
+                               {"m": ln.get("material_code")}).mappings().first()
             exp = None
-            if shelf:
+            if shelf and shelf.get("shelf_life_days"):
                 try:
                     import datetime as _dt
                     exp = (_dt.date.today() +
-                           _dt.timedelta(days=int(shelf))).isoformat()
+                           _dt.timedelta(
+                               days=int(shelf["shelf_life_days"]))).isoformat()
                 except (ValueError, TypeError, OverflowError):
                     exp = None
             db.execute(text("INSERT INTO batch(batch_no,material_code,"
@@ -152,6 +178,27 @@ def post(db, doc_no, dtype, by_user, device=""):
                             dialect.upsert_tail(["batch_no"], ["expire_date"])),
                        {"b": ln.get("batch_no"), "m": ln.get("material_code"),
                         "d": doc_no, "y": by_user, "e": exp})
+            # 一物一码(CODE模式)按件生成单件条码,打印即记;非CODE模式只建批次
+            if (shelf and str(shelf.get("manage_mode") or "QTY").upper()
+                    == "CODE"):
+                whole = int(qty) if qty == int(qty) else 0
+                cap = min(whole, 500)
+                prefix = "%s-%s" % (doc_no, line["line_no"])
+                for seq in range(1, cap + 1):
+                    code = "SB%s-%04d" % (prefix, seq)
+                    db.execute(text(dialect.insert_ignore_prefix() +
+                                    " INTO material_item(barcode,"
+                                    "material_code,batch_no,source_doc_no,"
+                                    "status) VALUES(:b,:m,:t,:d,'在库')" +
+                                    dialect.insert_ignore_suffix(["barcode"])),
+                               {"b": code, "m": ln.get("material_code"),
+                                "t": ln.get("batch_no"), "d": doc_no})
+                    db.execute(text("INSERT INTO label_print(code,kind,"
+                                    "content,printed_by) VALUES(:b,'单件',:c,:y)"),
+                               {"b": code, "c": ("%s/%s/第%s件" %
+                                                 (ln.get("material_code"),
+                                                  ln.get("batch_no"), seq)),
+                                "y": by_user})
     db.execute(text("UPDATE doc_main SET biz_status='POSTED' WHERE doc_no=:d"),
                {"d": doc_no})
     db.execute(text("INSERT INTO audit_log(by_user,action,doc_no,biz_type,result)"

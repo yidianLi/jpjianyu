@@ -127,7 +127,17 @@ def trace(code: str, authed: dict = Depends(auth.need_auth),
                  "unit": r.get("unit"), "by": r.get("by_user")}
                 for r in rows]
     last = timeline[0] if timeline else {}
+    item = db.execute(text("SELECT barcode,material_code,batch_no,"
+                           "source_doc_no,status FROM material_item"
+                           " WHERE barcode=:c OR batch_no=:c LIMIT 20"),
+                      {"c": code}).mappings().all()
+    items = [dict(r) for r in item]
+    for r in items:
+        if r.get("barcode") == code:
+            last = dict(r)
+            break
     return resp.ok({"code": code, "timeline": timeline,
+                    "items": items,
                     "suspect": {"last": last, "around": timeline[1:4]},
                     "missing": []}, total=total)
 
@@ -237,7 +247,8 @@ def post(doc_no: str, authed: dict = Depends(auth.need_auth),
     if state == "404":
         return resp.fail(404, "DOC_NOT_FOUND:单据不存在")
     if state == "LOCKED":
-        return resp.fail(403, "FLOW_STATE_DENIED:仅审批中单据可过账")
+        return resp.fail(403, "FLOW_STATE_DENIED:仅已审批(APPROVED)单据可过账,"
+                              "未审批/已退回不可动账")
     out = idem.replay_or_put(key, lambda: {"doc_no": doc_no,
                                            "biz_status": state})
     return resp.ok(out["data"])
@@ -247,16 +258,21 @@ def post(doc_no: str, authed: dict = Depends(auth.need_auth),
 def approve(doc_no: str, body: ApproveReq,
             authed: dict = Depends(auth.need_auth),
             db: Session = Depends(get_db)):
-    if body.action not in ("通过", "退回"):
+    if body.action not in ("通过", "退回", "approve", "reject"):
         return resp.fail(400, "审批动作非法")
-    if body.action == "退回" and not body.opinion:
+    passed = body.action in ("通过", "approve")
+    if not passed and not body.opinion:
         return resp.fail(400, "退回必须填意见")
+    db.rollback()
     with db.begin():
-        db.execute(text("UPDATE flow_instance SET cur_step='S2',"
-                        "flow_status=:s,approver=:u WHERE doc_no=:d"),
-                   {"s": "通过" if body.action == "通过" else "退回",
-                    "u": authed["username"], "d": doc_no})
-    return resp.ok({"doc_no": doc_no, "action": body.action})
+        state = posting.approve(db, doc_no, passed, authed["username"],
+                                body.opinion or "")
+    if state == "404":
+        return resp.fail(404, "DOC_NOT_FOUND:单据不存在")
+    if state == "LOCKED":
+        return resp.fail(403, "FLOW_STATE_DENIED:仅审批中单据可审批")
+    return resp.ok({"doc_no": doc_no, "action": body.action,
+                    "flow_status": state})
 
 
 @router.get("/dashboard")

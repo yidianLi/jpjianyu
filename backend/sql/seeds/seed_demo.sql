@@ -1,15 +1,15 @@
 -- 演示种子:仅 SEED_DEMO=1 时灌入,生产库勿用.
 -- 含演示账号/主档/设备/对账.重灌安全:计数器用GREATEST防回拨.
 
--- 演示账号(空密码哈希=免密演示登录,生产必须先设哈希):admin系统管理员/demo仓库演示员
+-- 账号(生产语义:必须持有效密码哈希登录,哈希=SHA256("wms:"+密码)):admin/ok 系统管理员 · demo/demo123456 仓库演示员
 INSERT INTO sys_role(role_id,autocode,lowest,name,cat_allow,func_allow,data_scope) VALUES
 ('R-ADMIN','1',1,'系统管理员','*','*','*'),
 ('R-WH','1',1,'仓库演示员','*','*','WH-A,WH-B,WH-C')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 INSERT INTO sys_user(username,name,password_hash,phone,data_scope,enabled,status,last_login,last_device) VALUES
-('admin','系统管理员','',NULL,'*',1,'启用',NULL,NULL),
-('demo','仓库演示员','',NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL)
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+('admin','系统管理员','882b2b6b433bd55fee043a6d5e99dc22417a1e4ca1502a50ac8b0ec3a9f06a3b',NULL,'*',1,'启用',NULL,NULL),
+('demo','仓库演示员','153a6a1c384c52eb453c0ea328f5337df21f84af33838b005afce7b4abb006f4',NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL)
+ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash);
 INSERT INTO sys_user_role(username,role_id) VALUES
 ('admin','R-ADMIN'),
 ('demo','R-WH')
@@ -20,7 +20,7 @@ ON DUPLICATE KEY UPDATE username=VALUES(username);
 INSERT INTO mat_master(material_code,cat_code,autocode,lowest,name,spec,base_unit,pack_unit,pack_qty,manage_mode,price_ref,max_qty,min_qty,enabled,status) VALUES
 ('HD-OXF-001','ML',NULL,1,'牛津布','600D','米','卷',100.000,'QTY',0.85,50000.000,1000.000,1,'启用'),
 ('HD-ZP-011','FJ',NULL,1,'拉链','5号尼龙','件','包',100.000,'QTY',0.52,20000.000,500.000,1,'启用'),
-('HD-NK-005','FJ',NULL,1,'纽扣','四合扣','件','包',500.000,'QTY',0.95,30000.000,1000.000,1,'启用')
+('HD-NK-005','FJ',NULL,1,'纽扣','四合扣','件','包',500.000,'CODE',0.95,30000.000,1000.000,1,'启用')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 INSERT INTO warehouse(wh_code,parent_code,autocode,lowest,name,wh_type,stock_kind,manager,enabled,status) VALUES
 ('WH-A',NULL,'001',1,'外仓','外仓','MAT','张建国',1,'启用'),

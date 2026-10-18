@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, posting
+from app.core import resp, auth, posting, rptcalc
 from app.core.db import get_db
 
 router = APIRouter()
@@ -18,17 +18,61 @@ def rpt_configs(authed: dict = Depends(auth.need_auth),
     return resp.ok([dict(r) for r in rows], total=len(rows))
 
 
+@router.get("/rpt_live")
+def rpt_live(rpt_code: str, authed: dict = Depends(auth.need_auth),
+             db: Session = Depends(get_db)):
+    """12类报表真数直出(不落实例),给报表中心页即时预览用.只读."""
+    calc = rptcalc.REPORTS.get(str(rpt_code or ""))
+    if not calc:
+        return resp.fail(400, "未知报表编码")
+    data = calc(db)
+    head = list(data[0].keys()) if data else []
+    return resp.ok({"rpt_code": rpt_code, "head": head, "rows": data},
+                   total=len(data))
+
+
+@router.get("/rpt_instances")
+def rpt_instances(rpt_code: str = "", authed: dict = Depends(auth.need_auth),
+                  db: Session = Depends(get_db), page: int = 1,
+                  page_size: int = 20):
+    p, s = resp.page_args(page, page_size)
+    cond, args = "1=1", {}
+    if rpt_code:
+        cond += " AND rpt_code=:c"
+        args["c"] = rpt_code
+    total = db.execute(text("SELECT COUNT(*) c FROM rpt_instance WHERE " + cond),
+                       args).scalar() or 0
+    args.update({"o": (p - 1) * s, "n": s})
+    rows = db.execute(text("SELECT rpt_no,rpt_code,period,biz_status,"
+                           "generated_by,at FROM rpt_instance WHERE " + cond +
+                           " ORDER BY at DESC LIMIT :n OFFSET :o"),
+                      args).mappings().all()
+    return resp.ok([dict(r) for r in rows], total=int(total))
+
+
 @router.post("/rpt_instances/generate")
 def generate(body: dict, authed: dict = Depends(auth.need_auth),
              db: Session = Depends(get_db)):
     rpt_code = str(body.get("rpt_code") or "")
     if not rpt_code:
         return resp.fail(400, "报表编码必填")
+    calc = rptcalc.REPORTS.get(rpt_code)
+    if not calc:
+        return resp.fail(400, "未知报表编码(12类:收发存/余额/领退/调仓/"
+                              "成品/报废/库龄/对账/日报/差异/完工/损耗)")
+    data = calc(db)
+    db.rollback()
     with db.begin():
-        db.execute(text("INSERT INTO rpt_instance(rpt_no,rpt_code,period,biz_status)"
-                        " VALUES(:n,:c,:p,'草稿')"),
-                   {"n": "RPT1", "c": rpt_code, "p": str(body.get("period") or "")})
-    return resp.ok({"rpt_no": "RPT1", "biz_status": "草稿"})
+        rpt_no = posting.make_doc_no(db, "RPT")
+        db.execute(text("INSERT INTO rpt_instance(rpt_no,rpt_code,period,"
+                        "biz_status,content_ref,generated_by)"
+                        " VALUES(:n,:c,:p,'草稿',:r,:y)"),
+                   {"n": rpt_no, "c": rpt_code,
+                    "p": str(body.get("period") or ""),
+                    "r": json.dumps(data, ensure_ascii=False)[:8000],
+                    "y": authed.get("username") or ""})
+    return resp.ok({"rpt_no": rpt_no, "biz_status": "草稿",
+                    "rows": len(data), "preview": data[:10]})
 
 
 @router.post("/rpt_instances/{no}/publish")

@@ -216,6 +216,21 @@
       return get('/web/stock/trace?code=' + encodeURIComponent(code || ''));
     }
   };
+  /* 报表中心真数:分类直出 + 生成草稿实例 + 发布.只读不改账. */
+  window.WmsRpt = {
+    live: function(cat){
+      return get('/web/rpt_live?rpt_code=' + encodeURIComponent(cat || ''));
+    },
+    generate: function(cat, period){
+      return post('/web/rpt_instances/generate',
+        {rpt_code: cat || '', period: period || ''},
+        idemKey('RPT:' + (cat || ''), 1, 'RPT'));
+    },
+    publish: function(no){
+      return post('/web/rpt_instances/' + encodeURIComponent(no) + '/publish', {});
+    },
+    configs: function(){ return get('/web/rpt_configs'); }
+  };
   var oldToast = window.toast;
   window.addEventListener('load', function(){
     if(typeof window.toast === 'function' && !window.toast.__wmsDocBridge){
