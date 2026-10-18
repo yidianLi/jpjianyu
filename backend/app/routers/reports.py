@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, posting, rptcalc
+from app.core import resp, auth, posting, rptcalc, dialect
 from app.core.db import get_db
 
 router = APIRouter()
@@ -112,9 +112,10 @@ def audit_logs(doc_no: str = "", authed: dict = Depends(auth.need_auth),
         args["d"] = doc_no
     total = db.execute(text("SELECT COUNT(*) c FROM audit_log WHERE " + cond), args).scalar() or 0
     args.update({"o": (p - 1) * s, "n": s})
-    rows = db.execute(text("SELECT id,`at`,by_user,action,doc_no,biz_type,result,"
+    rows = db.execute(text("SELECT id,at,by_user,action,doc_no,biz_type,result,"
                            "o_val,n_val,device FROM audit_log WHERE " + cond +
-                           " ORDER BY id DESC LIMIT :o,:n"), args).mappings().all()
+                           " ORDER BY id DESC" + dialect.limit_offset()),
+                      args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
 
@@ -129,7 +130,8 @@ def flow_instances(doc_no: str = "", authed: dict = Depends(auth.need_auth),
     total = db.execute(text("SELECT COUNT(*) c FROM flow_instance WHERE " + cond), args).scalar() or 0
     args.update({"o": (p - 1) * s, "n": s})
     rows = db.execute(text("SELECT doc_no,flow_key,cur_step,flow_status,approver"
-                           " FROM flow_instance WHERE " + cond + " LIMIT :o,:n"),
+                           " FROM flow_instance WHERE " + cond
+                           + dialect.limit_offset()),
                       args).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 
@@ -261,7 +263,7 @@ def print_template_render(tpl_code: str, doc_no: str,
                      {"c": tpl_code}).mappings().first()
     if not tpl:
         return resp.fail(404, "模板不存在")
-    doc = db.execute(text("SELECT doc_no,type,handler,biz_status,`at`,"
+    doc = db.execute(text("SELECT doc_no,type,handler,biz_status,at,"
                           "partner_id FROM doc_main WHERE doc_no=:d"),
                      {"d": doc_no}).mappings().first()
     if not doc:

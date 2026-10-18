@@ -39,7 +39,7 @@ def todos(mine: int = 1, authed: dict = Depends(auth.need_auth),
     auth.need_app_device(authed)
     rows = db.execute(text("SELECT doc_no,type,biz_status,handler,at FROM doc_main"
                            " WHERE biz_status IN ('DRAFT','APPROVING')"
-                           " ORDER BY `at` DESC LIMIT 20")).mappings().all()
+                           " ORDER BY at DESC LIMIT 20")).mappings().all()
     return resp.ok([dict(r) for r in rows], total=len(rows))
 
 

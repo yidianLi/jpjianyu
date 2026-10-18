@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth, posting
+from app.core import resp, auth, posting, dialect
 from app.core.db import get_db
 
 router = APIRouter()
@@ -75,7 +75,7 @@ def prod_plans(authed: dict = Depends(auth.need_auth),
     rows = db.execute(text("SELECT plan_no,order_no,product_code,bom_version,"
                            "qty_plan,workshop,start_date,due_date,biz_status"
                            " FROM prod_plan"
-                           " ORDER BY plan_no DESC LIMIT :o,:n"),
+                           " ORDER BY plan_no DESC" + dialect.limit_offset()),
                       {"o": (p - 1) * s, "n": s}).mappings().all()
     return resp.ok([dict(r) for r in rows], total=int(total))
 

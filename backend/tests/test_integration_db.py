@@ -1,8 +1,9 @@
 """真实 MySQL 5.6 联调用例：验证 DB 链路 + 登录业务逻辑端到端。
 
-默认跳过：本地开发不连库。CI 中通过 services 启动 MySQL 5.6 容器启用，
-设置 WMS_ENABLE_DB_TESTS=1 与 DB_URL 后，用例自建最小 sys_user 表并清理，
-不依赖 wms.sql 全量初始化，保证稳定可重复。
+需要空 MySQL 库(无 wms 生产表,如 CI services)，设置
+WMS_ENABLE_DB_TESTS=1 与 DB_URL 后运行。fixture 遇到已有生产数据的库
+(含 doc_main/stock_ledger/fee_settle 或已有账号)会整模块跳过,绝不 DROP 真表。
+最小 sys_user 由用例自建自清。
 """
 import hashlib
 import os
@@ -33,22 +34,37 @@ def _sha(p):
     return hashlib.sha256(("wms:" + str(p)).encode()).hexdigest()
 
 
+_T_USER = "ci_sys_user"
+
+
 @pytest.fixture(scope="module", autouse=True)
 def schema():
+    # 安全护栏:该文件曾在联调时 DROP 过演示库的真实 sys_user(已修复回灌).
+    # 若目标库已含 wms 生产表/doc_main 或 sys_user 有账号数据,说明是演示/生产库,
+    # 拒绝在此建最小表,整模块跳过——CI 请用空 MySQL(无 wms 表)跑.
     with engine.begin() as c:
-        c.execute(text("DROP TABLE IF EXISTS sys_user"))  # noqa: S608
-        c.execute(text(  # noqa: S608
-            "CREATE TABLE sys_user("
-            "username VARCHAR(32) PRIMARY KEY, name VARCHAR(32), "
-            "password_hash VARCHAR(128), enabled TINYINT)"
-        ))
-        c.execute(text(  # noqa: S608
+        real = c.execute(text(
+            "SELECT COUNT(*) FROM information_schema.tables "
+            "WHERE table_schema=DATABASE() AND table_name IN "
+            "('doc_main','stock_ledger','fee_settle')")).scalar() or 0
+        accounts = 0
+        try:
+            accounts = c.execute(text("SELECT COUNT(*) FROM sys_user")).scalar() or 0
+        except Exception:
+            accounts = -1  # 无 sys_user 表:空库,可建
+    if real > 0 or accounts > 0:
+        pytest.skip("拒绝在已有生产数据(含 %d 个账号)的库上 DROP sys_user;改用空库跑" % accounts)
+    with engine.begin() as c:
+        c.execute(text("CREATE TABLE sys_user("
+                       "username VARCHAR(32) PRIMARY KEY, name VARCHAR(32), "
+                       "password_hash VARCHAR(128), enabled TINYINT)"))
+        c.execute(text(
             "INSERT INTO sys_user(username,name,password_hash,enabled) "
             "VALUES(:u,:n,:p,1)"
         ), {"u": "ci_admin", "n": "CI", "p": _sha("ci_pass")})
     yield
     with engine.begin() as c:
-        c.execute(text("DROP TABLE IF EXISTS sys_user"))  # noqa: S608
+        c.execute(text("DROP TABLE IF EXISTS sys_user"))
 
 
 client = TestClient(app, raise_server_exceptions=False)

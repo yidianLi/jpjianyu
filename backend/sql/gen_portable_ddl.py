@@ -58,7 +58,9 @@ def convert(sql, target):
     for stmt in _split_statements(sql):
         idx = re.search(r"CREATE\s+TABLE", stmt, re.I)
         if not idx:
-            out.append(stmt)
+            # 非建表语句(CREATE DATABASE/USE/注释等):至少去反引号,
+            # 否则达梦/金仓不识别 `wms` 这类 MySQL 标识符引用.
+            out.append(stmt.replace("`", ""))
             continue
         pre = stmt[:idx.start()]
         block = stmt[idx.start():]
