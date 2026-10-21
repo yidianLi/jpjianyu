@@ -1,0 +1,6 @@
+* text=auto
+# 容器内执行的脚本/初始化 SQL 必须 LF,否则 Windows 检出成 CRLF 会导致
+# docker-entrypoint 报 "bad interpreter: /bin/sh^M" 而跳过初始化。
+*.sh text eol=lf
+*.sql text eol=lf
+*.py text eol=lf

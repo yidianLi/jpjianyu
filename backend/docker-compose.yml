@@ -9,10 +9,14 @@ services:
       MYSQL_USER: ${MYSQL_USER:-wms}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wms}
       SEED_DEMO: ${SEED_DEMO:-0}
+      WMS_BOOTSTRAP_ADMIN: ${WMS_BOOTSTRAP_ADMIN:-0}
+      WMS_ADMIN_USER: ${WMS_ADMIN_USER:-admin}
+      WMS_ADMIN_PASSWORD: ${WMS_ADMIN_PASSWORD:-}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql/wms.sql:/docker-entrypoint-initdb.d/01-wms.sql
       - ./sql/seed_demo.sh:/docker-entrypoint-initdb.d/02-seed-demo.sh:ro
+      - ./sql/bootstrap_admin.sh:/docker-entrypoint-initdb.d/03-bootstrap-admin.sh:ro
       - ./sql/seeds/seed_demo.sql:/opt/seeds/seed_demo.sql:ro
     ports:
       - "3307:3306"
