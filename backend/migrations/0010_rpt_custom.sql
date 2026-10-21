@@ -1,0 +1,11 @@
+-- 0010: 自定义报表定义表(rpt_custom). 受控聚合引擎读取 defn(JSON) 运行.
+CREATE TABLE IF NOT EXISTS rpt_custom(
+  rpt_code VARCHAR(32) NOT NULL PRIMARY KEY COMMENT '自定义报表码RC级',
+  name VARCHAR(128) NOT NULL COMMENT '报表名称',
+  dataset VARCHAR(20) NOT NULL COMMENT '数据源:onhand(现存)/ledger(流水)',
+  defn TEXT DEFAULT NULL COMMENT '定义JSON:维度/指标/筛选/期间',
+  enabled TINYINT NOT NULL DEFAULT 1 COMMENT '1启用0停用',
+  created_by VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  `at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='自定义报表定义';

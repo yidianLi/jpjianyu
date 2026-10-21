@@ -2,51 +2,170 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>报表中心 · 报表配置</title>
+<title>报表中心 · 自定义报表构建器</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-body{font-family:"PingFang SC","Microsoft YaHei",system-ui}.card{background:#fff;border:1px solid #cde8f7;border-radius:8px}.field{width:100%;min-height:40px;border:1px solid #9bcbe7;border-radius:8px;padding:8px 10px;background:#fff;font-size:12px}.field:focus{outline:3px solid rgba(22,137,232,.18);border-color:#1689e8}/* 弹窗形态已收敛为共享 .wms-dialog（assets/theme.css），此处只保留本页面板宽度与内容样式 */.config-panel{width:min(760px,100%)}.config-head{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid #cde8f7;background:rgba(248,253,255,.97)}.config-body{padding:20px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-field{display:grid;gap:5px;font-size:11px;font-weight:600;color:#4e7da1}.form-field.full{grid-column:1/-1}.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choice label{display:flex;align-items:center;gap:8px;min-height:44px;padding:9px 11px;border:1px solid #cde8f7;border-radius:8px;background:#fff;color:#16456f}.preview-sheet{border:1px solid #cde8f7;border-radius:8px;background:#fff;overflow:hidden}.preview-title{padding:14px 16px;background:#eaf7ff;border-bottom:1px solid #cde8f7}.preview-grid{display:grid;grid-template-columns:140px 1fr}.preview-grid dt,.preview-grid dd{margin:0;padding:10px 14px;border-bottom:1px solid #edf4f8;font-size:12px}.preview-grid dt{color:#648eaa;background:#fbfdff}.preview-grid dd{color:#16456f;font-weight:600}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.btn{min-height:40px;padding:8px 14px;border:1px solid #cde8f7;border-radius:8px;background:#fff;color:#16456f;font-size:12px;font-weight:700}.btn.primary{border-color:#1689e8;background:#1689e8;color:#fff}.status{display:inline-flex;padding:3px 8px;border-radius:999px;font-size:11px}.status.on{background:#dcfce7;color:#166534}.status.draft{background:#fef3c7;color:#92400e}.attach{margin-top:8px}.attach-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.attach-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.attach-btn{min-height:36px}.attach-hint{font-size:11px;color:#648eaa;font-weight:400}.attach-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}.attach-list li{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #cde8f7;border-radius:8px;background:#fff;font-size:12px;color:#16456f}.attach-list li i{color:#1689e8}.attach-list li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.attach-list li em{font-style:normal;font-size:11px;color:#648eaa}.attach-list li button{border:0;background:none;color:#b91c1c;font-size:12px;cursor:pointer}@media(max-width:680px){.form-grid,.choice{grid-template-columns:1fr}.form-field.full{grid-column:auto}.preview-grid{grid-template-columns:1fr}.preview-grid dt{padding-bottom:2px;border-bottom:0}.preview-grid dd{padding-top:2px}.actions{display:grid;grid-template-columns:1fr 1fr}.actions .btn{width:100%}}
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui}
+.card{background:#fff;border:1px solid #e5eaf2;border-radius:14px}
+.field{width:100%;min-height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:12px;background:#fff}
+.field:focus{outline:3px solid rgba(37,99,235,.15);border-color:#2563eb}
+.btn{min-height:36px;padding:6px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:12px;font-weight:700;color:#0f172a}
+.btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.chk{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:8px}
+.chk.on{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+table.grid{width:100%;font-size:12px;border-collapse:collapse}
+table.grid th,table.grid td{border-bottom:1px solid #eef2f7;padding:6px 8px;text-align:left}
+table.grid th{color:#64748b;font-weight:600;background:#f8fafc}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:11px}
 </style>
-<script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/nav.js"></script>
+<script src="../assets/store.js"></script><script src="../assets/link.js"></script><script src="../assets/menu-config.js"></script><script src="../assets/nav.js"></script>
 </head>
-<body class="bg-[#f2f5fa]"><div class="flex"><aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside><div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">报表中心 / <b class="text-slate-700">报表配置</b></header>
+<body class="bg-[#f2f5fa]"><div class="flex"><aside class="w-52 bg-[#0f1e3a] text-slate-300 p-4 text-[13px] min-h-screen"></aside>
+<div class="flex-1 min-w-0"><header class="bg-white border-b px-6 py-3 text-xs text-slate-400">报表中心 / <b class="text-slate-700">自定义报表构建器</b><span class="ml-2 bg-blue-50 text-blue-700 px-2 py-1 rounded">选维度+指标+筛选+期间 · 白名单受控聚合 · 只读不改账</span></header>
 <main class="p-6 space-y-4">
-<div class="flex justify-between items-start flex-wrap gap-3"><div><h1 class="text-xl font-extrabold">报表配置工单</h1></div><button type="button" id="newConfig" class="btn primary"><i class="fa-solid fa-plus mr-1" aria-hidden="true"></i>新建报表配置</button></div>
-<div class="card p-4"><div class="flex gap-2 text-xs flex-wrap"><input id="search" class="field max-w-72" placeholder="搜索：配置编号 / 报表名称"><select id="typeFilter" class="field max-w-36"><option value="">全部生成方式</option><option>自动</option><option>手动</option></select><select id="statusFilter" class="field max-w-36"><option value="">全部状态</option><option>已启用</option><option>草稿</option></select><span class="flex-1"></span><span id="count" class="self-center text-slate-400">共 4 项配置</span></div>
-<div class="overflow-x-auto"><table class="w-full min-w-[900px] text-xs mt-3"><thead><tr class="text-left border-b"><th class="py-2">配置编号 / 报表名称</th><th>生成方式</th><th>生成条件</th><th>报表说明</th><th>状态</th><th>最近更新</th><th>操作</th></tr></thead><tbody id="configBody"></tbody></table></div><div id="empty" class="hidden py-8 text-center text-xs text-slate-400">暂无匹配的报表配置</div></div>
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div><h1 class="text-xl font-extrabold">自定义报表</h1><p class="text-xs text-slate-500 mt-1">从库存现存 / 出入流水两类白名单数据源自由组合维度与指标，保存后可反复运行、生成报表实例</p></div>
+    <div class="flex gap-2"><button type="button" id="refresh" class="btn">刷新</button><button type="button" id="newRpt" class="btn primary"><i class="fa-solid fa-plus mr-1"></i>新建自定义报表</button></div>
+  </div>
+  <div class="card p-4">
+    <b class="text-sm">已保存的自定义报表 <span id="cnt" class="text-xs text-slate-400 font-normal"></span></b>
+    <div class="overflow-x-auto"><table class="grid min-w-[860px] mt-2"><thead><tr><th>报表编码 / 名称</th><th>数据源</th><th>维度</th><th>指标</th><th>筛选</th><th>操作</th></tr></thead><tbody id="list"></tbody></table></div>
+    <div id="empty" class="hidden py-8 text-center text-xs text-slate-400">还没有自定义报表，点右上角「新建自定义报表」开始配置</div>
+  </div>
+  <div class="card p-4">
+    <b class="text-sm">运行结果</b>
+    <div id="resMeta" class="text-xs text-slate-500 mt-1"></div>
+    <div class="overflow-x-auto mt-2"><table class="grid min-w-[520px]" id="resTable"></table></div>
+    <div id="resEmpty" class="py-6 text-center text-xs text-slate-400">暂无运行结果</div>
+  </div>
 </main></div></div>
-<div id="configDialog" class="config-dialog wms-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div class="config-panel wms-dialog-panel"><div class="config-head wms-dialog-head"><div><h2 id="dialogTitle" class="wms-dialog-title">新建报表配置</h2><p id="dialogHint" class="wms-dialog-sub">填写配置后先预览，确认无误再创建</p></div><button type="button" id="closeDialog" class="btn wms-dialog-close" aria-label="关闭">关闭</button></div><div class="config-body wms-dialog-body">
-<form id="configForm"><div class="form-grid"><label class="form-field">报表名称*<input id="reportName" class="field" placeholder="例如：外仓每日收发存日报"></label><label class="form-field">报表分类*<select id="reportCategory" class="field"><option>收发存汇总</option><option>客户物料余额</option><option>车间领退料流水</option><option>库存差异</option><option>库龄与呆滞</option><option>成品输出数量</option></select></label><fieldset class="form-field full"><legend>生成方式*</legend><div class="choice"><label><input type="radio" name="mode" value="自动" checked>自动生成</label><label><input type="radio" name="mode" value="手动">手动生成</label></div></fieldset><div id="autoConditions" class="form-field full"><span>自动生成条件*</span><div class="form-grid"><label class="form-field">生成周期<select id="cycle" class="field"><option>日报</option><option>周报</option><option>月报</option></select></label><label class="form-field">生成时间<input id="runTime" type="time" class="field" value="06:00"></label><label class="form-field">客户范围<select id="customer" class="field"><option>全部客户</option><option>恒达服饰</option><option>宏远纺织</option></select></label><label class="form-field">仓库范围<select id="warehouse" class="field"><option>全部仓库</option><option>外仓 WH-A</option><option>内仓1 WH-B</option><option>内仓2 WH-C</option></select></label></div></div><label class="form-field full">报表说明*<textarea id="description" class="field min-h-24" placeholder="说明报表用途、主要字段和统计口径"></textarea><span class="attach" data-attach="desc"><input type="file" id="descFiles" class="attach-input" multiple accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg"><span class="attach-row"><button type="button" class="btn attach-btn" data-attach-btn="desc"><i class="fa-solid fa-paperclip mr-1" aria-hidden="true"></i>上传说明附件</button><span class="attach-hint">Excel / PDF / Word / 图片，单个≤10MB，可多选</span></span><ul class="attach-list" id="descList"></ul></span></label><label class="form-field full">参考内容<textarea id="reference" class="field min-h-20" placeholder="可填写参考报表名称、字段结构、统计规则或样例说明"></textarea><span class="attach" data-attach="ref"><input type="file" id="refFiles" class="attach-input" multiple accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg"><span class="attach-row"><button type="button" class="btn attach-btn" data-attach-btn="ref"><i class="fa-solid fa-paperclip mr-1" aria-hidden="true"></i>上传参考附件</button><span class="attach-hint">样例报表 / 字段结构 / 统计规则，单个≤10MB</span></span><ul class="attach-list" id="refList"></ul></span></label></div><p id="formError" class="mt-3 min-h-5 text-xs text-red-600" role="alert"></p><div class="actions"><button type="button" class="btn" data-close>取消</button><button type="submit" class="btn primary">预览配置</button></div></form>
-<section id="preview" hidden><div class="preview-sheet"><div class="preview-title"><b id="previewName">报表配置预览</b><div class="mt-1 text-[11px] text-slate-500">此预览展示配置规则，不生成正式报表数据</div></div><dl class="preview-grid" id="previewFields"></dl></div><div class="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">确认创建后，该配置会进入工单列表；自动报表将按设定条件生成，手动报表由用户按需触发。</div><div class="actions"><button type="button" id="editConfig" class="btn">返回修改</button><button type="button" id="confirmConfig" class="btn primary">确认并新建</button></div></section>
-</div></div></div>
-<div id="t" class="wms-toast hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full" role="status" aria-live="polite"></div>
+
+<div id="dlg" class="hidden fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto p-6">
+ <div class="card w-[min(860px,100%)] p-5 mt-6">
+  <div class="flex justify-between items-start"><div><h2 class="text-base font-extrabold" id="dlgTitle">新建自定义报表</h2><p class="text-[11px] text-slate-500 mt-1">维度=分组字段，指标=聚合列；聚合函数：求和/平均/最大/最小/计数</p></div>
+  <button type="button" id="close" class="btn">关闭</button></div>
+  <div class="grid grid-cols-2 gap-3 mt-3">
+    <label class="text-xs font-semibold text-slate-600">报表名称*<input id="fName" class="field mt-1" placeholder="例如：外仓收发存按物料汇总"></label>
+    <label class="text-xs font-semibold text-slate-600">数据源*<select id="fDataset" class="field mt-1"></select></label>
+  </div>
+  <div class="grid grid-cols-2 gap-3 mt-3">
+    <div><div class="text-xs font-semibold text-slate-600 mb-1">维度（分组，可多选）</div><div id="dims" class="grid grid-cols-2 gap-1"></div></div>
+    <div><div class="text-xs font-semibold text-slate-600 mb-1">指标（聚合，至少 1 个）</div><div id="mes" class="grid grid-cols-1 gap-1"></div></div>
+  </div>
+  <div class="grid grid-cols-3 gap-3 mt-3">
+    <label class="text-xs font-semibold text-slate-600">仓库（逗号分隔，空=全部）<input id="fWh" class="field mt-1" placeholder="WH-A,WH-B"></label>
+    <label class="text-xs font-semibold text-slate-600">物料编码关键字<input id="fMat" class="field mt-1" placeholder="留空=全部"></label>
+    <label class="text-xs font-semibold text-slate-600">期间起<input id="fStart" type="date" class="field mt-1"></label>
+    <label class="text-xs font-semibold text-slate-600">期间止<input id="fEnd" type="date" class="field mt-1"></label>
+  </div>
+  <p id="err" class="mt-2 min-h-4 text-xs text-red-600"></p>
+  <div class="flex justify-end gap-2 mt-3"><button type="button" id="prev" class="btn">预览运行</button><button type="button" id="save" class="btn primary">保存报表</button></div>
+ </div>
+</div>
+<div id="t" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full"></div>
 <script>
 (function(){
-var configs=[
-['RP-CFG-001','每日收发存日报','自动','日报 · 06:00 · 全部客户 · 全部仓库','汇总每日入库、出库和结存','已启用','09-12 08:30'],
-['RP-CFG-002','客户物料余额月报','自动','月报 · 次月1日 06:00 · 全部客户','按客户和物料单位统计月末余额','已启用','09-10 14:20'],
-['RP-CFG-003','库存差异复核表','手动','按需生成','用于盘点差异复核与审计留档','已启用','09-09 16:40'],
-['RP-CFG-004','成品输出分析','手动','按需生成','按客户、车间和成品分类查看输出量','草稿','09-08 10:15']
-];
-var dialog=document.getElementById('configDialog'),form=document.getElementById('configForm'),preview=document.getElementById('preview'),lastFocus=null,draft=null,descFiles=[],refFiles=[];
-function fmtSize(bytes){if(bytes<1024)return bytes+' B';if(bytes<1048576)return (bytes/1024).toFixed(1)+' KB';return (bytes/1048576).toFixed(1)+' MB';}
-function attachFiles(key){return key==='desc'?descFiles:refFiles;}
-function renderAttach(key){var list=document.getElementById(key==='desc'?'descList':'refList'),files=attachFiles(key);list.innerHTML=files.map(function(f,i){return '<li><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>'+esc(f.name)+'</span><em>'+fmtSize(f.size)+'</em><button type="button" data-attach-del="'+key+':'+i+'" aria-label="删除附件'+esc(f.name)+'">删除</button></li>';}).join('');list.querySelectorAll('[data-attach-del]').forEach(function(btn){btn.addEventListener('click',function(){var parts=btn.dataset.attachDel.split(':'),arr=attachFiles(parts[0]);arr.splice(Number(parts[1]),1);renderAttach(parts[0]);});});}
-document.querySelectorAll('[data-attach-btn]').forEach(function(btn){btn.addEventListener('click',function(){document.getElementById(btn.dataset.attachBtn==='desc'?'descFiles':'refFiles').click();});});
-[['descFiles','desc'],['refFiles','ref']].forEach(function(pair){document.getElementById(pair[0]).addEventListener('change',function(event){var arr=attachFiles(pair[1]),added=0;Array.prototype.forEach.call(event.target.files,function(file){if(file.size>10*1048576){toast('附件 '+file.name+' 超过 10MB，已跳过');return;}if(arr.some(function(f){return f.name===file.name&&f.size===file.size;}))return;arr.push(file);added++;});event.target.value='';renderAttach(pair[1]);if(added)toast('已添加 '+added+' 个附件');});});
-function attachNames(key){return attachFiles(key).map(function(f){return f.name;});}
-function esc(value){return String(value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
-function toast(msg){var t=document.getElementById('t');t.textContent=msg;t.classList.remove('hidden');clearTimeout(t.timer);t.timer=setTimeout(function(){t.classList.add('hidden')},2200);}
-function render(){var q=document.getElementById('search').value.trim().toLowerCase(),type=document.getElementById('typeFilter').value,status=document.getElementById('statusFilter').value;var rows=configs.filter(function(row){return (!q||row.join(' ').toLowerCase().indexOf(q)>-1)&&(!type||row[2]===type)&&(!status||row[5]===status);});document.getElementById('configBody').innerHTML=rows.map(function(row){return '<tr class="border-b hover:bg-blue-50"><td class="py-2"><b class="text-blue-700">'+esc(row[0])+'</b><br>'+esc(row[1])+'</td><td>'+esc(row[2])+'</td><td>'+esc(row[3])+'</td><td class="max-w-64">'+esc(row[4])+'</td><td><span class="status '+(row[5]==='已启用'?'on':'draft')+'">'+row[5]+'</span></td><td class="text-slate-400">'+row[6]+'</td><td><button type="button" class="text-blue-600 font-bold" data-preview="'+row[0]+'">预览</button> <button type="button" class="text-slate-500" data-edit="'+row[0]+'">修改</button></td></tr>';}).join('');document.getElementById('count').textContent='共 '+rows.length+' 项配置';document.getElementById('empty').classList.toggle('hidden',rows.length>0);document.querySelectorAll('[data-preview]').forEach(function(button){button.addEventListener('click',function(){toast('已打开 '+button.dataset.preview+' 配置预览');});});document.querySelectorAll('[data-edit]').forEach(function(button){button.addEventListener('click',function(){toast('已打开 '+button.dataset.edit+' 修改页面');});});}
-function mode(){return form.querySelector('[name="mode"]:checked').value;}
-function syncMode(){document.getElementById('autoConditions').hidden=mode()!=='自动';}
-function open(){lastFocus=document.activeElement;form.reset();descFiles=[];refFiles=[];renderAttach('desc');renderAttach('ref');form.querySelector('[name="mode"][value="自动"]').checked=true;document.getElementById('runTime').value='06:00';document.getElementById('formError').textContent='';form.hidden=false;preview.hidden=true;syncMode();dialog.hidden=false;document.body.style.overflow='hidden';setTimeout(function(){document.getElementById('reportName').focus()},0);}
-function close(){dialog.hidden=true;document.body.style.overflow='';if(lastFocus)lastFocus.focus();}
-function collect(){var auto=mode()==='自动';return {name:document.getElementById('reportName').value.trim(),category:document.getElementById('reportCategory').value,mode:mode(),condition:auto?[document.getElementById('cycle').value,document.getElementById('runTime').value,document.getElementById('customer').value,document.getElementById('warehouse').value].join(' · '):'按需生成',description:document.getElementById('description').value.trim(),descAttach:attachNames('desc'),reference:document.getElementById('reference').value.trim()||'未填写参考',refAttach:attachNames('ref')};}
-form.addEventListener('submit',function(event){event.preventDefault();draft=collect();if(!draft.name||!draft.description){document.getElementById('formError').textContent='请填写报表名称和报表说明。';(!draft.name?document.getElementById('reportName'):document.getElementById('description')).focus();return;}document.getElementById('previewName').textContent=draft.name+' · 配置预览';document.getElementById('previewFields').innerHTML=[['报表分类',draft.category],['生成方式',draft.mode],['生成条件',draft.condition],['报表说明',draft.description],['说明附件',draft.descAttach.length?draft.descAttach.join('、'):'无'],['参考内容',draft.reference],['参考附件',draft.refAttach.length?draft.refAttach.join('、'):'无']].map(function(item){return '<dt>'+esc(item[0])+'</dt><dd>'+esc(item[1])+'</dd>';}).join('');form.hidden=true;preview.hidden=false;document.getElementById('editConfig').focus();});
-document.getElementById('confirmConfig').addEventListener('click',function(){if(!draft)return;var now=new Date(),id='RP-CFG-'+String(configs.length+1).padStart(3,'0'),time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),attachCount=draft.descAttach.length+draft.refAttach.length,desc=draft.description+(attachCount?' · 附件'+attachCount+'个':'');configs.unshift([id,draft.name,draft.mode,draft.condition,desc,'已启用','今日 '+time]);render();close();toast('报表配置 '+id+' 已创建'+(attachCount?'，含 '+attachCount+' 个附件':''));});
-document.getElementById('editConfig').addEventListener('click',function(){preview.hidden=true;form.hidden=false;document.getElementById('reportName').focus();});
-document.getElementById('newConfig').addEventListener('click',open);document.getElementById('closeDialog').addEventListener('click',close);document.querySelector('[data-close]').addEventListener('click',close);dialog.addEventListener('click',function(event){if(event.target===dialog)close();});document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!dialog.hidden)close();});form.querySelectorAll('[name="mode"]').forEach(function(control){control.addEventListener('change',syncMode);});['search','typeFilter','statusFilter'].forEach(function(id){document.getElementById(id).addEventListener('input',render);document.getElementById(id).addEventListener('change',render);});render();
+var META={}, LIST=[], EDIT=null;
+function base(){ if(window.WmsAi&&window.WmsAi.base) return window.WmsAi.base; return localStorage.getItem('wms_api_base')||(location.protocol+'//'+location.host+'/api/v1'); }
+function token(){ return localStorage.getItem('wms_token')||''; }
+function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()},opt.headers||{}); return fetch(base()+path,opt).then(function(r){ return r.json().then(function(j){ if(j.code!==200) throw new Error(j.msg||('HTTP '+r.status)); return j.data; }); }); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function toast(m,e){ var t=document.getElementById('t'); t.textContent=m; t.style.background=e?'#dc2626':'#0f172a'; t.classList.remove('hidden'); clearTimeout(t.timer); t.timer=setTimeout(function(){t.classList.add('hidden')},2400); }
+function dsDef(){ return META[document.getElementById('fDataset').value]||{dims:{},measures:{},has_date:false}; }
+function renderDims(){
+  var d=dsDef(), box=document.getElementById('dims'), keys=Object.keys(d.dims||{});
+  if(!keys.length){ box.innerHTML='<div class="text-[11px] text-slate-400">该数据源无分组维度</div>'; return; }
+  box.innerHTML=keys.map(function(k){ var on=(EDIT&&EDIT.defn&&EDIT.defn.dims||[]).indexOf(k)>=0?' on':''; return '<label class="chk'+on+'"><input type="checkbox" data-dim="'+esc(k)+'"'+(on?' checked':'')+'>'+esc(d.dims[k])+'</label>'; }).join('');
+}
+function renderMes(){
+  var d=dsDef(), box=document.getElementById('mes'), keys=Object.keys(d.measures||{});
+  var saved={}; ((EDIT&&EDIT.defn&&EDIT.defn.measures)||[]).forEach(function(m){ saved[m.col]=m.fn; });
+  var html=keys.map(function(k){ var fn=saved[k]||'SUM'; return '<label class="chk"><input type="checkbox" data-mcol="'+esc(k)+'"'+(saved[k]?' checked':'')+'><span>'+esc(d.measures[k])+'</span><select data-mfn="'+esc(k)+'" class="ml-auto border rounded px-1 py-0.5 text-[11px]"><option value="SUM"'+(fn==='SUM'?' selected':'')+'>求和</option><option value="AVG"'+(fn==='AVG'?' selected':'')+'>平均</option><option value="MAX"'+(fn==='MAX'?' selected':'')+'>最大</option><option value="MIN"'+(fn==='MIN'?' selected':'')+'>最小</option></select></label>'; }).join('');
+  var hasCount=(EDIT&&EDIT.defn&&EDIT.defn.measures||[]).some(function(m){return m.fn==='COUNT';});
+  html+='<label class="chk'+(hasCount?' on':'')+'"><input type="checkbox" data-mcol="*"'+(hasCount?' checked':'')+'><span>记录笔数(COUNT)</span></label>';
+  box.innerHTML=html;
+}
+function collect(){
+  var dims=[]; document.querySelectorAll('#dims input[data-dim]').forEach(function(c){ if(c.checked) dims.push(c.dataset.dim); });
+  var measures=[]; document.querySelectorAll('#mes input[data-mcol]').forEach(function(c){
+    if(!c.checked) return; var col=c.dataset.mcol;
+    if(col==='*'){ measures.push({fn:'COUNT',col:'*',label:'笔数'}); return; }
+    var sel=document.querySelector('#mes select[data-mfn="'+col+'"]');
+    measures.push({fn:sel?sel.value:'SUM',col:col,label:(dsDef().measures||{})[col]||col});
+  });
+  return { dataset:document.getElementById('fDataset').value, dims:dims, measures:measures,
+    filters:{wh:(document.getElementById('fWh').value||'').split(/[,，]/).map(function(x){return x.trim();}).filter(Boolean), material_code:(document.getElementById('fMat').value||'').trim()},
+    start:document.getElementById('fStart').value||'', end:document.getElementById('fEnd').value||'' };
+}
+function showResult(data,title){
+  var meta=document.getElementById('resMeta');
+  document.getElementById('resEmpty').classList.toggle('hidden',!!(data&&data.rows&&data.rows.length));
+  var tb=document.getElementById('resTable');
+  if(!data||!data.rows||!data.rows.length){ tb.innerHTML=''; meta.textContent=title||''; return; }
+  meta.textContent=(title||'')+' · 共 '+data.count+' 行';
+  tb.innerHTML='<thead><tr>'+data.head.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+
+    data.rows.map(function(r){ return '<tr>'+data.head.map(function(h){return '<td>'+esc(r[h])+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody>';
+}
+function openDlg(rec){
+  EDIT=rec||null;
+  document.getElementById('dlgTitle').textContent=rec?('编辑：'+rec.name):'新建自定义报表';
+  document.getElementById('fName').value=rec?rec.name:'';
+  document.getElementById('fDataset').value=rec?rec.dataset:(Object.keys(META)[0]||'onhand');
+  document.getElementById('fWh').value=rec&&rec.defn?(rec.defn.filters.wh||[]).join(','):'';
+  document.getElementById('fMat').value=rec&&rec.defn?(rec.defn.filters.material_code||''):'';
+  document.getElementById('fStart').value=rec&&rec.defn?(rec.defn.start||''):'';
+  document.getElementById('fEnd').value=rec&&rec.defn?(rec.defn.end||''):'';
+  document.getElementById('err').textContent='';
+  renderDims(); renderMes();
+  document.getElementById('dlg').classList.remove('hidden');
+}
+function closeDlg(){ document.getElementById('dlg').classList.add('hidden'); EDIT=null; }
+function renderList(){
+  var tb=document.getElementById('list');
+  document.getElementById('cnt').textContent='共 '+LIST.length+' 个';
+  document.getElementById('empty').classList.toggle('hidden',LIST.length>0);
+  tb.innerHTML=LIST.map(function(r){
+    var dn=(META[r.dataset]&&META[r.dataset].label)||r.dataset;
+    var dims=((r.defn&&r.defn.dims)||[]).map(function(k){return (META[r.dataset]&&META[r.dataset].dims||{})[k]||k;}).join('、')||'—';
+    var mes=((r.defn&&r.defn.measures)||[]).map(function(m){return m.label;}).join('、')||'—';
+    var f=r.defn&&r.defn.filters||{}; var fs=[]; if((f.wh||[]).length) fs.push('仓库:'+f.wh.join('/')); if(f.material_code) fs.push('物料~'+f.material_code); if(r.defn&&r.defn.start) fs.push(r.defn.start+'~'+(r.defn.end||'今'));
+    return '<tr class="hover:bg-blue-50"><td class="py-2"><b class="text-blue-700">'+esc(r.rpt_code)+'</b><br>'+esc(r.name)+'</td><td><span class="badge">'+esc(dn)+'</span></td><td>'+esc(dims)+'</td><td>'+esc(mes)+'</td><td>'+esc(fs.join(' · ')||'全部')+'</td>'+
+      '<td class="whitespace-nowrap"><button type="button" class="text-blue-600 font-bold" data-run="'+esc(r.rpt_code)+'">运行</button> <button type="button" class="text-slate-600" data-edit="'+esc(r.rpt_code)+'">编辑</button> <button type="button" class="text-emerald-700" data-gen="'+esc(r.rpt_code)+'">生成实例</button> <button type="button" class="text-red-500" data-del="'+esc(r.rpt_code)+'">删除</button></td></tr>';
+  }).join('');
+  tb.querySelectorAll('[data-run]').forEach(function(b){ b.addEventListener('click',function(){ runSaved(b.dataset.run); }); });
+  tb.querySelectorAll('[data-edit]').forEach(function(b){ b.addEventListener('click',function(){ var rec=LIST.filter(function(x){return x.rpt_code===b.dataset.edit;})[0]; if(rec) openDlg(rec); }); });
+  tb.querySelectorAll('[data-gen]').forEach(function(b){ b.addEventListener('click',function(){ genSaved(b.dataset.gen); }); });
+  tb.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(){ delSaved(b.dataset.del); }); });
+}
+function loadMeta(){ return api('/web/custom_reports/meta').then(function(d){ META=d||{}; var sel=document.getElementById('fDataset'); sel.innerHTML=Object.keys(META).map(function(k){return '<option value="'+esc(k)+'">'+esc(META[k].label)+'</option>';}).join(''); }); }
+function loadList(){ return api('/web/custom_reports').then(function(d){ LIST=d||[]; renderList(); }); }
+function runSaved(code){ api('/web/custom_reports/'+encodeURIComponent(code)+'/run').then(function(d){ showResult(d,code); }).catch(function(e){ toast('运行失败:'+e.message,true); }); }
+function genSaved(code){ api('/web/custom_reports/'+encodeURIComponent(code)+'/generate',{method:'POST',body:JSON.stringify({period:''})}).then(function(d){ toast('已生成报表实例 '+d.rpt_no+'（'+d.rows+' 行），状态：草稿'); }).catch(function(e){ toast('生成失败:'+e.message,true); }); }
+function delSaved(code){ if(!confirm('删除自定义报表 '+code+' ?')) return; api('/web/custom_reports/'+encodeURIComponent(code),{method:'DELETE'}).then(function(){ toast('已删除'); loadList(); }).catch(function(e){ toast('删除失败:'+e.message,true); }); }
+function doPreview(){
+  var defn=collect(), err=document.getElementById('err');
+  err.textContent='';
+  if(!defn.measures.length){ err.textContent='请至少勾选一个指标'; return; }
+  api('/web/custom_reports/run',{method:'POST',body:JSON.stringify({defn:defn})}).then(function(d){ showResult(d,'预览'); toast('预览完成 '+d.count+' 行'); }).catch(function(e){ err.textContent=e.message; });
+}
+function doSave(){
+  var name=(document.getElementById('fName').value||'').trim(), err=document.getElementById('err');
+  err.textContent='';
+  if(!name){ err.textContent='请填写报表名称'; return; }
+  var defn=collect();
+  if(!defn.measures.length){ err.textContent='请至少勾选一个指标'; return; }
+  var body={name:name,defn:defn}, p, method;
+  if(EDIT){ p='/web/custom_reports/'+encodeURIComponent(EDIT.rpt_code); method='PUT'; }
+  else { p='/web/custom_reports'; method='POST'; }
+  api(p,{method:method,body:JSON.stringify(body)}).then(function(){ toast(EDIT?'已保存修改':'已保存自定义报表'); closeDlg(); loadList(); }).catch(function(e){ err.textContent=e.message; });
+}
+document.getElementById('fDataset').addEventListener('change',function(){ renderDims(); renderMes(); });
+document.getElementById('newRpt').addEventListener('click',function(){ if(!Object.keys(META).length){ toast('后端未连接',true); return; } openDlg(null); });
+document.getElementById('refresh').addEventListener('click',function(){ loadMeta().then(loadList); });
+document.getElementById('close').addEventListener('click',closeDlg);
+document.getElementById('prev').addEventListener('click',doPreview);
+document.getElementById('save').addEventListener('click',doSave);
+loadMeta().then(loadList).catch(function(e){ toast('加载失败:'+e.message,true); });
 })();
 </script></body></html>
