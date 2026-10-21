@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- =====================================================================
 -- WMS 重构版 DDL (MySQL 5.6 / InnoDB / utf8mb4 / 可直接执行)
 -- 重构依据: NB3 方法论 docs/nb3-database-design-method.md 第10条
@@ -746,7 +747,7 @@ INSERT INTO sys_config(cfg_key,cfg_value,remark) VALUES
 ('ORG_LEVEL_COUNT','6','组织级数:监区/楼栋/楼层/车间/班组/工位'),
 ('ORG_LEVEL_PER','1000','每级容量1000,与autocode/CID容量联动(NB3可抄2)'),
 ('DOC_NO_SERIAL_LEN','6','单号流水位宽[SERIAL:6]')
-ON DUPLICATE KEY UPDATE cfg_value=VALUES(cfg_value);
+ON DUPLICATE KEY UPDATE cfg_value=VALUES(cfg_value),remark=VALUES(remark);
 INSERT INTO sys_biz_state(sid,biz,name,bill_no_format,state_status,enabled,inc_flag,dec_flag) VALUES
 (10100,'RK','入库', 'RK[SERIAL:6]',1,1,1,0),
 (10400,'LY','领用', 'LY[SERIAL:6]',1,1,0,1),
@@ -775,7 +776,7 @@ INSERT INTO sys_sequence(seq_name,cid,next_val,remark) VALUES
 ('DOC_MAIN.DOC_NO_JJ',0,10000001,'交付单号'),
 ('DOC_MAIN.DOC_NO_SQ',0,10000001,'申请领料单号'),
 ('WO_TASK.WO_NO',0,10000001,'生产工单号')
-ON DUPLICATE KEY UPDATE next_val=GREATEST(next_val,VALUES(next_val));
+ON DUPLICATE KEY UPDATE next_val=GREATEST(next_val,VALUES(next_val)),remark=VALUES(remark);
 INSERT INTO sys_bill_method(sid, method_code, method_name, enabled) VALUES
 (10100,'01','正常采购',1),(10100,'02','自建转固',1),(10100,'99','其他方式',1),
 (10400,'01','新人领用',1),(10400,'02','日常领用',1),(10400,'99','其他领用',1),

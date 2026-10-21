@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 演示种子:仅 SEED_DEMO=1 时灌入,生产库勿用.
 -- 含演示账号/主档/设备/对账.重灌安全:计数器用GREATEST防回拨.
 
@@ -28,7 +29,7 @@ INSERT INTO sys_user(username,name,password_hash,phone,data_scope,enabled,status
 ('head','仓库负责人',LOWER(SHA2(CONCAT('wms:','Head@2026'),256)),NULL,'*',1,'启用',NULL,NULL),
 ('cust','客户查看',LOWER(SHA2(CONCAT('wms:','Cust@2026'),256)),NULL,'*',1,'启用',NULL,NULL),
 ('fin','财务查看',LOWER(SHA2(CONCAT('wms:','Fin@2026'),256)),NULL,'*',1,'启用',NULL,NULL)
-ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash),data_scope=VALUES(data_scope);
+ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash),data_scope=VALUES(data_scope),status=VALUES(status),enabled=VALUES(enabled);
 INSERT INTO sys_user_role(username,role_id) VALUES
 ('admin','R-ADMIN'),('demo','R-WH'),('demo','R-HEAD'),
 ('whin','R-WH-IN'),('mat','R-MAT'),('ws','R-WS'),('fg','R-FG'),
@@ -41,33 +42,33 @@ INSERT INTO mat_master(material_code,cat_code,autocode,lowest,name,spec,base_uni
 ('HD-OXF-001','ML',NULL,1,'牛津布','600D','米','卷',100.000,'QTY',0.85,50000.000,1000.000,1,'启用'),
 ('HD-ZP-011','FJ',NULL,1,'拉链','5号尼龙','件','包',100.000,'QTY',0.52,20000.000,500.000,1,'启用'),
 ('HD-NK-005','FJ',NULL,1,'纽扣','四合扣','件','包',500.000,'CODE',0.95,30000.000,1000.000,1,'启用')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+ON DUPLICATE KEY UPDATE name=VALUES(name),spec=VALUES(spec),base_unit=VALUES(base_unit),pack_unit=VALUES(pack_unit),manage_mode=VALUES(manage_mode),status=VALUES(status),enabled=VALUES(enabled),cat_code=VALUES(cat_code);
 INSERT INTO warehouse(wh_code,parent_code,autocode,lowest,name,wh_type,stock_kind,manager,enabled,status) VALUES
 ('WH-A',NULL,'001',1,'外仓','外仓','MAT','张建国',1,'启用'),
 ('WH-B',NULL,'002',1,'内仓1','内仓','MAT','李小明',1,'启用'),
 ('WH-C',NULL,'003',1,'内仓2','内仓','MAT','王芳',1,'启用'),
 ('WH-D',NULL,'004',1,'成品仓A','成品仓','FIN','刘强',1,'启用')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+ON DUPLICATE KEY UPDATE name=VALUES(name),wh_type=VALUES(wh_type),stock_kind=VALUES(stock_kind),manager=VALUES(manager),status=VALUES(status);
 INSERT INTO location(loc_code,wh_code,autocode,zone_label,capacity,qr_code,enabled,status) VALUES
 ('WH-A-01','WH-A','001001','外仓A区1道',10000.000,'WH-A-01',1,'启用'),
 ('WH-B-01','WH-B','002001','内仓1区1道',8000.000,'WH-B-01',1,'启用'),
 ('WH-C-01','WH-C','003001','内仓2区1道',8000.000,'WH-C-01',1,'启用'),
 ('F01','WH-D','004001','成品区1道',20000.000,'F01',1,'启用')
-ON DUPLICATE KEY UPDATE zone_label=VALUES(zone_label);
+ON DUPLICATE KEY UPDATE zone_label=VALUES(zone_label),status=VALUES(status),qr_code=VALUES(qr_code);
 INSERT INTO customer(cust_id,name,cust_type,contact,phone,status) VALUES
 ('KH001','恒达服饰','客户','陈经理','13800000001','启用')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+ON DUPLICATE KEY UPDATE name=VALUES(name),cust_type=VALUES(cust_type),contact=VALUES(contact),phone=VALUES(phone),status=VALUES(status);
 INSERT INTO product_master(product_code,cat_code,name,spec,style,customer,base_unit,price_ref,enabled,status) VALUES
 ('CP-JK-001','CP','夹克','常规款','JK-2026','恒达服饰','件',128.00,1,'启用')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+ON DUPLICATE KEY UPDATE name=VALUES(name),spec=VALUES(spec),style=VALUES(style),customer=VALUES(customer),base_unit=VALUES(base_unit),status=VALUES(status);
 INSERT INTO bom_master(product_code,version,handler,eff_date,status) VALUES
 ('CP-JK-001','V1','张建国',NOW(),'启用')
-ON DUPLICATE KEY UPDATE status=VALUES(status);
+ON DUPLICATE KEY UPDATE status=VALUES(status),handler=VALUES(handler);
 INSERT INTO bom_line(product_code,version,line_no,material_code,qty,unit,loss_rate) VALUES
 ('CP-JK-001','V1',1,'HD-OXF-001',2.500,'米',0.0200),
 ('CP-JK-001','V1',2,'HD-ZP-011',1.000,'件',0.0000),
 ('CP-JK-001','V1',3,'HD-NK-005',5.000,'件',0.0100)
-ON DUPLICATE KEY UPDATE qty=VALUES(qty);
+ON DUPLICATE KEY UPDATE qty=VALUES(qty),unit=VALUES(unit),loss_rate=VALUES(loss_rate);
 -- 演示设备(PDA-03/04与鉴权白名单一致,序列号脱敏展示)
 INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
 ('PDA-03','PDA','SN202600000003','张建国','启用'),
@@ -77,11 +78,11 @@ ON DUPLICATE KEY UPDATE holder=VALUES(holder);
 INSERT INTO fee_settle(settle_no,customer,period,qty_send,qty_issue,qty_fin,amount,biz_status) VALUES
 ('DZ2026091201','恒达服饰','2026-09',5000.000,3200.000,1500.000,3700.00,'待核对'),
 ('DZ2026091103','宏远纺织','2026-09',2000.000,1350.000,1280.000,3200.00,'确认')
-ON DUPLICATE KEY UPDATE amount=VALUES(amount);
+ON DUPLICATE KEY UPDATE amount=VALUES(amount),customer=VALUES(customer),period=VALUES(period),biz_status=VALUES(biz_status),qty_send=VALUES(qty_send),qty_issue=VALUES(qty_issue),qty_fin=VALUES(qty_fin);
 -- 演示设备(与鉴权白名单一致):PDA-03/04
 INSERT INTO equipment(eq_id,kind,sn,holder,status) VALUES
 ('PDA-03','PDA','SN-PDA03-2026','张建国','启用'),
 ('PDA-04','PDA','SN-PDA04-2026','李小明','启用')
-ON DUPLICATE KEY UPDATE holder=VALUES(holder);
+ON DUPLICATE KEY UPDATE holder=VALUES(holder),status=VALUES(status),sn=VALUES(sn);
 
 -- END: 本文件可重复执行(CREATE TABLE IF NOT EXISTS + INSERT..ON DUPLICATE KEY),无独立CREATE INDEX,无物理外键,无ENUM/JSON/CHECK
