@@ -186,6 +186,7 @@ def wo_issue(wo_no: str, body: dict, authed: dict = Depends(auth.need_auth),
                         "v": wo["bom_version"]}).mappings().all()
     if not lines:
         return resp.fail(400, "BOM无行,不可领料")
+    db.rollback()
     with db.begin():
         doc_no = posting.create(db, "LY", str(body.get("handler") or ""),
                                 [{"material_code": r["material_code"],
