@@ -4,15 +4,35 @@
 -- 账号(生产语义:必须持有效密码哈希登录,哈希=SHA256("wms:"+密码)):admin/ok 系统管理员 · demo/demo123456 仓库演示员
 INSERT INTO sys_role(role_id,autocode,lowest,name,cat_allow,func_allow,data_scope) VALUES
 ('R-ADMIN','1',1,'系统管理员','*','*','*'),
-('R-WH','1',1,'仓库演示员','*','*','WH-A,WH-B,WH-C')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+('R-WH','1',1,'外仓管理员','*','查看,录入,修改,确认,过账,导出','WH-A'),
+('R-WH-IN','1',1,'内仓管理员','*','查看,录入,修改,确认,过账,导出','WH-B,WH-C'),
+('R-MAT','1',1,'物料领发员','*','查看,录入,确认','WH-A,WH-B,WH-C'),
+('R-WS','1',1,'车间领料员','*','查看,录入','WH-A,WH-B,WH-C'),
+('R-FG','1',1,'成品交接员','*','查看,录入,确认','WH-A,WH-B,WH-C'),
+('R-SUP','1',1,'监区/楼层负责人','*','查看,审批,导出,关闭异常','*'),
+('R-HEAD','1',1,'仓库负责人','*','查看,确认,审批,过账,导出,关闭异常','*'),
+('R-CUST','1',1,'客户查看账号','*','查看','*'),
+('R-FIN','1',1,'财务查看账号','*','查看,导出','*')
+ON DUPLICATE KEY UPDATE name=VALUES(name),func_allow=VALUES(func_allow),data_scope=VALUES(data_scope);
+-- 账号(密码哈希=SHA2(CONCAT('wms:',明文),256),与登录口径一致):
+--   admin/ok(系统管理员) demo/demo123456(外仓+仓库负责人,多角色) whin/WhIn@2026 mat/Mat@2026
+--   ws/Ws@2026 fg/Fg@2026 sup/Sup@2026 head/Head@2026 cust/Cust@2026 fin/Fin@2026
 INSERT INTO sys_user(username,name,password_hash,phone,data_scope,enabled,status,last_login,last_device) VALUES
 ('admin','系统管理员','882b2b6b433bd55fee043a6d5e99dc22417a1e4ca1502a50ac8b0ec3a9f06a3b',NULL,'*',1,'启用',NULL,NULL),
-('demo','仓库演示员','153a6a1c384c52eb453c0ea328f5337df21f84af33838b005afce7b4abb006f4',NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL)
-ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash);
+('demo','仓库演示员','153a6a1c384c52eb453c0ea328f5337df21f84af33838b005afce7b4abb006f4',NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL),
+('whin','内仓管理员',LOWER(SHA2(CONCAT('wms:','WhIn@2026'),256)),NULL,'WH-B,WH-C',1,'启用',NULL,NULL),
+('mat','物料领发员',LOWER(SHA2(CONCAT('wms:','Mat@2026'),256)),NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL),
+('ws','车间领料员',LOWER(SHA2(CONCAT('wms:','Ws@2026'),256)),NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL),
+('fg','成品交接员',LOWER(SHA2(CONCAT('wms:','Fg@2026'),256)),NULL,'WH-A,WH-B,WH-C',1,'启用',NULL,NULL),
+('sup','监区负责人',LOWER(SHA2(CONCAT('wms:','Sup@2026'),256)),NULL,'*',1,'启用',NULL,NULL),
+('head','仓库负责人',LOWER(SHA2(CONCAT('wms:','Head@2026'),256)),NULL,'*',1,'启用',NULL,NULL),
+('cust','客户查看',LOWER(SHA2(CONCAT('wms:','Cust@2026'),256)),NULL,'*',1,'启用',NULL,NULL),
+('fin','财务查看',LOWER(SHA2(CONCAT('wms:','Fin@2026'),256)),NULL,'*',1,'启用',NULL,NULL)
+ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash),data_scope=VALUES(data_scope);
 INSERT INTO sys_user_role(username,role_id) VALUES
-('admin','R-ADMIN'),
-('demo','R-WH')
+('admin','R-ADMIN'),('demo','R-WH'),('demo','R-HEAD'),
+('whin','R-WH-IN'),('mat','R-MAT'),('ws','R-WS'),('fg','R-FG'),
+('sup','R-SUP'),('head','R-HEAD'),('cust','R-CUST'),('fin','R-FIN')
 ON DUPLICATE KEY UPDATE username=VALUES(username);
 -- 正式版幂等落库:Idempotency-Key与响应快照,重启不丢
 

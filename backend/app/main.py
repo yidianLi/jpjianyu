@@ -38,6 +38,71 @@ async def _val_err(request: Request, exc: RequestValidationError):
 async def _unhandled(request: Request, exc: Exception):
     logging.exception("未捕获异常: %s %s", request.method, request.url.path)
     return JSONResponse(status_code=500, content=fail(500, "服务器内部错误"))
+
+
+# ---------------------------------------------------------------------------
+# 功能权限网关:按(方法+路径)查动作,依当前用户多角色并集(funcs)鉴权,不足则 403.
+# 只读(GET)默认放行以保可用;此处仅收敛"写/审批/过账/导出/配置"等高危动作.
+# 管理员(func '*' 或 R-ADMIN)一律放行.
+# ---------------------------------------------------------------------------
+from app.core import perms as _perms  # noqa: E402
+from app.core.db import SessionLocal as _SessionLocal  # noqa: E402
+
+_P = "POST"
+_PUT = "PUT"
+_DEL = "DELETE"
+_GET = "GET"
+_PERM_RULES = [
+    ({_P}, re.compile(r"^/api/v1/web/docs$"), "录入"),
+    ({_P}, re.compile(r"^/api/v1/web/docs/[^/]+/submit$"), "录入"),
+    ({_P}, re.compile(r"^/api/v1/web/docs/[^/]+/approve$"), "审批"),
+    ({_P}, re.compile(r"^/api/v1/web/docs/[^/]+/post$"), "过账"),
+    ({_P}, re.compile(r"^/api/v1/web/docs/[^/]+/attachments$"), "录入"),
+    ({_DEL}, re.compile(r"^/api/v1/web/docs/[^/]+/attachments/[^/]+$"), "修改"),
+    ({_P}, re.compile(r"^/api/v1/web/transfer_ships$"), "录入"),
+    ({_P}, re.compile(r"^/api/v1/web/pd_tasks"), "确认"),
+    ({_P}, re.compile(r"^/api/v1/web/(wo_tasks|prod_plans|sale_orders|deliver_signs)"), "录入"),
+    ({_P}, re.compile(r"^/api/v1/web/stock/(qc|freeze|unfreeze|reserve|release)$"), "确认"),
+    ({_P}, re.compile(r"^/api/v1/web/fee_settles/[^/]+/confirm$"), "确认"),
+    ({_P}, re.compile(r"^/api/v1/web/fee_settles$"), "录入"),
+    ({_P}, re.compile(r"^/api/v1/web/label_prints$"), "录入"),
+    ({_GET}, re.compile(r"^/api/v1/web/export/"), "导出"),
+    ({_P}, re.compile(r"^/api/v1/web/custom_reports/(run|[^/]+/generate)$"), "查看"),
+    ({_P, _PUT, _DEL}, re.compile(r"^/api/v1/web/custom_reports"), "修改"),
+    ({_P}, re.compile(r"^/api/v1/web/rpt_instances/generate$"), "查看"),
+    ({_P}, re.compile(r"^/api/v1/web/rpt_instances/[^/]+/publish$"), "审批"),
+    ({_P, _PUT, _DEL}, re.compile(r"^/api/v1/web/print_templates"), "修改"),
+    ({_P, _PUT, _DEL}, re.compile(r"^/api/v1/web/masters/"), "修改"),
+]
+
+
+def _match_action(method: str, path: str):
+    for methods, pat, act in _PERM_RULES:
+        if method in methods and pat.match(path):
+            return act
+    return None
+
+
+@app.middleware("http")
+async def _func_perm_guard(request: Request, call_next):
+    try:
+        act = _match_action(request.method, request.url.path)
+        if act:
+            user = _auth.decode_username(request.headers.get("authorization", ""))
+            if user:
+                db = _SessionLocal()
+                try:
+                    ok = _perms.has_func(db, user, act)
+                finally:
+                    db.close()
+                if not ok:
+                    return JSONResponse(status_code=403, content={
+                        "code": 403, "msg": "PERM_DENIED:无「%s」权限" % act,
+                        "data": None, "total": 0})
+    except Exception:  # 网关异常不影响主流程;端点内仍有 need_auth 兜底
+        logging.exception("功能权限网关异常,已放行: %s %s",
+                          request.method, request.url.path)
+    return await call_next(request)
 app.include_router(web.router, prefix="/api/v1/web")
 app.include_router(masters.router, prefix="/api/v1/web")
 app.include_router(sysadm.router, prefix="/api/v1/web")

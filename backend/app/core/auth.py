@@ -71,6 +71,20 @@ def need_app_device(auth: dict) -> dict:
     return auth
 
 
+def decode_username(authorization: str) -> str:
+    """从 Authorization 头解出用户名(仅用于中间件轻量鉴权),失败返回空串不抛错."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return ""
+    token = authorization[7:].strip()
+    if len(token) < 12:
+        return ""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+        return payload.get("sub", "") or ""
+    except Exception:
+        return ""
+
+
 def need_admin(auth: dict = Depends(need_auth)) -> dict:
     from app.core.db import SessionLocal as _SessionLocal
     from app.core import perms as _perms
