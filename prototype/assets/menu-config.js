@@ -71,7 +71,7 @@
       {id:'audit', label:'操作审计', tab:''}]},
     {id:'g8', label:'报表中心', icon:'fa-chart-line', children:[
       {id:'report', label:'报表中心', tab:''},
-      {id:'reportConfig', label:'报表配置', tab:''},
+      {id:'reportConfig', label:'自定义报表', tab:''},
       {id:'printTemplate', label:'打印模板', tab:''}]},
     {id:'g9', label:'系统管理', icon:'fa-gear', children:[
       {id:'users', label:'用户管理', tab:''},
