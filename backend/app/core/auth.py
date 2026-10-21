@@ -72,15 +72,30 @@ def need_app_device(auth: dict) -> dict:
 
 
 def need_admin(auth: dict = Depends(need_auth)) -> dict:
-    from sqlalchemy import text as _text
     from app.core.db import SessionLocal as _SessionLocal
+    from app.core import perms as _perms
     db = _SessionLocal()
     try:
-        hit = db.execute(_text("SELECT 1 FROM sys_user_role"
-                               " WHERE username=:u AND role_id='R-ADMIN'"),
-                         {"u": auth.get("username") or ""}).first()
+        admin = _perms.effective(db, auth.get("username") or "")["is_admin"]
     finally:
         db.close()
-    if not hit:
+    if not admin:
         raise HTTPException(status_code=403, detail="ADMIN_ONLY:需要系统管理员角色")
     return auth
+
+
+def require_func(action: str):
+    """依赖工厂:校验当前用户(多角色并集)拥有某动作权限,否则 403."""
+    def _dep(auth: dict = Depends(need_auth)) -> dict:
+        from app.core.db import SessionLocal as _SessionLocal
+        from app.core import perms as _perms
+        db = _SessionLocal()
+        try:
+            ok = _perms.has_func(db, auth.get("username") or "", action)
+        finally:
+            db.close()
+        if not ok:
+            raise HTTPException(status_code=403,
+                                detail="PERM_DENIED:无「%s」权限" % action)
+        return auth
+    return _dep

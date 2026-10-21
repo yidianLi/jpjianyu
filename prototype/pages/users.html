@@ -14,7 +14,7 @@
 <label class="flex items-center gap-2 border rounded-lg px-2 py-1.5 cursor-pointer"><input type="checkbox" class="rolechk" onchange="preview()"><span>系统管理员</span><span class="ml-auto text-red-400">全部·慎授</span></label>
 </div><div class="mt-2 font-bold text-slate-500">数据范围</div><div class="grid grid-cols-2 gap-1 mt-1"><select class="border rounded-lg px-2 py-1.5"><option>仓库：外仓/内仓1/2</option><option>仅外仓</option></select><select class="border rounded-lg px-2 py-1.5"><option>客户：恒达/宏远</option><option>仅恒达</option></select><select class="border rounded-lg px-2 py-1.5"><option>组织：一监区</option><option>缝制一车间</option></select><select class="border rounded-lg px-2 py-1.5"><option>班组/工位：全部</option></select></div>
 <div id="pv" class="mt-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg p-2">权限影响预览：可查看三仓 · 可录入/确认送料/调拨/退料判定 · 可导出 · 不可删审计</div>
-<div class="flex gap-2 mt-2"><button onclick="toast('授权已保存并写入审计 audit_log')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">保存授权</button><button onclick="toast('已停用该账号，历史单据保留')" class="flex-1 border rounded-lg py-2 text-red-500">停用</button></div></div></div></div>
+<div class="flex gap-2 mt-2"><button onclick="saveAuth()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">保存授权</button><button onclick="toast('已停用该账号，历史单据保留')" class="flex-1 border rounded-lg py-2 text-red-500">停用</button></div></div></div></div>
 <div class="card p-4 text-xs"><b class="text-sm">角色 × 权限矩阵 <span class="font-normal text-slate-400">10种角色 · 7种动作</span></b><table class="w-full mt-2"><thead><tr class="text-slate-400 text-left border-b"><th class="py-2">角色</th><th>查看</th><th>录入</th><th>修改</th><th>确认</th><th>审批</th><th>导出</th><th>关闭异常</th></tr></thead><tbody>
 <tr class="border-b"><td class="py-1.5 font-bold">外仓管理员</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>✓</td><td>—</td></tr>
 <tr class="border-b"><td class="py-1.5 font-bold">内仓管理员</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
@@ -28,30 +28,91 @@
 <tr><td class="py-1.5">财务查看账号</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>—</td></tr>
 </tbody></table></div>
 </div></div></div>
-<div id="m" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50"><div class="bg-white rounded-2xl w-[520px] p-6 text-xs"><div class="flex justify-between"><b class="text-sm">新建账号</b><button aria-label="关闭弹窗" title="关闭" onclick="document.getElementById('m').classList.add('hidden')" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div><div class="grid grid-cols-2 gap-2 mt-3"><label>账号*<input value="neicang_02" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>姓名*<input value="赵芳" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>初始密码*<input value="123456" type="password" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>手机号<input value="138****3302" class="w-full border rounded-lg px-2 py-2 mt-1"></label></div><div class="flex gap-2 mt-4"><button class="flex-1 border rounded-lg py-2" onclick="document.getElementById('m').classList.add('hidden')">取消</button><button class="flex-1 bg-blue-600 text-white rounded-lg py-2 font-bold" onclick="toast('账号 neicang_02 已创建，待分配角色');document.getElementById('m').classList.add('hidden')">创建</button></div></div></div>
+<div id="m" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50"><div class="bg-white rounded-2xl w-[520px] p-6 text-xs"><div class="flex justify-between"><b class="text-sm">新建账号</b><button aria-label="关闭弹窗" title="关闭" onclick="document.getElementById('m').classList.add('hidden')" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div><div class="grid grid-cols-2 gap-2 mt-3"><label>账号*<input id="nu_user" placeholder="登录账号" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>姓名*<input id="nu_name" placeholder="真实姓名" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>初始密码*<input id="nu_pwd" placeholder="至少6位" type="password" class="w-full border rounded-lg px-2 py-2 mt-1"></label><label>手机号<input id="nu_phone" placeholder="选填" class="w-full border rounded-lg px-2 py-2 mt-1"></label></div><div class="flex gap-2 mt-4"><button class="flex-1 border rounded-lg py-2" onclick="document.getElementById('m').classList.add('hidden')">取消</button><button class="flex-1 bg-blue-600 text-white rounded-lg py-2 font-bold" onclick="createUser()">创建</button></div></div></div>
 <div id="t" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full"></div>
 <script>var NAMES=['张建国','李小明','陈芳','王会计','陈总'];function toast(t,e){var d=document.getElementById('t');d.textContent=t;d.style.background=e?'#dc2626':'#0f172a';d.classList.remove('hidden');setTimeout(function(){d.classList.add('hidden')},2200)}function selUser(i,tr){document.querySelectorAll('#utb tr').forEach(function(x){x.classList.remove('sel')});tr.classList.add('sel');document.getElementById('uname').textContent=NAMES[i];toast('已选中 '+NAMES[i]+'，右侧权限已联动')}function preview(){var n=document.querySelectorAll('.rolechk:checked').length;document.getElementById('pv').textContent='权限影响预览：已选 '+n+' 个角色 · 保存后即时生效 · 变更写入审计'}function filterUser(kw){toast(kw?('已筛选：'+kw):'已清空筛选')}function openNew(){document.getElementById('m').classList.remove('hidden')}</script>
 <script>
-/* 用户真数据:拉system/users重建#utb并同步NAMES,选择联动照用 */
-document.addEventListener('DOMContentLoaded', function(){
+/* 用户管理真数据:角色多选真实加载/保存、账号新建、数据范围联动、变更写审计 */
+(function(){
   if(!window.WmsAi || !window.WmsSys) return;
-  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  window.WmsSys.users().then(function(j){
-    var rows = (j && j.data) || [];
-    if(!rows.length){var tb0=document.getElementById('utb');if(tb0)tb0.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">暂无数据</td></tr>';return;}
-    window.NAMES = rows.map(function(x){ return x.name || x.username; });
-    var tb = document.getElementById('utb');
-    if(!tb) return;
-    tb.innerHTML = rows.map(function(x, i){
-      var on = String(x.enabled) !== '0' && String(x.status || '启用') !== '停用';
-      return '<tr class="border-b hover:bg-blue-50 cursor-pointer' + (i === 0 ? ' sel' : '') + '" onclick="selUser(' + i + ',this)">'
-        + '<td class="py-2"><b>' + esc(x.username) + '</b><br>' + esc(x.name || '') + '</td>'
-        + '<td><span class="bg-slate-100 px-2 rounded-full">演示角色</span></td>'
-        + '<td>' + esc(x.data_scope || '') + '</td>'
-        + '<td><span class="px-2 rounded-full ' + (on ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500') + '">' + (on ? '启用' : '停用') + '</span></td>'
-        + '<td class="text-slate-400">—</td>'
-        + '<td></td></tr>';
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  var ROLES=[], USERS=[], CUR=null;
+  function roleName(id){ for(var i=0;i<ROLES.length;i++){ if(ROLES[i].role_id===id) return ROLES[i].name||id; } return id; }
+
+  function renderRolesPanel(userRoles){
+    var box=document.getElementById('roles'); if(!box) return;
+    var set={}; (userRoles||[]).forEach(function(r){ set[r]=1; });
+    box.innerHTML = ROLES.map(function(r){
+      var checked = set[r.role_id] ? ' checked' : '';
+      var hint = (String(r.func_allow||'').indexOf('*')>=0) ? '全部·慎授' : (r.data_scope||'');
+      return '<label class="flex items-center gap-2 border rounded-lg px-2 py-1.5 cursor-pointer">'
+        + '<input type="checkbox" class="rolechk" value="'+esc(r.role_id)+'"'+checked+' onchange="preview()">'
+        + '<span>'+esc(r.name||r.role_id)+'</span>'
+        + '<span class="ml-auto text-slate-400">'+esc(hint)+'</span></label>';
+    }).join('') || '<div class="text-slate-400">无角色定义</div>';
+    preview();
+  }
+
+  window.preview = function(){
+    var ids=[]; document.querySelectorAll('#roles .rolechk:checked').forEach(function(c){ ids.push(c.value); });
+    var admin = ids.indexOf('R-ADMIN')>=0;
+    var pv=document.getElementById('pv');
+    if(pv) pv.textContent='已选 '+ids.length+' 个角色 · '+(admin?'含系统管理员(全部权限)':'按角色并集授权')+' · 保存后即时生效 · 写入审计';
+  };
+
+  window.selUser = function(i, tr){
+    document.querySelectorAll('#utb tr').forEach(function(x){ x.classList.remove('sel'); });
+    if(tr) tr.classList.add('sel');
+    var u=USERS[i]; if(!u) return;
+    CUR=u;
+    var nm=document.getElementById('uname');
+    if(nm) nm.textContent=(u.username||'')+(u.name?(' · '+u.name):'');
+    renderRolesPanel(u.roles||[]);
+    toast('已选中 '+(u.username||'')+'，右侧权限已联动');
+  };
+
+  window.saveAuth = function(){
+    if(!CUR){ return toast('请先选择账号', true); }
+    var ids=[]; document.querySelectorAll('#roles .rolechk:checked').forEach(function(c){ ids.push(c.value); });
+    window.WmsSys.setRoles(CUR.username, ids).then(function(j){
+      if(j && j.data){ CUR.roles=j.data.roles||ids; toast('授权已保存并生效: '+CUR.username+' · 角色 '+ids.length+' 个'); renderTable(); }
+      else toast('保存失败', true);
+    }).catch(function(e){ toast('保存失败:'+((e&&e.message)||''), true); });
+  };
+
+  function renderTable(){
+    var tb=document.getElementById('utb'); if(!tb) return;
+    if(!USERS.length){ tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">暂无数据</td></tr>'; return; }
+    tb.innerHTML=USERS.map(function(x,i){
+      var on=String(x.enabled)!=='0'&&String(x.status||'启用')!=='停用';
+      var rn=(x.roles||[]).map(roleName).join(' / ')||'<span class="text-slate-400">未分配</span>';
+      return '<tr class="border-b hover:bg-blue-50 cursor-pointer'+(i===0?' sel':'')+'" onclick="selUser('+i+',this)">'
+        +'<td class="py-2"><b>'+esc(x.username)+'</b><br>'+esc(x.name||'')+'</td>'
+        +'<td>'+rn+'</td>'
+        +'<td>'+esc(x.data_scope||'')+'</td>'
+        +'<td><span class="px-2 rounded-full '+(on?'bg-emerald-100 text-emerald-700':'bg-slate-200 text-slate-500')+'">'+(on?'启用':'停用')+'</span></td>'
+        +'<td class="text-slate-400">—</td>'
+        +'<td><button onclick="event.stopPropagation();selUser('+i+',this.closest(\'tr\'))" class="text-blue-600">授权</button></td></tr>';
     }).join('');
-  }).catch(function(){var tb=document.getElementById('utb');if(tb)tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">后端不可达</td></tr>';});
-});
+  }
+
+  window.createUser = function(){
+    var g=function(id){ var e=document.getElementById(id); return e?e.value:''; };
+    var body={username:g('nu_user').trim(),name:g('nu_name').trim(),password:g('nu_pwd'),phone:g('nu_phone').trim()};
+    if(!body.username||!body.password){ return toast('账号与初始密码必填', true); }
+    window.WmsSys.createUser(body).then(function(j){
+      if(j && j.data){ toast('账号已创建: '+body.username); document.getElementById('m').classList.add('hidden'); loadAll(); }
+      else toast('创建失败', true);
+    }).catch(function(e){ toast('创建失败:'+((e&&e.message)||''), true); });
+  };
+
+  function loadAll(){
+    Promise.all([window.WmsSys.roles(), window.WmsSys.users()]).then(function(res){
+      ROLES=(res[0]&&res[0].data)||[]; USERS=(res[1]&&res[1].data)||[];
+      renderTable();
+      if(USERS.length){ selUser(0, document.querySelector('#utb tr')); }
+    }).catch(function(){ var tb=document.getElementById('utb'); if(tb) tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-6">后端不可达</td></tr>'; });
+  }
+  document.addEventListener('DOMContentLoaded', loadAll);
+})();
 </script></body></html>

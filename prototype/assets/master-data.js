@@ -80,9 +80,14 @@
     }
   };
   window.WmsSys = {
-    users: function(){ return get('/web/system/users'); },
+    users: function(){ return get('/web/system/users?page_size=200'); },
     roles: function(){ return get('/web/system/roles'); },
-    equipment: function(){ return get('/web/system/equipment'); }
+    equipment: function(){ return get('/web/system/equipment'); },
+    setRoles: function(username, roles){
+      return post('/web/system/users/' + encodeURIComponent(username) + '/roles',
+        {roles: roles || []});
+    },
+    createUser: function(payload){ return post('/web/system/users', payload || {}); }
   };
   document.addEventListener('DOMContentLoaded', function(){
     try{ window.WmsMaster.fillAll(); }catch(e){}

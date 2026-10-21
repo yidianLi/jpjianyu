@@ -220,7 +220,7 @@ def submit(doc_no: str, authed: dict = Depends(auth.need_auth),
 
 
 @router.post("/docs/{doc_no}/post")
-def post(doc_no: str, authed: dict = Depends(auth.need_auth),
+def post(doc_no: str, authed: dict = Depends(auth.require_func("过账")),
          db: Session = Depends(get_db),
          key: str = Depends(idem.idem_key)):
     head, _ = queries.fetch_doc_detail(db, doc_no)
@@ -257,7 +257,7 @@ def post(doc_no: str, authed: dict = Depends(auth.need_auth),
 
 @router.post("/docs/{doc_no}/approve")
 def approve(doc_no: str, body: ApproveReq,
-            authed: dict = Depends(auth.need_auth),
+            authed: dict = Depends(auth.require_func("审批")),
             db: Session = Depends(get_db)):
     if body.action not in ("通过", "退回", "approve", "reject"):
         return resp.fail(400, "审批动作非法")
