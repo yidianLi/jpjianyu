@@ -1,13 +1,18 @@
 """系统管理最小可用:登录/我/用户/角色/设备/队列.密码哈希比对,Token演示签发."""
 import hashlib
+import os
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.core import resp, auth
+from app.core import resp, auth, ratelimit
 from app.core.db import get_db
 
 router = APIRouter()
+
+# 生产环境(WMS_ENV=prod)下会话 Cookie 走 Secure,需 HTTPS.
+_COOKIE_SECURE = (os.getenv("WMS_ENV", "").lower() in ("prod", "production")
+                  or os.getenv("WMS_COOKIE_SECURE") == "1")
 
 
 def _sha(pwd):
@@ -22,12 +27,19 @@ class LoginReq(BaseModel):
 @router.post("/auth/login")
 def login(body: LoginReq, response: Response, db: Session = Depends(get_db)):
     username = body.username
+    rl_key = "login:" + str(username or "")
+    blocked, retry = ratelimit.is_blocked(rl_key)
+    if blocked:
+        return resp.fail(429, "尝试过于频繁，请 %d 秒后再试" % retry)
     row = db.execute(text("SELECT username,name,password_hash,enabled FROM sys_user"
                           " WHERE username=:u"), {"u": username}).mappings().first()
     if not row or int(row["enabled"] or 0) != 1:
+        ratelimit.record_fail(rl_key)
         return resp.fail(401, "TOKEN_INVALID:账号不存在或已停用")
     if not row["password_hash"] or row["password_hash"] != _sha(body.password):
+        ratelimit.record_fail(rl_key)
         return resp.fail(401, "TOKEN_INVALID:密码错误")
+    ratelimit.clear(rl_key)
     token = auth.issue_token(username)
     # 下发表会话 Cookie:供页面级登录门禁识别登录态(同源、HttpOnly)。
     # 前端仍按原逻辑把 token 存 localStorage 用于接口 Bearer 鉴权,两者并存。
@@ -38,7 +50,7 @@ def login(body: LoginReq, response: Response, db: Session = Depends(get_db)):
         samesite="lax",
         max_age=auth.JWT_EXP_SECONDS,
         path="/",
-        secure=False,
+        secure=_COOKIE_SECURE,
     )
     return resp.ok({"token": token, "name": row["name"], "username": username})
 

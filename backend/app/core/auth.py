@@ -16,11 +16,21 @@ APP_DEVICES = {"PDA-03", "PDA-04"}
 JWT_ALGO = "HS256"
 JWT_EXP_SECONDS = 8 * 60 * 60  # 8 小时
 
+_ENV = os.getenv("WMS_ENV", "").lower()
+_IS_PROD = _ENV in ("prod", "production")
+
 JWT_SECRET = os.getenv("WMS_JWT_SECRET", "")
 if not JWT_SECRET:
+    if _IS_PROD:
+        # 生产环境未配置密钥 -> 直接拒绝启动,避免带弱密钥上线
+        raise RuntimeError(
+            "生产环境(WMS_ENV=prod)必须配置 WMS_JWT_SECRET(建议64位随机串),"
+            "拒绝以开发默认密钥启动。")
     # 开发期兜底:明确告警,生产务必配置 WMS_JWT_SECRET
     logging.warning("WMS_JWT_SECRET 未配置,使用内置开发密钥,生产环境请勿如此!")
     JWT_SECRET = "dev-only-insecure-secret-change-me"
+elif _IS_PROD and len(JWT_SECRET) < 32:
+    raise RuntimeError("生产环境 WMS_JWT_SECRET 过短(应≥32位),拒绝启动。")
 
 
 def issue_token(username: str, device: str = "") -> str:

@@ -8,10 +8,9 @@
 <div class="relative text-[11px] text-blue-100 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> 内网环境 · 操作全程审计 · 涉密数据不出域</div></div>
 <div class="p-10">
 <h1 class="font-extrabold text-xl text-slate-800">安全登录</h1><p class="text-xs text-slate-500 mt-1">识别账号岗位与数据范围 · 失败不暴露账号是否存在</p>
-<div class="flex gap-2 mt-4 text-[11px] flex-wrap"><button onclick="setState('default')" class="px-2.5 py-1 rounded-full bg-blue-600 text-white">默认</button><button onclick="setState('err')" class="px-2.5 py-1 rounded-full bg-slate-100">密码错误</button><button onclick="setState('lock')" class="px-2.5 py-1 rounded-full bg-slate-100">账号锁定</button><button onclick="setState('net')" class="px-2.5 py-1 rounded-full bg-slate-100">网络不可用</button><button onclick="setState('first')" class="px-2.5 py-1 rounded-full bg-slate-100">首次确认</button></div>
-<label class="text-xs text-slate-600 font-bold mt-5 block">账号</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-regular fa-user text-slate-400"></i><input id="acc" value="wai_cang_zhang" class="flex-1 px-2 py-2.5 text-sm outline-none"></div>
-<label class="text-xs text-slate-600 font-bold mt-3 block">密码</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-solid fa-lock text-slate-400"></i><input id="pwd" type="password" value="12345678" class="flex-1 px-2 py-2.5 text-sm outline-none"><i class="fa-regular fa-eye text-slate-400"></i></div>
-<label class="text-xs text-slate-600 font-bold mt-3 block">安全口令 / 验证码</label><div class="flex gap-2 mt-1"><input value="8 4 2 9" class="flex-1 border rounded-lg px-3 py-2.5 text-sm tracking-[.4em] font-bold"><div class="w-28 h-[42px] rounded-lg bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center font-black text-blue-800 tracking-widest select-none">8·4·2·9</div></div>
+<label class="text-xs text-slate-600 font-bold mt-5 block">账号</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-regular fa-user text-slate-400"></i><input id="acc" placeholder="请输入账号" autocomplete="username" class="flex-1 px-2 py-2.5 text-sm outline-none"></div>
+<label class="text-xs text-slate-600 font-bold mt-3 block">密码</label><div class="flex items-center border rounded-lg px-3 mt-1"><i class="fa-solid fa-lock text-slate-400"></i><input id="pwd" type="password" placeholder="请输入密码" autocomplete="current-password" class="flex-1 px-2 py-2.5 text-sm outline-none"><i class="fa-regular fa-eye text-slate-400"></i></div>
+<label class="text-xs text-slate-600 font-bold mt-3 block">安全口令 / 验证码</label><div class="flex gap-2 mt-1"><input id="capIn" maxlength="7" placeholder="输入右侧数字" class="flex-1 border rounded-lg px-3 py-2.5 text-sm tracking-[.4em] font-bold"><div id="capShow" onclick="capRefresh()" title="点击刷新" class="w-28 h-[42px] rounded-lg bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center font-black text-blue-800 tracking-widest select-none cursor-pointer">----</div></div>
 <div id="msg" class="text-xs mt-3 hidden rounded-lg p-2.5"></div>
 <button title="操作" onclick="login()" class="w-full mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-3 rounded-xl hover:opacity-90"><i class="fa-solid fa-right-to-bracket mr-1"></i> 登录并进入驾驶舱</button>
 <div class="text-[11px] text-slate-500 mt-3 flex justify-between"><span><i class="fa-solid fa-laptop mr-1"></i>最近：办公电脑-PC07 · 09-11 17:42</span><span class="text-emerald-600"><i class="fa-solid fa-circle text-[8px]"></i> 内网正常 12ms</span></div>
@@ -21,7 +20,7 @@
 <script>
 function showToast(t,err){var d=document.getElementById('toast');d.textContent=t;d.style.background=err?'#dc2626':'#0f172a';d.classList.remove('hidden');setTimeout(function(){d.classList.add('hidden')},2200)}
 function toast(t){showToast(t)}
-function setState(s){var m=document.getElementById('msg');m.classList.remove('hidden');document.getElementById('firstBox').classList.add('hidden');if(s==='default'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-slate-50 text-slate-500 border';m.innerHTML='已填入演示账号 wai_cang_zhang · 点击登录进入驾驶舱';}if(s==='err'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号或密码不正确（剩余尝试 3 次），请重试。';}if(s==='lock'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-red-50 text-red-600 border border-red-200';m.innerHTML='账号已锁定，请联系系统管理员解锁（10 分钟后可重试）。';}if(s==='net'){m.className='text-xs mt-3 rounded-lg p-2.5 bg-orange-50 text-orange-600 border border-orange-200';m.innerHTML='内网连接不可用，已保留草稿，请检查网络后重试。';}if(s==='first'){m.classList.add('hidden');document.getElementById('firstBox').classList.remove('hidden');}}
+function msgShow(kind,text){var m=document.getElementById('msg');m.classList.remove('hidden');document.getElementById('firstBox').classList.add('hidden');m.className='text-xs mt-3 rounded-lg p-2.5 '+({ok:'bg-emerald-50 text-emerald-700 border border-emerald-200',err:'bg-red-50 text-red-600 border border-red-200',warn:'bg-orange-50 text-orange-600 border border-orange-200'}[kind]||'bg-slate-50 text-slate-500 border');m.innerHTML=text;}
 function enterDashboard(){
   var inApp = /from=app/.test(location.search);
   // 统一进壳首页:干净URL部署走 /app?page=home&from=app,文件部署走 app.html?page=home&from=app
@@ -37,11 +36,24 @@ function apiBase(){
     var host = location.host;
     if(host) return proto + '//' + host + '/api/v1';
   }catch(e){}
-  return localStorage.getItem('wms_api_base') || 'http://10.8.0.12:8080/api/v1';
+  return localStorage.getItem('wms_api_base') || (location.protocol + '//' + location.host + '/api/v1');
 }
+/* 轻量前端安全口令:随机4位,校验通过才提交登录(非后端强制,仅防误触/演示展示) */
+var _capCode = '';
+function capRefresh(){
+  _capCode = '';
+  for(var i=0;i<4;i++){ _capCode += String(Math.floor(Math.random()*10)); }
+  var el = document.getElementById('capShow');
+  if(el) el.textContent = _capCode.split('').join('·');
+}
+capRefresh();
 function login(){
-  var username=(document.getElementById('acc').value||'demo').trim();
+  var username=(document.getElementById('acc').value||'').trim();
   var password=document.getElementById('pwd').value||'';
+  var cap=(document.getElementById('capIn').value||'').replace(/\s/g,'');
+  if(!username){msgShow('warn','请输入账号');return;}
+  if(!password){msgShow('warn','请输入密码');return;}
+  if(cap!==_capCode){msgShow('warn','验证码不正确,请重新输入');capRefresh();document.getElementById('capIn').value='';return;}
   var base=apiBase();
   showToast('正在验证账号…');
   var ctl=null, timer=null;
@@ -49,13 +61,13 @@ function login(){
   fetch(base+'/web/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,password:password}),signal:ctl?ctl.signal:undefined})
     .then(function(r){return r.json().then(function(j){if(!r.ok||!j.data||!j.data.token)throw new Error(j.msg||'登录失败');return j;});})
     .then(function(j){if(timer)clearTimeout(timer);localStorage.setItem('wms_token',j.data.token);localStorage.setItem('wms_user',JSON.stringify(j.data));showToast('登录成功，正在进入驾驶舱');setTimeout(enterDashboard,450);})
-    .catch(function(e){if(timer)clearTimeout(timer);var msg=(e&&e.name==='AbortError')?'登录超时：后端不可达，请检查网络':'后端暂不可用，已进入演示模式';showToast(msg, true);localStorage.removeItem('wms_token');if(e&&e.name==='AbortError')return;setTimeout(enterDashboard,450);});
-  return;
-  showToast('登录成功 · 欢迎回来，张建国');
-  setTimeout(function(){
-    showToast('岗位已加载，正在进入 01 业务运营驾驶舱…');
-    setTimeout(enterDashboard, 650);
-  }, 650);
+    .catch(function(e){if(timer)clearTimeout(timer);localStorage.removeItem('wms_token');
+      if(e&&e.name==='AbortError'){msgShow('err','登录超时：后端不可达，请检查网络后重试。');return;}
+      var m=String((e&&e.message)||'登录失败');
+      if(/密码错误/.test(m))msgShow('err','账号或密码不正确，请重试。');
+      else if(/停用|锁定/.test(m))msgShow('err','账号已停用或锁定，请联系系统管理员。');
+      else if(/不存在/.test(m))msgShow('err','账号或密码不正确，请重试。');
+      else msgShow('warn','登录失败：'+m+'。请检查网络后重试。');});
 }
 function loginFirstConfirm(){
   showToast('已确认，进入驾驶舱');
