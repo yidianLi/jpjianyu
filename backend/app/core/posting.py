@@ -14,7 +14,10 @@ def make_doc_no(db, prefix):
                     " INTO sys_sequence(seq_name,cid,next_val,remark)"
                     " VALUES('DOC_MAIN.DOC_NO',0,10000001,'单据主键池')" +
                     dialect.insert_ignore_suffix(["seq_name"])))
-    row = db.execute(text("SELECT next_val FROM sys_sequence WHERE seq_name=:n"),
+    # 并发安全:锁住序列行再自增,避免两单拿到同一号撞主键.
+    # MySQL/PG/达梦/金仓均支持 FOR UPDATE,行锁在调用方事务提交时释放.
+    row = db.execute(text("SELECT next_val FROM sys_sequence WHERE seq_name=:n"
+                          " FOR UPDATE"),
                      {"n": "DOC_MAIN.DOC_NO"}).mappings().first()
     nxt = int(row["next_val"]) if row else 10000001
     db.execute(text("UPDATE sys_sequence SET next_val=:v WHERE seq_name=:n"),
