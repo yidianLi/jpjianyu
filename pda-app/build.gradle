@@ -1,0 +1,4 @@
+// 顶层构建:AGP 版本与 Gradle 8.x 配套
+plugins {
+    id 'com.android.application' version '8.1.4' apply false
+}

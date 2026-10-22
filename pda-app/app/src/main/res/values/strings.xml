@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">简普PDA</string>
+    <!-- 换成你的后端 H5 地址(手机与PC同网段);也可用 adb -e url 覆盖 -->
+    <string name="h5_url">http://192.168.1.10:8080/proto/mobile-app/screens/home.html</string>
+</resources>
