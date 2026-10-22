@@ -2,6 +2,13 @@ plugins {
     id 'com.android.application'
 }
 
+// 发布签名:读 keystore.properties(该文件不入库,见 .gitignore);缺省则用 debug 签名
+def ksPropsFile = rootProject.file("keystore.properties")
+def ksProps = new Properties()
+if (ksPropsFile.exists()) {
+    ksPropsFile.withInputStream { ksProps.load(it) }
+}
+
 android {
     namespace 'com.jianyu.pda'
     compileSdk 33
@@ -14,6 +21,17 @@ android {
         versionName '1.0'
     }
 
+    signingConfigs {
+        release {
+            if (ksProps['storeFile']) {
+                storeFile rootProject.file(ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -23,6 +41,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (ksProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

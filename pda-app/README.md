@@ -30,10 +30,20 @@ pda-app/
   `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://<PC-IP>:8080/proto/mobile-app/screens/home.html"`
 
 ## 构建
+- **本机已配好（D 盘）现成命令**：
+  ```
+  powershell -ExecutionPolicy Bypass -File pda-app\build.ps1 release
+  ```
+  脚本自动设好 `JAVA_HOME=D:\Android\jdk17`、`ANDROID_HOME=D:\Android\Sdk`、`Gradle=D:\Android\gradle-8.2`，产物复制到 `output\apk\JianyuPDA-v1.0-release.apk`。
 - **Android Studio**：直接 Open 本目录，Gradle 同步后 Run。
-  （若缺 `gradle-wrapper.jar`，Studio 会提示生成，或执行 `gradle wrapper --gradle-version 8.2`。）
-- **命令行**：`cd pda-app && gradle assembleDebug`（需本机有 Android SDK 与 Gradle 8.x）。
-- 产物：`app/build/outputs/apk/debug/app-debug.apk`。
+- **命令行手动**：
+  ```
+  cd pda-app
+  $env:JAVA_HOME="D:\Android\jdk17"; $env:ANDROID_HOME="D:\Android\Sdk"
+  D:\Android\gradle-8.2\gradle-8.2\bin\gradle.bat assembleRelease
+  ```
+- 产物：`app/build/outputs/apk/{debug,release}/app-*.apk`（已生成 `JianyuPDA-v1.0-release.apk` / `-debug.apk` 归档在 `output/apk/`）。
+- **发布签名**：`keystore.properties`（不入库）指向 `D:\jianyu-keys\jianyu-pda.jks`；缺失则 release 出未签名包。
 
 ## 与 H5 对接（已有）
 - 页面里 `input[data-scan-input]`：键盘/输入框模式聚焦即可回收（回车触发）。

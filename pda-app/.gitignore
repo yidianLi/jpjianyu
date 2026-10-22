@@ -6,4 +6,4 @@
 build/
 /captures
 .externalNativeBuild
-.cxx
+.cxxkeystore.properties
