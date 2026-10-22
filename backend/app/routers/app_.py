@@ -10,6 +10,7 @@ from app.core import resp, auth, ratelimit, posting
 from app.core.db import get_db
 from app.routers.app_scan import mat_of_code as _mat_of_code
 from app.routers.app_scan import loc_of_code as _loc_of_code
+from app.routers.app_scan import parse_label as _parse_label
 
 router = APIRouter()
 
@@ -164,6 +165,16 @@ def submit(body: dict, authed: dict = Depends(auth.need_auth),
             if hit:
                 m = hit["material_code"]
                 batch = batch or hit.get("batch_no") or ""
+        if not m and code:
+            # 二维码里的整串标签文本:从"键=值"里抽物料编码/数量/批次/库位
+            f = _parse_label(code)
+            if f.get("material_code"):
+                m = f["material_code"]
+                batch = batch or f.get("batch_no", "")
+            if f.get("loc") and not str(ln.get("loc") or "").strip():
+                ln = dict(ln, loc=f["loc"])
+            if f.get("qty") and not ln.get("qty"):
+                ln = dict(ln, qty=f["qty"])
         if not m:
             continue
         try:

@@ -85,6 +85,19 @@
         paint();toast('已绑定单据 '+j.doc_no);return;
       }
       if(j.kind==='LOC'){setLoc(j.loc||code);list.unshift({code:code,ok:true,msg:'库位 '+(j.loc||code)+'（'+(j.wh||'')+'）',t:nowT()});paint();return;}
+      if(j.kind==='TEXT'){
+        // 二维码里的整串标签文本:按解析出的字段入单,物料缺失时给候选让人工选
+        var f=j.fields||{};
+        var mat=f.material_code||'';
+        var cands=j.candidates||[];
+        if(!mat&&cands.length===1){mat=cands[0].material_code;}
+        list.unshift({code:code,ok:!!mat,msg:mat?(mat+' · '+(f.qty||1)+(f.batch?' 批'+f.batch:'')):(cands.length?('未知物料（候选'+cands.length+'）'):'无法解析物料'),
+          material:mat,batch:f.batch_no||'',unit:'',qty:parseFloat(f.qty||1)||1,loc:f.loc||'',t:nowT(),text:true,cands:cands});
+        if(f.loc)setLoc(f.loc);
+        paint();
+        toast(mat?('已解析 '+mat):('文本码：'+(cands.length?('请人工确认物料'):'无法解析')));
+        return;
+      }
       list.unshift({code:code,ok:true,msg:(j.name||j.material)+' · '+(j.batch||'无批次'),material:j.material,batch:j.batch||'',unit:j.unit||'',qty:1,t:nowT()});
       paint();
     }).catch(function(){list.unshift({code:code,ok:false,msg:'查码失败（网络）',t:nowT()});paint();});
@@ -99,7 +112,7 @@
   /* 提交:组装 lines(条码+数量+单位+库位)→ 真实建单 → 照片挂附件 */
   function payload(draft){
     var lines=validRows().map(function(s){
-      return {code:s.code,material_code:s.material||'',batch_no:s.batch||'',qty:Number(s.qty||1),unit:s.unit||'',loc:loc};
+      return {code:s.code,material_code:s.material||'',batch_no:s.batch||'',qty:Number(s.qty||1),unit:s.unit||'',loc:s.loc||loc};
     });
     return {biz:biz,doc:docNo(),loc:loc,lines:lines,draft:!!draft,at:new Date().toISOString()};
   }

@@ -77,6 +77,17 @@
         if(el('fromLoc'))el('fromLoc').value=d.loc;
         toast('库位：'+d.loc+'（已设为源库位）');return;
       }
+      if(d.kind==='TEXT'){
+        // 二维码整串标签文本:按解析字段入行;物料缺失时用候选的第一条(或让用户手输)
+        var f=d.fields||{}, cands=d.candidates||[];
+        var mat=f.material_code||(cands[0]&&cands[0].material_code)||'';
+        if(!mat){toast('无法解析物料，请手动输入');return;}
+        var hit2=LINES.filter(function(x){return x.code===code;})[0];
+        if(hit2){hit2.qty+=1;paintLines();toast('数量+1');return;}
+        LINES.push({code:code,material_code:mat,name:(cands[0]&&cands[0].name)||mat,unit:'',batch:f.batch_no||'',qty:parseFloat(f.qty||1)||1});
+        paintLines();toast('已加入 '+mat);
+        return;
+      }
       var hit=LINES.filter(function(x){return x.code===code;})[0];
       if(hit){hit.qty+=1;paintLines();toast(hit.name+' 数量+1');return;}
       LINES.push({code:code,material_code:d.material,name:d.name||d.material,unit:d.unit||'',batch:d.batch||'',qty:1});

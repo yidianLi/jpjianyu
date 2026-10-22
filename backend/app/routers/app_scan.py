@@ -54,6 +54,62 @@ def doc_of_code(db, code: str):
     return dict(row) if row else None
 
 
+# 二维码里常见的中文键值标签(物料码/数量/批次/库位/单号/名称),用于"扫标签取整串文本"兜底
+_LABEL_KEYS = {
+    "material_code": ("物料编码", "物料代码", "物料号", "物料", "编码", "料号", "sku"),
+    "qty": ("数量", "件数", "箱数", "qty", "quantity"),
+    "batch_no": ("批次号", "批次", "批号", "batch", "lot"),
+    "loc": ("库位", "货位", "储位", "库区", "location", "loc"),
+    "doc_no": ("单号", "单据号", "单据", "doc", "docno", "order"),
+    "name": ("品名", "名称", "物料名称", "name"),
+}
+
+
+def parse_label(raw_text: str) -> dict:
+    """从扫到的自由文本里抽结构化字段(兼容 键=值 / 键:值 / 键 值 三种写法).
+    用于二维码里塞整串标签文本(如 "物料:HD-NK-005;数量:5;批次:IT-QC-xxx")的场景.
+    参数名避开 text:它会遮蔽 SQLAlchemy 的 text() 构造器."""
+    raw = str(raw_text or "").strip()
+    out = {}
+    if not raw:
+        return out
+    for field, keys in _LABEL_KEYS.items():
+        for k in keys:
+            for sep in ("=", ":", "："):
+                token = k + sep
+                idx = raw.find(token)
+                if idx < 0:
+                    continue
+                val = raw[idx + len(token):]
+                # 取到下一个分隔符为止(含全角分隔符)
+                for stop in (";", "；", ",", "，", "|", "｜", "\n", "\r",
+                             "\t", " ", "\u3000"):
+                    p = val.find(stop)
+                    if p >= 0:
+                        val = val[:p]
+                val = val.strip().strip("\"'")
+                if val:
+                    out[field] = val
+                    break
+            if field in out:
+                break
+    return out
+
+
+def candidates_of(db, keyword: str, limit: int = 5) -> list:
+    """按名称/编码模糊找候选物料,供现场人工确认(扫到的是标签文本而非系统条码时).
+    参数名避开 text:它会遮蔽 SQLAlchemy 的 text() 构造器."""
+    kw = str(keyword or "").strip()
+    if not kw:
+        return []
+    rows = db.execute(text(
+        "SELECT material_code,name,spec,base_unit FROM mat_master"
+        " WHERE enabled=1 AND (material_code LIKE :k OR name LIKE :k)"
+        " ORDER BY material_code LIMIT :n"),
+        {"k": "%" + kw + "%", "n": int(limit)}).mappings().all()
+    return [dict(r) for r in rows]
+
+
 @router.post("/scan")
 def scan(body: dict, authed: dict = Depends(auth.need_auth),
          db: Session = Depends(get_db)):
@@ -109,7 +165,8 @@ def lookup(code: str = "", authed: dict = Depends(auth.need_auth),
            db: Session = Depends(get_db)):
     """扫码查码(无副作用):解析条码为 物料/库位/单据,供清单行内"扫物料码"匹配.
     不写 scan_log、不判重复,避免同物料多行被 SEEN 去重误伤;通用扫码仍用 /app/scan。
-    kind:DOC=单据码(扫单据条码绑定当前单) / SB=物料条码 / LOC=库位码."""
+    kind:DOC=单据码 / SB=物料条码 / LOC=库位码 / TEXT=二维码里的自由文本(原样透传+可解析字段+候选物料).
+    """
     auth.need_app_device(authed)
     code = str(code or "").strip()
     if not code:
@@ -123,6 +180,13 @@ def lookup(code: str = "", authed: dict = Depends(auth.need_auth),
     loc = db.execute(text("SELECT loc_code,wh_code FROM location WHERE loc_code=:c"
                           " OR qr_code=:c"), {"c": code}).mappings().first()
     if not item and not loc:
+        # 兜底:二维码里塞的是整串标签文本(不是系统条码)→ 原样透传 + 尝试抽字段 + 给候选物料
+        fields = parse_label(code)
+        cands = candidates_of(db, fields.get("name") or fields.get("material_code") or code)
+        if fields or cands:
+            return resp.ok({"code": code, "kind": "TEXT", "raw": code,
+                            "fields": fields, "candidates": cands,
+                            "tip": "非系统条码，已按文本解析，可人工确认物料后入单"})
         return resp.fail(404, "INVALID:无效码")
     if item:
         mat = db.execute(text("SELECT COALESCE(name,'') name,"

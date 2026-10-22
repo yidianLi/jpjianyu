@@ -80,9 +80,11 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 | **单据码**（单号/单据二维码，如 `RK000090`） | `DOC` | 自动填入「关联单据」框，列表提示"单据 RK000090（RK POSTED）"；可继续扫物料码把料挂到该单 |
 | **物料条码**（单件码 `SBxxx` / 物料编码） | `SB` | 列表新增一行：物料名·批次，可 −/+ 调数量；提交时按此建单 |
 | **库位码**（`WH-A-01` / 库区二维码） | `LOC` | 自动定位当前库位（后续物料行都记这个库位） |
+| **二维码里的整串标签文本**（如 `物料:HD-NK-005;数量:5;批次:IT-QC-xxx;库位:WH-A-01`） | `TEXT` | 自动抽出物料/数量/批次/库位入行；抽不到物料时给候选物料让人工确认；提交时后端也会再解析一次 |
 | 都不匹配 | 404 | 提示"无效码"，不入单 |
 
-> 识别顺序：**单据 → 物料 → 库位**。单据码扫描不写物料扫码日志（它不是物料码）。
+> 识别顺序：**单据 → 物料 → 库位 → 文本**。单据码扫描不写物料扫码日志（它不是物料码）。
+> `TEXT` 支持的键名：`物料编码/物料代码/物料号/物料/编码/料号`、`数量/件数/箱数`、`批次号/批次/批号`、`库位/货位/储位/库区`、`单号/单据号`、`品名/名称`；分隔符 `=` `:` `：` 与 `;` `，` `|` 空格 换行。
 
 ## 六、联调步骤
 
@@ -99,13 +101,15 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 | `/app/login` → PDA 设备令牌 | 200，device=PDA-03 |
 | `/app/lookup` 扫物料码 | 200，`{material, batch, name, unit}` |
 | `/app/lookup` 扫单据码 | 200，`{kind:DOC, doc_no, doc_type, biz_status}` |
+| `/app/lookup` 扫标签文本 | 200，`{kind:TEXT, fields:{material_code,qty,batch_no,loc}, candidates:[...]}` |
+| `/app/submit` 只给标签文本 | 200 → 建单 `RK000117`，行内容 `HD-NK-005 / IT-QC-3dcc6e / 3 件 / WH-A-01` |
 | `/app/submit` 仅给条码 | 200 → 真实建单 `RK000116`，`biz_status=POSTED` |
 | 过账后库存流水 | `stock_ledger` 落 `dir=1 / qty / device=PDA-03` |
 | 扫码日志挂单 | `scan_log.doc_no` = 建出的单号 |
 | `/app/checklists` → 确认 | 200；未勾选 400、有差异无原因 400 |
 | `/app/pd_tasks` 建/取行/确认/调账 | 200，调账生成 `TZ` 单并 `POSTED` |
 | `/app/transfer_ships` 建单/列表/实收 | 200，差异转「待复核」 |
-| `pytest backend/tests` | 52 passed, 2 skipped |
+| `pytest backend/tests` | 57 passed, 2 skipped |
 
 > ⚠️ **硬件扫描枪本身尚未在真机验证**（本机无 adb 设备）。代码链路按厂商 Demo 源码实现，装机后若扫不出码，看 `adb logcat -s PdaShell`。
 

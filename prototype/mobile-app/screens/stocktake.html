@@ -116,6 +116,22 @@
       var d=r.data;
       if(d.kind==='DOC'){toast('单据 '+d.doc_no);return;}
       if(d.kind==='LOC'){toast('库位码：'+d.loc);return;}
+      if(d.kind==='TEXT'){
+        // 二维码整串标签文本:按解析出的物料定位到盘点行
+        var tf=d.fields||{}, cands=d.candidates||[];
+        var mat=tf.material_code||(cands[0]&&cands[0].material_code)||'';
+        if(!mat){toast('无法解析物料');return;}
+        var hit2=-1;
+        for(var k=0;k<LINES.length;k++){
+          if(LINES[k].material_code===mat||LINES[k].batch_no===tf.batch_no){hit2=k;break;}
+        }
+        if(hit2<0){toast('该物料不在本次盘点范围');return;}
+        focusIdx=hit2;paint();
+        var inp2=el('pdList').querySelector('[data-rq="'+hit2+'"]');
+        if(inp2){inp2.focus();inp2.select();}
+        toast('定位到第 '+LINES[hit2].line_no+' 行：'+mat);
+        return;
+      }
       var hit=-1;
       for(var i=0;i<LINES.length;i++){
         if(LINES[i].material_code===d.material||LINES[i].batch_no===d.batch){hit=i;break;}

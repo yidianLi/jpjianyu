@@ -72,6 +72,15 @@
       var d=r.data;
       if(d.kind==='DOC'){toast('单据 '+d.doc_no);return;}
       if(d.kind==='LOC'){LOC=d.loc||code;var le=document.getElementById('locInput');if(le)le.value=LOC;toast('库位：'+LOC);return;}
+      if(d.kind==='TEXT'){
+        var tf=d.fields||{}, cands=d.candidates||[];
+        var mat=tf.material_code||(cands[0]&&cands[0].material_code)||'';
+        if(!mat){toast('无法解析物料，请手动输入');return;}
+        LINES.push({code:code,material_code:mat,name:(cands[0]&&cands[0].name)||mat,unit:'',batch:tf.batch_no||'',qty:parseFloat(tf.qty||1)||1});
+        paint();
+        toast('已加入 '+mat);
+        return;
+      }
       if(LINES.some(function(x){return x.code===code;})){toast('重复码已拦截');return;}
       LINES.push({code:code,material_code:d.material,name:d.name||d.material,unit:d.unit||'',batch:d.batch||'',qty:1});
       paint();

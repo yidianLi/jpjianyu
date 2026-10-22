@@ -137,6 +137,21 @@
         if(scanIdx>=0) document.getElementById('scanStatus').textContent=m2;
         toast(m2); return;
       }
+      if(d.kind==='TEXT'){
+        // 二维码整串标签文本:能解析出本行物料就按标签确认,否则提示人工核对
+        var tf=d.fields||{};
+        if(tf.material_code && line.material_code && tf.material_code===line.material_code){
+          line.checked=true; line.received_qty=parseFloat(tf.qty||line.delivery_qty); line.scanned=true;
+          paint();
+          if(scanIdx>=0) closeScan();
+          toast('\\u2713 标签匹配，已确认 '+line.material_code);
+        }else{
+          var m3='标签物料 '+(tf.material_code||'未识别')+' 与本行 '+line.material_code+' 不符';
+          if(scanIdx>=0) document.getElementById('scanStatus').textContent=m3;
+          toast(m3);
+        }
+        return;
+      }
       if(d.kind==='SB'){
         if(d.material && line.material_code && d.material===line.material_code){
           line.checked=true; line.received_qty=line.delivery_qty; line.scanned=true;
