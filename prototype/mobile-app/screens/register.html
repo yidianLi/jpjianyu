@@ -1,21 +1,25 @@
 <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>物料登记 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style><script src="../api-client.js"></script><script src="../app-bridge.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
 <div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
-<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]" id="bizTitle">物料登记 DJ</b><span class="ml-auto text-[11px] text-slate-400">2行 · 合计350</span></div>
+<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]" id="bizTitle">物料登记 DJ</b><span class="ml-auto text-[11px] text-slate-400" id="lineSum">0 行</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
 <div id="missWarn" class="hidden bg-red-50 border border-red-200 rounded-xl p-2.5 text-[11px] text-red-700"></div>
 <div class="bg-white border-l-4 !border-l-blue-600 border border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">关联申请领料单（可选）</b><button class="border-[1.5px] border-slate-200 rounded-lg px-3 py-1.5 text-[12px] font-bold">快捷选择</button></div><p class="text-[11px] text-slate-500 mt-1">已关联 SQ20260916003 · 缝制一车间 · 1行</p></div>
 <div class="flex gap-2"><button class="flex-1 border-[1.5px] border-slate-200 bg-white rounded-xl py-2.5 text-[12px] font-bold">＋ 快捷添加清单</button><button class="flex-1 border-[1.5px] border-slate-200 bg-white rounded-xl py-2.5 text-[12px] font-bold">＋ 建档</button></div>
 <div class="bg-white border-[1.5px] border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">牛津布 藏青</b><span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">已扫 1 箱</span></div><p class="text-[11px] text-slate-500 mt-0.5">10A0501020100013 · 米 · 每箱50米</p><div class="flex gap-1.5 mt-2 items-center"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">−</button><input value="300" class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">＋</button><button class="border-[1.5px] border-slate-200 rounded-[10px] px-2.5 h-10 text-[12px] font-bold">扫箱码</button></div></div>
 <div class="bg-white border-[1.5px] border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">拉链 黑色</b><span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">已扫 0 箱</span></div><p class="text-[11px] text-slate-500 mt-0.5">10A0501020100015 · 件 · 每箱100件</p><img src="https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=600&q=60&auto=format&fit=crop" class="w-full h-20 object-cover rounded-xl mt-2"><div class="flex gap-1.5 mt-2 items-center"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">−</button><input value="50" class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">＋</button><button class="border-[1.5px] border-slate-200 rounded-[10px] px-2.5 h-10 text-[12px] font-bold">扫箱码</button></div></div>
+<div id="lineBox" class="space-y-2"></div>
+<p class="text-[11px] font-bold text-slate-600 px-1">存放库区 <span class="text-red-500">*</span></p><input id="locInput" value="" class="w-full h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-bold">
 <p class="text-[11px] font-bold text-slate-600 px-1">批次号（空则自动生成）</p><input value="BT2026091601" class="w-full h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-bold font-mono">
-<p class="text-[11px] font-bold text-slate-600 px-1">存放库区 <span class="text-red-500">*</span></p><input value="第1栏第1格" class="w-full h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-bold">
-<div class="grid grid-cols-2 gap-2"><button class="border-[1.5px] border-slate-200 bg-white rounded-xl py-3 font-bold text-[14px]">存草稿</button><button class="bg-teal-600 text-white rounded-xl py-3 font-bold text-[14px]">提交登记入账</button></div>
+<div class="grid grid-cols-2 gap-2"><button id="draftBtn" class="border-[1.5px] border-slate-200 bg-white rounded-xl py-3 font-bold text-[14px]">存草稿</button><button id="submitBtn" class="bg-teal-600 text-white rounded-xl py-3 font-bold text-[14px]">提交登记入账</button></div>
 <p class="text-[11px] text-slate-400 px-1">过账后一物一码逐件生成条码；过账幂等，重复提交自动拒绝。</p>
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="register.html?biz=DJ"><i class="fa-solid fa-barcode text-[19px] block mb-0.5"></i>登记</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<script src="../pda-scan.js"></script>
 <script>
 (function(){
-  // P0-1修复:register.html?biz=DJ|RK|LY|TL|TK|RJ 一页六态;TK物料退库/RJ来料拒收不再回退DJ
+  /* 物料登记页:扫码交接(handoff)→ 查码 → 组成 lines → 真提交建单
+   * 原实现只把条码存进 __SCAN_CODES 让 app-bridge 兜底提交(数量/单位缺失,后端会入待补全队列),
+   * 现改为:交接码逐个 lookup 得到物料/单位/批次,页面按行可调数量,提交时带齐 lines。*/
   var biz='DJ';
   try{biz=(new URLSearchParams(location.search).get('biz')||'DJ').toUpperCase();}catch(e){}
   if('DJRKLYTLTKRJ'.indexOf(biz)<0||biz.length!==2)biz='DJ';
@@ -23,27 +27,97 @@
   var NAMES={DJ:'物料登记 DJ',RK:'物料入库 RK',LY:'物料领用 LY',TL:'车间退料 TL',TK:'物料退库 TK',RJ:'来料拒收 RJ'};
   if(cat==='CP'&&biz==='DJ')NAMES.DJ='成品登记 CP';
   document.getElementById('bizTitle').textContent=NAMES[biz];
-  // LY超发拦截(qty<=avail)为P1保留校验;TL校验src_doc;缺关联标红待处理
   var miss=[];
-  if(biz==='LY')miss=['LY2026091608 缺可用量校验:本次800米,可用3980米 ✓'];
-  if(biz==='TL')miss=['TL2026091601 缺对应LY:原领 LY2026091108 待补关联 → 点 docs 补录'];
-  if(biz==='RK')miss=['RK 待关联DJ:缺 DJ20260916003,单照过,待补'];
-  if(biz==='TK')miss=['TK 物料退库:退库出库需关联原入库单,超退会被拦'];
+  if(biz==='LY')miss=['LY 缺可用量校验:本次数量超过可用量会被过账拦截'];
+  if(biz==='TL')miss=['TL 缺对应LY:退料需关联原领用单,待补关联'];
+  if(biz==='RK')miss=['RK 待关联DJ:缺来源单,单照过,待补'];
+  if(biz==='TK')miss=['TK 物料退库:超退会被过账拦截'];
   if(biz==='RJ')miss=['RJ 来料拒收:只留不合格凭证,不写库存;请填差异原因'];
   var w=document.getElementById('missWarn');
   if(miss.length){w.classList.remove('hidden');w.innerHTML='缺关联待处理(不拦单):<br>'+miss.join('<br>');}
+
+  var LINES=[];   // {code,material_code,name,unit,batch,qty}
+  var LOC='';
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2400);}
+
+  function paint(){
+    var box=document.getElementById('lineBox');
+    if(!box)return;
+    if(!LINES.length){box.innerHTML='<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] text-slate-400 text-center">暂无扫码物料：切到「扫码」页扫描条码后「转入登记」，或在本页直接扫</p></div>';return;}
+    box.innerHTML=LINES.map(function(r,i){
+      return '<div class="bg-white border-[1.5px] border-slate-200 rounded-2xl p-3" data-line="'+i+'">'
+        +'<div class="flex justify-between items-center"><b class="text-[13px]">'+esc(r.name||r.material_code)+'</b>'
+        +'<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">'+esc(r.unit||'')+'</span></div>'
+        +'<p class="text-[11px] text-slate-500 mt-0.5">'+esc(r.material_code||'')+(r.batch?(' · '+esc(r.batch)):'')+(r.code?(' · '+esc(r.code)):'')+'</p>'
+        +'<div class="flex gap-1.5 mt-2 items-center"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg" data-lmin="'+i+'">−</button>'
+        +'<input class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold" data-lqty="'+i+'" value="'+esc(String(r.qty||1))+'">'
+        +'<button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg" data-lplus="'+i+'">＋</button></div></div>';
+    }).join('');
+    box.querySelectorAll('[data-lqty]').forEach(function(inp){
+      inp.onchange=function(){var i=+inp.getAttribute('data-lqty');var v=parseFloat(inp.value);LINES[i].qty=(isNaN(v)||v<=0)?1:v;paint();};
+    });
+    box.querySelectorAll('[data-lmin]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-lmin');LINES[i].qty=Math.max(1,(LINES[i].qty||1)-1);paint();};});
+    box.querySelectorAll('[data-lplus]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-lplus');LINES[i].qty=(LINES[i].qty||1)+1;paint();};});
+    var sum=document.getElementById('lineSum');
+    if(sum)sum.textContent=LINES.length+' 行 · 合计 '+LINES.reduce(function(a,r){return a+(Number(r.qty)||1);},0)+' '+((LINES[0]&&LINES[0].unit)||'');
+  }
+
+  function addCode(code){
+    code=String(code||'').trim();
+    if(!code)return;
+    if(!window.AppApi){toast('未登录/离线，无法查码');return;}
+    AppApi.lookup(code).then(function(r){
+      if(!r||!r.ok||!r.data){toast((r&&r.msg)||'无效码');return;}
+      var d=r.data;
+      if(d.kind==='DOC'){toast('单据 '+d.doc_no);return;}
+      if(d.kind==='LOC'){LOC=d.loc||code;var le=document.getElementById('locInput');if(le)le.value=LOC;toast('库位：'+LOC);return;}
+      if(LINES.some(function(x){return x.code===code;})){toast('重复码已拦截');return;}
+      LINES.push({code:code,material_code:d.material,name:d.name||d.material,unit:d.unit||'',batch:d.batch||'',qty:1});
+      paint();
+      toast('已加入 '+esc(d.name||d.material));
+    }).catch(function(){toast('查码失败（网络）');});
+  }
+
+  /* 扫码交接:把扫码页带来的条码逐个查码入库 */
   try{
     var ho=JSON.parse(localStorage.getItem('wms_scan_handoff')||'null');
-    if(ho&&ho.codes&&ho.codes.length&&(ho.biz===biz||ho.biz==='DJ')){
-      window.__SCAN_CODES=ho.codes;
+    if(ho&&ho.codes&&ho.codes.length){
+      LOC=ho.loc||LOC;
+      var le=document.getElementById('locInput');
+      if(le&&ho.loc)le.value=ho.loc;
       w.classList.remove('hidden');
-      w.innerHTML+=(w.innerHTML?'<br>':'')+'从扫码带入 '+ho.codes.length+' 码'+(ho.doc?'（单据'+ho.doc+'）':'')+':'+ho.codes.slice(0,6).join('、')+(ho.codes.length>6?'…':'');
+      w.innerHTML+=(w.innerHTML?'<br>':'')+'从扫码带入 '+ho.codes.length+' 码'+(ho.doc?('（单据'+ho.doc+'）'):'')+':'+ho.codes.slice(0,6).join('、')+(ho.codes.length>6?'…':'');
       localStorage.removeItem('wms_scan_handoff');
+      ho.codes.forEach(addCode);
     }
   }catch(e){}
+
   var subs=document.querySelectorAll('button');
   for(var i=0;i<subs.length;i++){var t=subs[i].textContent||'';
     if(t.indexOf('提交登记入账')>-1){subs[i].textContent=biz==='TK'?'提交退库':biz==='RJ'?'提交拒收单':biz==='LY'?'提交领用':biz==='RK'?'提交入库':'提交登记入账';break;}}
+
+  function submitNow(draft){
+    if(!LINES.length){toast('还没有物料行，请先扫码');return;}
+    var locInput=document.getElementById('locInput');
+    var loc=locInput?String(locInput.value||'').trim():LOC;
+    var lines=LINES.map(function(r){return {code:r.code,material_code:r.material_code||'',batch_no:r.batch||'',qty:Number(r.qty||1),unit:r.unit||'',loc:loc};});
+    var btn=document.getElementById('submitBtn');
+    if(btn){btn.disabled=true;btn.textContent='提交中…';}
+    AppApi.submit({biz:biz,cat:cat,lines:lines,draft:draft,at:new Date().toISOString()}).then(function(r){
+      if(btn){btn.disabled=false;btn.textContent=biz==='TK'?'提交退库':biz==='RJ'?'提交拒收单':biz==='LY'?'提交领用':biz==='RK'?'提交入库':'提交登记入账';}
+      var d=(r&&r.data)||{};
+      if(r&&r.ok&&d.doc_no){toast((draft?'已存草稿 ':'提交成功 ✓ ')+(d.biz_name||biz)+' '+d.doc_no);if(!draft)LINES=[];paint();}
+      else if(r&&r.ok&&r.queued){toast('资料不全已暂存待补全(需物料/数量/单位)');}
+      else toast('提交失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){if(btn){btn.disabled=false;}toast('网络异常');});
+  }
+  var sb=document.getElementById('submitBtn');if(sb)sb.onclick=function(){submitNow(false);};
+  var db=document.getElementById('draftBtn');if(db)db.onclick=function(){submitNow(true);};
+
+  /* 本页直接扫:壳广播/键盘楔统一入口 */
+  if(window.PdaScan&&PdaScan.on){PdaScan.on(function(code){addCode(code);});}
+  paint();
 })();
 </script>
 </body></html>

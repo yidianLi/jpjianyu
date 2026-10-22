@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>清单验收 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}.card{background:#fff;border:1px solid #dde5ee;border-radius:16px}</style><script src="../api-client.js"></script><script src="../pda-scan.js"></script><script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7] relative">
+<div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
+<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]" id="title">清单验收</b><span id="syncBadge" class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white">已同步</span></div>
+<div class="flex-1 overflow-y-auto p-3 space-y-3">
+<div class="bg-white border-l-4 !border-l-blue-600 border border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]" id="orderNo">–</b><span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full" id="custName">客户 –</span></div><p class="text-[11px] text-slate-500 mt-1">逐行核对实收数量，有差异必须填原因；确认后入账。</p></div>
+
+<div class="flex justify-between items-baseline px-1"><h2 class="font-bold text-[15px]">验收明细</h2><span class="text-[11px] text-slate-500" id="lineCount">0 项</span></div>
+<div id="listBox"><div class="card p-3"><p class="text-[11px] text-slate-400 text-center">加载中…</p></div></div>
+
+<button id="confirmBtn" class="w-full bg-[#2f6fe4] text-white rounded-xl py-3.5 font-bold text-[14px] active:scale-95">确认验收并提交</button>
+<p class="text-[10px] text-slate-400 text-center">弱网会自动存草稿，联网后于「我的」补传</p>
+</div>
+
+<nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+
+<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-[#10233f] text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-lg"></div>
+
+<div id="scanSheet" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-end justify-center">
+  <div class="w-full max-w-[393px] bg-white rounded-t-3xl p-4 pb-8">
+    <div class="flex justify-between items-center mb-3"><b class="text-[15px]" id="scanTitle">扫码确认物料</b><button id="scanClose" class="text-slate-400 text-[20px]"><i class="fa-solid fa-xmark"></i></button></div>
+    <div id="scanReader" class="w-full h-[240px] bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center text-slate-400 text-[12px]">相机预览</div>
+    <p id="scanCamHint" class="text-[10px] text-slate-400 mt-1 text-center">正在尝试开启相机…</p>
+    <p id="scanStatus" class="text-[12px] font-bold text-slate-600 mt-2 text-center">请扫描该行物料条码</p>
+    <div class="flex items-center gap-2 mt-2">
+      <input id="scanManual" placeholder="手动输入物料码" class="flex-1 h-11 px-3 border-[1.5px] border-slate-200 rounded-xl text-[13px]">
+      <button id="scanManualBtn" class="bg-[#2f6fe4] text-white rounded-xl h-11 px-4 text-[13px] font-bold">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(m,sticky){var t=document.getElementById('toast');t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);if(!sticky)toast._t=setTimeout(function(){t.classList.add('hidden');},2200);}
+  var order='';
+  try{ order=(new URLSearchParams(location.search).get('order')||'').trim(); }catch(e){}
+  document.getElementById('orderNo').textContent=order||'未指定单据';
+
+  var LINES=[];        // 当前清单行
+
+  function dq(r){ return (r&&r.delivery_qty!=null)?r.delivery_qty:(r&&r.qty!=null?r.qty:0); }
+  function nm(r){ return r.name || r.material_code || '物料'; }
+
+  function paint(){
+    document.getElementById('lineCount').textContent=(LINES||[]).length+' 项';
+    var box=document.getElementById('listBox');
+    if(!LINES||!LINES.length){ box.innerHTML='<div class="card p-3"><p class="text-[11px] text-slate-400 text-center">该单据暂无明细</p></div>'; return; }
+    box.innerHTML=LINES.map(function(r,idx){
+      var diff=(Number(r.received_qty)!==Number(dq(r)));
+      return '<div class="card p-3" data-idx="'+idx+'">'+
+        '<div class="flex items-center gap-2">'+
+          '<input type="checkbox" class="w-5 h-5 accent-[#2f6fe4] ck" '+(r.checked?'checked':'')+'>'+
+          '<div class="flex-1 min-w-0"><b class="text-[13px]">'+esc(nm(r))+'</b>'+
+          '<p class="text-[10px] text-slate-400">'+esc(r.material_code||'')+(r.batch?' · '+esc(r.batch):'')+(r.unit?' · '+esc(r.unit):'')+'</p></div>'+
+          '<span class="text-[10px] text-slate-400 whitespace-nowrap">应交 '+esc(dq(r))+'</span>'+
+        '</div>'+
+        '<div class="flex items-center gap-2 mt-2">'+
+          '<span class="text-[11px] text-slate-500">实收</span>'+
+          '<input type="number" class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold rq" value="'+esc(r.received_qty)+'">'+
+          '<span class="text-[11px] text-slate-400">'+esc(r.unit||'')+'</span>'+
+        '</div>'+
+        '<div class="flex items-center gap-2 mt-2">'+
+          '<input type="text" placeholder="有差异请填原因" class="flex-1 h-10 px-3 border-[1.5px] '+(diff?'border-amber-400':'border-slate-200')+' rounded-[10px] text-[12px] rs" value="'+esc(r.reason||'')+'">'+
+          '<button class="scanBtn shrink-0 border-[1.5px] border-blue-200 bg-blue-50 text-blue-700 rounded-xl h-10 px-3 text-[12px] font-bold whitespace-nowrap"><i class="fa-solid fa-barcode mr-1"></i>扫物料码</button>'+
+        '</div>'+
+        '<div class="scanTag '+(r.scanned?'mt-2 text-[11px] font-bold text-emerald-600':'hidden mt-2 text-[11px] font-bold text-emerald-600')+'"><i class="fa-solid fa-circle-check mr-1"></i>已扫码确认 '+esc(dq(r))+' '+esc(r.unit||'')+'</div>'+
+      '</div>';
+    }).join('');
+    // 绑定
+    Array.prototype.forEach.call(box.querySelectorAll('[data-idx]'), function(card){
+      var i=+card.getAttribute('data-idx');
+      card.querySelector('.ck').onchange=function(){ LINES[i].checked=this.checked; };
+      card.querySelector('.rq').oninput=function(){ LINES[i].received_qty=this.value; var d=(Number(this.value)!==Number(dq(LINES[i]))); card.querySelector('.rs').classList.toggle('border-amber-400',d); card.querySelector('.rs').classList.toggle('border-slate-200',!d); };
+      card.querySelector('.rs').oninput=function(){ LINES[i].reason=this.value; };
+      card.querySelector('.scanBtn').onclick=function(){ openScan(i); };
+    });
+  }
+
+  function load(){
+    if(!window.AppApi){ document.getElementById('listBox').innerHTML='<div class="card p-3"><p class="text-[11px] text-slate-400 text-center">接口未加载</p></div>'; return; }
+    AppApi.getChecklist(order).then(function(j){
+      var d=(j&&j.data)||{};
+      LINES=(d.items||[]).map(function(r){ return {material_code:r.material_code,name:r.name, batch:r.batch, unit:r.unit, delivery_qty:dq(r), received_qty:(r.received_qty!=null?r.received_qty:dq(r)), checked:true, reason:''}; });
+      document.getElementById('custName').textContent='客户 '+(d.customer||'–');
+      paint();
+    }).catch(function(){ document.getElementById('listBox').innerHTML='<div class="card p-3"><p class="text-[11px] text-slate-400 text-center">加载失败，请重试</p></div>'; });
+  }
+
+  var scanIdx=-1;
+  var html5Qr=null, html5QrRunning=false;
+  function isOk(r){ return !!r && (r.ok===true || r.code===200); }
+
+  // 行内"扫物料码"：打开扫码弹层并尝试开启相机
+  function openScan(idx){
+    scanIdx=idx;
+    document.getElementById('scanSheet').classList.remove('hidden');
+    document.getElementById('scanManual').value='';
+    document.getElementById('scanStatus').textContent='请扫描该行物料条码';
+    startCamera();
+  }
+  function closeScan(){
+    stopCamera();
+    document.getElementById('scanSheet').classList.add('hidden');
+    scanIdx=-1;
+  }
+  function startCamera(){
+    var box=document.getElementById('scanReader');
+    if(!box) return;
+    if(!window.Html5Qrcode){ document.getElementById('scanCamHint').textContent='本机无相机库，请用下方手动输入物料码'; return; }
+    try{
+      html5Qr=new Html5Qrcode('scanReader');
+      html5Qr.start({facingMode:'environment'}, {fps:10, qrbox:200},
+        function(decoded){ handleScan(decoded); },
+        function(){})
+      .then(function(){ html5QrRunning=true; })
+      .catch(function(){ document.getElementById('scanCamHint').textContent='无法开启相机，请用下方手动输入物料码'; html5Qr=null; });
+    }catch(e){ document.getElementById('scanCamHint').textContent='相机不可用，请手动输入物料码'; }
+  }
+  function stopCamera(){
+    if(html5Qr && html5QrRunning){
+      html5Qr.stop().then(function(){ try{html5Qr.clear();}catch(e){} html5QrRunning=false; html5Qr=null; })
+      .catch(function(){ html5QrRunning=false; html5Qr=null; });
+    } else { html5Qr=null; }
+  }
+
+    /* PDA 硬件扫码接入:壳广播(窗口 PdaScanFeed)与键盘楔(回车)统一走 handleScan。
+     未打开行内扫码弹层时,扫码自动定位到"待确认的第一行",现场无需点按钮。*/
+  function autoTarget(){
+    if(scanIdx>=0 && LINES[scanIdx]) return scanIdx;
+    for(var i=0;i<LINES.length;i++){ if(!LINES[i].scanned) return i; }
+    return LINES.length?0:-1;
+  }
+  function handleScan(rawCode){
+    var code=String(rawCode||'').trim();
+    if(!code) return;
+    var idx=autoTarget();
+    if(idx<0){ toast('清单为空'); return; }
+    var line=LINES[idx];
+    if(!line){ closeScan(); return; }
+    if(scanIdx>=0) document.getElementById('scanStatus').textContent='校验中…';
+    AppApi.lookup(code).then(function(j){
+      if(!isOk(j)){
+        var c=j&&j.code;
+        var msg = c===403 ? '重复扫码（该码已扫过）' : c===404 ? '无效码（非物料/库位）' : '扫码校验失败';
+        if(scanIdx>=0) document.getElementById('scanStatus').textContent=msg;
+        toast(msg); return;
+      }
+      var d=j.data||{};
+      if(d.kind==='DOC'){
+        var md='单据 '+d.doc_no+'（'+d.doc_type+' '+d.biz_status+'）';
+        if(scanIdx>=0) document.getElementById('scanStatus').textContent=md;
+        toast(md); return;
+      }
+      if(d.kind==='LOC'){
+        var m2='这是库位码，请扫物料码';
+        if(scanIdx>=0) document.getElementById('scanStatus').textContent=m2;
+        toast(m2); return;
+      }
+      if(d.kind==='SB'){
+        if(d.material && line.material_code && d.material===line.material_code){
+          line.checked=true; line.received_qty=line.delivery_qty; line.scanned=true;
+          paint();
+          if(scanIdx>=0) closeScan();
+          toast('\u2713 物料匹配，已确认 '+line.material_code);
+        }else{
+          var m='\u2717 物料不符：扫到 '+(d.material||'?')+'，本行应为 '+line.material_code;
+          if(scanIdx>=0) document.getElementById('scanStatus').textContent=m;
+          toast(m);
+        }
+        return;
+      }
+      if(scanIdx>=0) document.getElementById('scanStatus').textContent='未知扫码结果';
+      toast('未知扫码结果');
+    }).catch(function(){ var m='网络异常'; if(scanIdx>=0) document.getElementById('scanStatus').textContent=m; toast(m); });
+  }
+
+document.getElementById('scanClose').onclick=closeScan;
+  document.getElementById('scanManualBtn').onclick=function(){ handleScan(document.getElementById('scanManual').value); };
+  document.getElementById('scanManual').addEventListener('keydown', function(e){ if(e.key==='Enter') handleScan(this.value); });
+
+  document.getElementById('confirmBtn').onclick=function(){
+    if(!LINES.length){ toast('清单为空'); return; }
+    var items=LINES.map(function(r){ return {material_code:r.material_code, received_qty:Number(r.received_qty||0), checked:r.checked, reason:r.reason||'', scanned:!!r.scanned}; });
+    var btn=this; btn.disabled=true; btn.textContent='提交中…';
+    AppApi.confirmChecklist({orderId:order, items:items}).then(function(r){
+      if(isOk(r)){ toast(r.queued?'已存草稿，待同步':'验收已提交 ✓',true); btn.textContent='已提交'; }
+      else { btn.disabled=false; btn.textContent='确认验收并提交'; toast('提交失败：'+((r&&r.msg)||'未知')); }
+    }).catch(function(){ btn.disabled=false; btn.textContent='确认验收并提交'; toast('网络异常'); });
+  };
+
+  if(window.PdaScan&&PdaScan.on){ PdaScan.on(function(code){ handleScan(code); }); }
+  load();
+})();
+</script>
+</body></html>

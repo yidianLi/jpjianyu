@@ -12,33 +12,66 @@
 <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center"><i class="fa-solid fa-check"></i></span><b class="font-mono">SB20260910003-01</b><span class="text-slate-500">牛津布 200米</span><a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code=SB20260910003-01">查看溯源 →</a></div>
 <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-red-100 text-red-500 grid place-items-center"><i class="fa-solid fa-xmark"></i></span><b class="font-mono">BADCODE</b><span class="text-slate-500">无效码</span><span class="ml-auto text-[10px] text-slate-400">09:40</span></div>
 </div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">业务类型（决定建单方向）</p><div class="flex gap-2"><select id="bizSel" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"></select><span class="text-[10px] text-slate-400 self-center">扫码即按此类型建单</span></div></div>
 <div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between font-bold text-[13px]"><b>提交确认摘要</b><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">待办</span></div><p class="text-[11px] text-slate-500 mt-1" id="scanSummary">照片3 · 扫码1 · 登录账号+照片存证 · PDA-03</p><div class="grid grid-cols-2 gap-2 mt-2"><button id="draftBtn" class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">弱网存草稿</button><button id="submitBtn" class="bg-[#2f6fe4] text-white rounded-xl py-2.5 font-bold text-[13px]">提交</button></div></div>
 <script src="../pda-scan.js"></script>
 <script src="../app-data.js"></script>
 <script src="../api-client.js"></script>
 <script>
+
 (function(){
-  var list=[{code:'SB20260910003-01',ok:true,msg:'牛津布 200米',t:'09:41'},{code:'BADCODE',ok:false,msg:'无效码',t:'09:40'}];
-  var photos=[];
-  var box=FieldDB.get().barcodes||{};
+  /* 扫码作业:PDA 硬扫(广播/键盘楔)→ 查码 → 数量/业务类型 → 真提交建单 → 照片挂附件
+   * 关键点:提交体用 lines[{code,material_code,qty,unit,loc,batch_no}],
+   * 后端 /app/submit 按条码解析物料/批次/单位,缺数量按 1 件计(扫一件记一件)。*/
+  var BIZ=[{k:'RK',n:'入库 RK'},{k:'DJ',n:'登记 DJ'},{k:'LY',n:'领用 LY'},{k:'TK',n:'退库 TK'},{k:'TL',n:'调仓领用 TL'}];
+  var list=[];            // {code,ok,msg,material,batch,unit,qty,loc,t}
+  var photos=[];          // {dataUrl,meta,st,tries,docNo}
   var loc='WH-A-01';
-  try{var qd=new URLSearchParams(location.search).get('doc');if(qd){document.getElementById('docNo').value=qd;}}catch(e){}
-  function docNo(){return String(document.getElementById('docNo').value||'').trim();}
+  var biz='RK';
+  var PQ_KEY='wms_photo_q_v1';
+
+  function el(id){return document.getElementById(id);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(m){var t=el('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2600);}
+  function nowT(){var d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  function docNo(){return String(el('docNo').value||'').trim();}
+  function validRows(){return list.filter(function(s){return s.ok;});}
+
+  function paintBiz(){
+    el('bizSel').innerHTML=BIZ.map(function(b){return '<option value="'+b.k+'"'+(b.k===biz?' selected':'')+'>'+b.n+'</option>';}).join('');
+  }
   function paint(){
-    document.getElementById('scanCount').textContent=list.length+' 条';
-    document.getElementById('scanList').innerHTML=list.map(function(s){
-      return '<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg '+(s.ok?'bg-emerald-100 text-emerald-600':'bg-red-100 text-red-500')+' grid place-items-center"><i class="fa-solid '+(s.ok?'fa-check':'fa-xmark')+'"></i></span><b class="font-mono">'+esc(s.code)+'</b><span class="text-slate-500">'+esc(s.msg)+'</span>'+(s.ok?'<a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code='+encodeURIComponent(s.code)+'">查看溯源 →</a>':'<span class="ml-auto text-[10px] text-slate-400">'+esc(s.t)+'</span>')+'</div>';
+    var rows=validRows();
+    el('scanCount').textContent=list.length+' 条';
+    el('scanList').innerHTML=list.map(function(s,i){
+      if(!s.ok){
+        return '<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-red-100 text-red-500 grid place-items-center"><i class="fa-solid fa-xmark"></i></span><b class="font-mono">'+esc(s.code)+'</b><span class="text-slate-500">'+esc(s.msg)+'</span><span class="ml-auto text-[10px] text-slate-400">'+esc(s.t||'')+'</span></div>';
+      }
+      return '<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px] flex-wrap"><span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center"><i class="fa-solid fa-check"></i></span><b class="font-mono">'+esc(s.code)+'</b><span class="text-slate-500">'+esc(s.msg)+'</span>'
+        +'<span class="ml-auto flex items-center gap-1"><button class="w-7 h-7 rounded-lg border border-slate-200 font-bold" data-qty-min="'+i+'">−</button>'
+        +'<input class="w-14 h-8 text-center border border-slate-200 rounded-lg font-extrabold" data-qty="'+i+'" value="'+esc(String(s.qty||1))+'">'
+        +'<button class="w-7 h-7 rounded-lg border border-slate-200 font-bold" data-qty-plus="'+i+'">＋</button>'
+        +'<span class="text-[11px] text-slate-400">'+esc(s.unit||'')+'</span></span></div>';
     }).join('');
-    document.getElementById('scanSummary').textContent='库位'+loc+' · 扫码'+list.filter(function(s){return s.ok;}).length+' · 照片'+photos.length+' · 登录账号+照片存证 · PDA-03';
+    el('scanList').querySelectorAll('[data-qty]').forEach(function(inp){
+      inp.onchange=function(){var i=+inp.getAttribute('data-qty');var v=parseFloat(inp.value);list[i].qty=(isNaN(v)||v<=0)?1:v;paint();};
+    });
+    el('scanList').querySelectorAll('[data-qty-min]').forEach(function(b){
+      b.onclick=function(){var i=+b.getAttribute('data-qty-min');list[i].qty=Math.max(1,(list[i].qty||1)-1);paint();};
+    });
+    el('scanList').querySelectorAll('[data-qty-plus]').forEach(function(b){
+      b.onclick=function(){var i=+b.getAttribute('data-qty-plus');list[i].qty=(list[i].qty||1)+1;paint();};
+    });
+    var bizName=(BIZ.filter(function(b){return b.k===biz;})[0]||{}).n||biz;
+    el('scanSummary').textContent=bizName+' · 库位'+loc+' · 扫码'+rows.length+' · 照片'+photos.length+' · 合计'+rows.reduce(function(a,s){return a+(Number(s.qty)||1);},0)+' 件';
     paintPhotos();
   }
-  // 照片:PDA 壳拍照广播回传(PdaPhotoFeed → PdaPhoto.on),提交后上传并挂附件;带进度+失败重试+断网补传
-  var PQ_KEY='wms_photo_q_v1';
+
+  /* 照片:壳拍照广播回传(PdaPhotoFeed → PdaPhoto.on);提交后上传并挂附件 */
   function pqLoad(){try{var a=JSON.parse(localStorage.getItem(PQ_KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}}
   function pqSave(){try{localStorage.setItem(PQ_KEY,JSON.stringify(photos.filter(function(p){return p.st!=='done';}).slice(0,6).map(function(p){return {dataUrl:p.dataUrl,meta:p.meta||{},docNo:p.docNo||'',tries:p.tries||0};})));}catch(e){}}
   function paintPhotos(){
-    var strip=document.getElementById('photoStrip');
+    var strip=el('photoStrip');
     if(!strip)return;
     if(!photos.length){strip.innerHTML='<span class="text-[11px] text-slate-400">暂无照片</span>';}
     else strip.innerHTML=photos.map(function(p,i){
@@ -47,12 +80,25 @@
       else if(p.st==='up')badge='<span class="absolute inset-0 bg-black/40 text-white text-[9px] grid place-items-center">上传中</span>';
       else if(p.st==='fail')badge='<button data-rephoto="'+i+'" class="absolute inset-0 bg-red-500/75 text-white text-[10px] font-bold grid place-items-center">重试</button>';
       else badge='<span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-slate-400 text-white text-[9px] grid place-items-center">'+(p.tries?('重'+(3-p.tries)):'待')+'</span>';
-      return '<div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200"><img src="'+p.dataUrl+'" class="w-full h-full object-cover">'+badge+'</div>';
+      return '<div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200" data-zoom="'+i+'"><img src="'+p.dataUrl+'" class="w-full h-full object-cover">'+badge+'</div>';
     }).join('');
-    strip.querySelectorAll('[data-rephoto]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-rephoto');photos[i].tries=0;uploadOne(photos[i]);};});
+    strip.querySelectorAll('[data-rephoto]').forEach(function(b){b.onclick=function(e){e.stopPropagation();var i=+b.getAttribute('data-rephoto');photos[i].tries=0;uploadOne(photos[i]);};});
+    strip.querySelectorAll('[data-zoom]').forEach(function(d){d.onclick=function(){openZoom(+d.getAttribute('data-zoom'));};});
     var done=photos.filter(function(p){return p.st==='done';}).length;
-    var tip=document.getElementById('photoTip');
-    if(tip)tip.textContent=photos.length?('照片 '+done+'/'+photos.length+' 已传'+(photos.length-done?('，待传/重试 '+(photos.length-done)):'')+'；提交时随单据上传'):'扫码头拍照后自动回传；提交时随单据上传并挂为附件';
+    var tip=el('photoTip');
+    if(tip)tip.textContent=photos.length?('照片 '+done+'/'+photos.length+' 已传'+(photos.length-done?('，待传/重试 '+(photos.length-done)):'')+'；点缩略图放大'):'扫码头拍照后自动回传；提交时随单据上传并挂为附件';
+  }
+  function openZoom(i){
+    var p=photos[i];if(!p)return;
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(4,12,24,.92);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML='<img src="'+p.dataUrl+'" style="max-width:100%;max-height:88vh;border-radius:12px">'
+      +'<div style="position:absolute;top:14px;right:16px;color:#fff;font-size:24px" id="zxClose">✕</div>'
+      +'<div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#cbd5e1;font-size:11px">'+(p.meta&&p.meta.name?esc(p.meta.name):'照片')+'</div>';
+    document.body.appendChild(ov);
+    function close(){ov.remove();}
+    ov.onclick=close;
+    ov.querySelector('#zxClose').onclick=close;
   }
   function onPhoto(dataUrl,meta){
     if(!dataUrl)return;
@@ -61,6 +107,7 @@
   }
   if(window.PdaPhoto&&PdaPhoto.on){PdaPhoto.on(onPhoto);}
   else{document.addEventListener('pdaPhoto',function(e){onPhoto(e.detail&&e.detail.dataUrl,e.detail&&e.detail.meta);});}
+
   function uploadOne(p){
     if(!p||p.st==='up'||p.st==='done')return;
     if(!p.docNo){p.st='wait';paint();return;}
@@ -88,55 +135,90 @@
   }
   window.addEventListener('online',function(){photos.filter(function(p){return p.st==='wait'&&p.docNo;}).forEach(uploadOne);});
   (function(){var q=pqLoad();if(q.length){photos=q.map(function(x){return {dataUrl:x.dataUrl,meta:x.meta||{},docNo:x.docNo||'',tries:x.tries||0,st:'wait'};}).concat(photos);paint();if(navigator.onLine)photos.filter(function(p){return p.st==='wait'&&p.docNo;}).forEach(uploadOne);}})();
-  document.getElementById('locGo').onclick=function(){
-    loc=String(document.getElementById('locCode').value||'').trim()||loc;
-    document.getElementById('locTip').textContent='当前库位：'+loc;
+
+  /* 扫码:先库位后物料;查码用 /app/lookup(无副作用,不判重) */
+  function setLoc(code){
+    var c=String(code||'').trim();if(!c)return;
+    loc=c;
+    el('locCode').value=c;
+    el('locTip').textContent='当前库位：'+c+'（扫码头已定位）';
     paint();
-  };
+  }
   function handle(code){
     code=String(code||'').trim();
     if(!code)return;
-    if(!loc){list.push({code:code,ok:false,msg:'请先扫库位码',t:'now'});paint();return;}
-    if(list.some(function(s){return s.code===code&&s.ok;})){list.push({code:code,ok:false,msg:'重复码已拦截',t:'now'});paint();return;}
-    if(window.AppApi){AppApi.scan(code,docNo(),loc).then(function(r){paint();});}
-    var hit=box[code];
-    if(!hit){list.push({code:code,ok:false,msg:'无效码',t:'now'});paint();return;}
-    list.unshift({code:code,ok:true,msg:hit.name+' '+hit.qty+hit.unit+' · '+loc,t:'now'});paint();
-  }
-  document.getElementById('scanGo').onclick=function(){handle(document.getElementById('scanCode').value);};
-  document.querySelectorAll('[data-demo-scan]').forEach(function(b){b.onclick=function(){document.getElementById('scanCode').value=b.getAttribute('data-demo-scan');handle(b.getAttribute('data-demo-scan'));};});
-  PdaScan.bind('#scanCode',handle);
-  PdaScan.bind('#locCode',function(code){document.getElementById('locCode').value=code;document.getElementById('locGo').onclick();});
-  document.getElementById('toReg').onclick=function(){
-    var oks=list.filter(function(s){return s.ok;}).map(function(s){return s.code;});
-    if(!oks.length){alert('还没有有效扫码');return;}
-    try{localStorage.setItem('wms_scan_handoff',JSON.stringify({biz:'DJ',loc:loc,doc:docNo(),codes:oks,ts:Date.now()}));}catch(e){}
-    location.href='register.html?biz=DJ';
-  };
-  paint();
-  // 提交/草稿:把已扫有效码作为存证提交(支持离线队列)
-  function toast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2400);}
-  function payload(){ return {biz:'SCAN', doc:docNo(), loc:loc, codes:list.filter(function(s){return s.ok;}).map(function(s){return s.code;}), at:new Date().toISOString()}; }
-  document.getElementById('submitBtn').onclick=function(){
-    var oks=list.filter(function(s){return s.ok;});
-    if(!oks.length){toast('还没有有效扫码');return;}
-    var btn=this; btn.disabled=true;
-    AppApi.submit(payload()).then(function(r){
-      btn.disabled=false;
-      if(r&&r.ok){
-        queuePhotos((r.data&&r.data.doc_no)||'');
-        toast(r.queued||(r.data&&r.data.queued)?'已存草稿，待同步':'提交成功 ✓');
+    if(list.some(function(s){return s.code===code&&s.ok;})){list.unshift({code:code,ok:false,msg:'重复码已拦截',t:nowT()});paint();return;}
+    if(!window.AppApi){list.unshift({code:code,ok:false,msg:'未登录/离线，无法查码',t:nowT()});paint();return;}
+    AppApi.lookup(code).then(function(r){
+      var j=r&&r.data?r.data:null;
+      if(!r||!r.ok||!j){list.unshift({code:code,ok:false,msg:(r&&r.msg)||'无效码',t:nowT()});paint();return;}
+      if(j.kind==='DOC'){
+        el('docNo').value=j.doc_no;
+        list.unshift({code:code,ok:true,msg:'单据 '+j.doc_no+'（'+j.doc_type+' '+j.biz_status+'）',t:nowT()});
+        paint();toast('已绑定单据 '+j.doc_no);return;
       }
-      else toast('提交失败：'+((r&&r.msg)||'未知'));
-    }).catch(function(){ btn.disabled=false; toast('网络异常'); });
+      if(j.kind==='LOC'){setLoc(j.loc||code);list.unshift({code:code,ok:true,msg:'库位 '+(j.loc||code)+'（'+(j.wh||'')+'）',t:nowT()});paint();return;}
+      list.unshift({code:code,ok:true,msg:(j.name||j.material)+' · '+(j.batch||'无批次'),material:j.material,batch:j.batch||'',unit:j.unit||'',qty:1,t:nowT()});
+      paint();
+    }).catch(function(){list.unshift({code:code,ok:false,msg:'查码失败（网络）',t:nowT()});paint();});
+  }
+  el('scanGo').onclick=function(){handle(el('scanCode').value);};
+  el('locGo').onclick=function(){setLoc(el('locCode').value);};
+  if(window.PdaScan){
+    PdaScan.bind('#scanCode',handle);
+    PdaScan.bind('#locCode',setLoc);
+  }
+
+  /* 提交:组装 lines(条码+数量+单位+库位)→ 真实建单 → 照片挂附件 */
+  function payload(draft){
+    var lines=validRows().map(function(s){
+      return {code:s.code,material_code:s.material||'',batch_no:s.batch||'',qty:Number(s.qty||1),unit:s.unit||'',loc:loc};
+    });
+    return {biz:biz,doc:docNo(),loc:loc,lines:lines,draft:!!draft,at:new Date().toISOString()};
+  }
+  el('submitBtn').onclick=function(){
+    var rows=validRows();
+    if(!rows.length){toast('还没有有效扫码');return;}
+    var btn=this;btn.disabled=true;btn.textContent='提交中…';
+    AppApi.submit(payload(false)).then(function(r){
+      btn.disabled=false;btn.textContent='提交';
+      var d=(r&&r.data)||{};
+      if(r&&r.ok&&!r.queued&&d.doc_no){
+        queuePhotos(d.doc_no);
+        toast('提交成功 ✓ 单号 '+(d.biz_name||biz)+' '+d.doc_no);
+        el('docNo').value=d.doc_no;
+      }else if(r&&r.ok&&r.queued){
+        toast('资料不全已暂存待补全(需物料/数量/单位)');
+      }else{
+        toast('提交失败：'+((r&&r.msg)||'未知'));
+      }
+    }).catch(function(){btn.disabled=false;btn.textContent='提交';toast('网络异常');});
   };
-  document.getElementById('draftBtn').onclick=function(){
-    AppApi.submit(Object.assign(payload(),{draft:true})).then(function(r){
-      toast(r&&r.ok?(r.queued?'已存草稿，待同步':'已存草稿 ✓'):'存草稿失败');
-    }).catch(function(){ toast('网络异常'); });
+  el('draftBtn').onclick=function(){
+    var rows=validRows();
+    if(!rows.length){toast('还没有有效扫码');return;}
+    AppApi.submit(payload(true)).then(function(r){
+      var d=(r&&r.data)||{};
+      if(r&&r.ok){toast(d.doc_no?('已存草稿 '+d.doc_no):'已存草稿，待同步');}
+      else toast('存草稿失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){toast('网络异常');});
   };
+  el('toReg').onclick=function(){
+    var oks=validRows().map(function(s){return s.code;});
+    if(!oks.length){toast('还没有有效扫码');return;}
+    try{localStorage.setItem('wms_scan_handoff',JSON.stringify({biz:biz,loc:loc,doc:docNo(),codes:oks,ts:Date.now()}));}catch(e){}
+    location.href='register.html?biz='+biz;
+  };
+  el('bizSel').onchange=function(){biz=this.value;paint();};
+
+  try{var qd=new URLSearchParams(location.search).get('doc');if(qd){el('docNo').value=qd;}}catch(e){}
+  try{var qb=new URLSearchParams(location.search).get('biz');if(qb&&BIZ.some(function(b){return b.k===qb.toUpperCase();})){biz=qb.toUpperCase();}}catch(e){}
+  paintBiz();
+  paint();
 })();
+
 </script>
+
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html" class="text-blue-600"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
 <div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-[#10233f] text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-lg"></div>

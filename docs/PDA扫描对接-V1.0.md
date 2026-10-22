@@ -63,10 +63,14 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 | `pda-app/app/libs/ScanManager_V202508251650.jar` | 扫描头 SDK（已放入；换版本替换此文件即可） |
 | `pda-app/app/src/main/res/values/strings.xml` → `h5_url` | 后端 H5 地址（也可用 `adb -e url` 覆盖） |
 | `prototype/mobile-app/pda-scan.js` | H5 统一桥：`PdaScan`（扫码）+ **`PdaPhoto`（照片）**，键盘楔/广播双通道 |
-| `prototype/mobile-app/api-client.js` | 新增 `uploadPhoto(dataUrl)` / `addAttachment(docNo,ref,kind)` |
-| `prototype/mobile-app/screens/scan.html` | 照片条（缩略图/数量）、提交后自动上传并挂附件 |
+| `prototype/mobile-app/api-client.js` | `uploadPhoto` / `addAttachment` / `warehouses` / `locations` / `createShip` / `createPd` 等 |
+| `prototype/mobile-app/screens/scan.html` | 业务类型选择、行数量步进、**真提交建单**（显示真实单号）、照片条+放大预览 |
+| `prototype/mobile-app/screens/checklist.html` | 接 `PdaScan`：扫物料码自动定位到"待确认的第一行"，无需点按钮 |
+| `prototype/mobile-app/screens/register.html` | 扫码交接码 → 逐个查码 → 行容器(可调数量) → 真提交建单 |
+| `backend/app/routers/app_scan.py` | **扫码解析**：`POST /app/scan`（写扫码日志）+ `GET /app/lookup`（只查码），支持 **DOC 单据码 / SB 物料码 / LOC 库位码** 三类 |
+| `backend/app/routers/app_.py` | 登录/待办/清单/提交/补传（≤300 行，扫码解析已拆出） |
 | `backend/app/routers/photos.py` | **新增** `POST /api/v1/app/photos`：JSON base64 → 落盘 `uploads/` → 返回 `/uploads/xxx.jpg` |
-| `backend/app/main.py` | 挂载 `/uploads` 静态目录；注册 photos 路由（`/api/v1/app`） |
+| `backend/app/main.py` | 挂载 `/uploads` 静态目录；注册 photos / app_scan 路由（`/api/v1/app`） |
 | `backend/docker-compose.yml` | api 容器新增可写卷 `./uploads:/srv/uploads` + `WMS_UPLOAD_DIR` |
 
 ---
@@ -85,31 +89,64 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 
 ---
 
-## 六、联调步骤
+## 六、扫什么码 → 什么效果（现场对照表）
+
+| 扫的码 | 后端识别(`kind`) | APP 里的效果 |
+|---|---|---|
+| **单据码**（单号/单据二维码，如 `RK000090`） | `DOC` | 自动填入「关联单据」框，列表提示"单据 RK000090（RK POSTED）"；可继续扫物料码把料挂到该单 |
+| **物料条码**（单件码 `SBxxx` / 物料编码） | `SB` | 列表新增一行：物料名·批次，可 −/+ 调数量；提交时按此建单 |
+| **库位码**（`WH-A-01` / 库区二维码） | `LOC` | 自动定位当前库位（后续物料行都记这个库位） |
+| 都不匹配 | 404 | 提示"无效码"，不入单 |
+
+> 识别顺序：**单据 → 物料 → 库位**。单据码扫描不写物料扫码日志（它不是物料码）。
+
+## 七、联调步骤
 
 1. 手机与 PC 同网段；后端已起（`http://<PC-IP>:8080`）。
 2. Android Studio 打开 `pda-app`，改 `strings.xml` 的 `h5_url`（默认已配 `http://10.8.0.12:8080/proto/mobile-app/screens/home.html`）后 Run；或 adb：
    `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://10.8.0.12:8080/proto/mobile-app/screens/home.html"`
 3. `screens/scan.html` 按扫描键 → 出现条码（Toast 回显）；带拍照的机型 → 照片条出现缩略图。
-4. 提交 → 单据生成，后端 `doc_attachment` 出现 kind=照片 的记录，`/uploads/xxx.jpg` 可访问。
+4. 提交 → 单据生成（页面显示真实单号），后端 `doc_attachment` 出现 kind=照片 的记录，`/uploads/xxx.jpg` 可访问。
 5. 日志过滤：`adb logcat -s PdaShell`。
 
----
+### 已验证（真机栈 HTTP 全链，2026-10-22）
+| 环节 | 结果 |
+|---|---|
+| `/app/login` → PDA 设备令牌 | 200，device=PDA-03 |
+| `/app/lookup` 扫物料码 | 200，`{material, batch, name, unit}` |
+| `/app/lookup` 扫单据码 | 200，`{kind:DOC, doc_no, doc_type, biz_status}` |
+| `/app/submit` 仅给条码 | 200 → 真实建单 `RK0000xx`，`biz_status=POSTED` |
+| 过账后库存流水 | `stock_ledger` 落 `dir=1 / qty / device=PDA-03` |
+| 扫码日志挂单 | `scan_log.doc_no` = 建出的单号 |
+| `/app/photos` → `/uploads/*.png` | 200 + 静态可访问 |
+| 挂附件 → 列附件 | 200，`doc_attachment` 有 kind=照片 记录 |
+| `/app/checklists` → 确认 | 200；未勾选 400、有差异无原因 400（差异口径已按数量比对） |
+| `pytest backend/tests` | 52 passed, 2 skipped |
 
-## 七、可扩展（按需极少改）
+> ⚠️ **硬件扫描枪本身尚未在真机验证**（本机无 adb 设备）。代码链路按厂商文档实现，装机后若扫不出码，看 `adb logcat -s PdaShell`。
+
+## 八、可扩展（按需极少改）
 - **连续扫描**：`setContinueScan(true/false)`；**码制开关**：`DecoderConfigValues.ParamID.*` + `setSYMValueInts`；**灯光**：`LIGHTS_MODE`。
 - **输出模式**：`setOPMode(0广播/1输入框/2键盘/3单次输入/4剪贴板)`。
 - **H5 主动开扫**：`window.AndroidShell.startScan()/stopScan()/photoEnabled(false)`。
 
-## 八、FAQ
+## 九、FAQ
 - **无反应**：核对 `setOPMode(0)`、`openScanner()+startDecode()`、设备扫描服务动作与 `SCAN_ACTION` 一致。
+- **扫出码但页面没反应**：确认 H5 已引入 `pda-scan.js`（`scan/checklist/register` 三页均已引）；壳侧看 `PdaShell` 日志是否打印 `load url=`。
+- **登录后还是"未登录/离线"**：后端响应是 `{code,msg,data,total}`（无 `ok` 字段），`api-client.js` 已统一补 `ok`；若仍异常，检查 `localStorage.wms_app_token` 与 `/app/login` 是否成功。
+- **提交提示"资料不全已暂存"**：`lines` 缺物料/数量/单位。现场用扫码行即可（缺数量按 1 件计）；手工拼的 payload 需带 `material_code`。
 - **照片不出**：确认 `SAVE_IMAGE` 已发（`onResume`）、设备机型是否支持随扫拍照、`BitmapBytes` 非空；`adb logcat -s PdaShell` 看 `photo handle fail`。
 - **照片 403**：上传需 PDA 设备令牌（`/app/login` 签发 device=PDA-03）。
 - **照片挂不上单据**：先有 `doc_no`（`/app/submit` 返回），再 `POST /web/docs/{doc_no}/attachments`。
+- **盘点/调仓页 403**：建盘点任务需「确认」权限，普通 PDA 账号没有；这两页目前仍是演示态（见下）。
 - **页面白屏**：同网段 / CORS（`WMS_CORS_ORIGINS`）/ `usesCleartextTraffic`（已内置）。
 
-## 九、变更清单
+## 十、已知未完成
+- `screens/stocktake.html`、`screens/transfer.html` 仍是**演示态**（未接 `/web/pd_tasks`、`/web/transfer_ships`），且建盘点需「确认」权限；列为 P1。
+
+## 十一、变更清单
 - 新增 `pda-app/`（WebView 壳工程 + 扫描 jar + 拍照链路）。
-- 新增 `backend/app/routers/photos.py`；`main.py` 挂 `/uploads`；compose 增可写卷与 `WMS_UPLOAD_DIR`。
-- 改 `prototype/mobile-app/pda-scan.js`（新增 `PdaPhoto` 通道）、`api-client.js`（照片上传/挂附件）、`screens/scan.html`（照片条 + 提交后上传）。
+- 新增 `backend/app/routers/photos.py`（照片上传）、`backend/app/routers/app_scan.py`（扫码解析，支持 DOC/SB/LOC）。
+- `main.py` 挂 `/uploads` + 注册新路由；compose 增可写卷与 `WMS_UPLOAD_DIR`。
+- `prototype/mobile-app/pda-scan.js`（`PdaPhoto` 通道）、`api-client.js`（补 `ok` 字段 + 照片/主档/盘点/调仓方法）、`screens/scan.html`（重写：业务类型/数量/真提交/照片放大）、`screens/checklist.html`（接 PdaScan）、`screens/register.html`（真提交）。
 - 本文档。

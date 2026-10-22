@@ -41,7 +41,14 @@
       var r=await fetch(url,{method:opt.method||'GET',headers:headers,body:opt.body?JSON.stringify(opt.body):undefined,signal:ctl.signal});
       clearTimeout(t);
       var j=await r.json().catch(function(){return {};});
-      if(r.ok) return j;
+      // 后端统一返回 {code,msg,data,total};前端统一用 ok 判定成功:
+      //   HTTP 200 且 code===200 -> ok=true;HTTP 非200或业务 code!=200 -> ok=false
+      // (此前直接透传后端 JSON,缺 ok 字段,导致 login() 与各页 if(r.ok) 恒为假)
+      j = j || {};
+      if (typeof j.ok === 'undefined') {
+        j.ok = (r.status >= 200 && r.status < 300) && (j.code === 200 || j.code === undefined);
+      }
+      if(j.ok) return j;
       if(r.status===401){ // 令牌失效:清缓存并重新登录
         try{localStorage.removeItem('wms_app_token');}catch(e){}
         CFG.token=''; showLogin('登录已失效,请重新登录');
@@ -59,7 +66,8 @@
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({username:username, password:password})});
     var j=await r.json().catch(function(){return {};});
-    if(r.ok && j && j.ok && j.data && j.data.token){
+    // 后端响应统一 {code,msg,data,total};登录成功判 code===200
+    if(r.ok && j && j.code===200 && j.data && j.data.token){
       CFG.token=j.data.token; localStorage.setItem('wms_app_token', j.data.token);
       CRED.user=username; CRED.pwd=password;
       localStorage.setItem('wms_app_user', username);
@@ -164,6 +172,19 @@
       if(!docNo||!ref)return Promise.resolve({ok:false,msg:'单据号或照片引用缺失'});
       return req('/web/docs/'+encodeURIComponent(docNo)+'/attachments',{method:'POST',body:{kind:kind||'照片',ref:ref}});
     },
+    // 9.扫码头(库位):回传查库位(便于调仓/盘点选源仓库位)
+    warehouses:function(){ return req('/web/masters/warehouses'); },
+    locations:function(wh){ return req('/web/masters/locations'+(wh?('?wh_code='+encodeURIComponent(wh)):'')); },
+    // 10.调仓单(DB):建单/列表/接收实收
+    createShip:function(payload){ return req('/web/transfer_ships',{method:'POST',body:payload}); },
+    listShips:function(){ return req('/web/transfer_ships'); },
+    receiveShip:function(docNo,nQty){ return req('/web/transfer_ships/'+encodeURIComponent(docNo)+'/receive',{method:'PATCH',body:{n_qty:nQty}}); },
+    // 11.盘点任务(PD):建任务/取行/逐行确认/差异调账
+    createPd:function(payload){ return req('/web/pd_tasks',{method:'POST',body:payload}); },
+    listPd:function(){ return req('/web/pd_tasks'); },
+    pdLines:function(pdNo){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/lines'); },
+    pdConfirm:function(pdNo,lineNo,nQty){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/confirm',{method:'POST',body:{line_no:lineNo,n_qty:nQty}}); },
+    pdAdjust:function(pdNo){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/adjust',{method:'POST',body:{}}); },
     mine:function(){ return req('/web/auth/me',{mock:{ok:true,data:{name:'离线用户',username:'',data_scope:'—',roles:[]}}}); }
   };
   document.addEventListener('DOMContentLoaded', function(){ renderQ(); boot(); });

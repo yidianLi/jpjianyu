@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from app.core.resp import fail
 from app.core import auth as _auth
-from app.routers import web, app_, ai, masters, sysadm, reports, transfer, produce, docparts, export, stockops, rptbuilder, photos
+from app.routers import web, app_, app_scan, ai, masters, sysadm, reports, transfer, produce, docparts, export, stockops, rptbuilder, photos
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -114,6 +114,7 @@ app.include_router(docparts.router, prefix="/api/v1/web")
 app.include_router(export.router, prefix="/api/v1/web")
 app.include_router(stockops.router, prefix="/api/v1/web")
 app.include_router(app_.router, prefix="/api/v1/app")
+app.include_router(app_scan.router, prefix="/api/v1/app")
 app.include_router(photos.router, prefix="/api/v1/app")
 app.include_router(ai.router, prefix="/api/v1/ai")
 
