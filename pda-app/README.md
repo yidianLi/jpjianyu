@@ -48,6 +48,15 @@ pda-app/
 
 壳里两者都兼容。若你的设备广播 action 不是 `scan.rcv.message`，改 `MainActivity.SCAN_ACTION` 一处即可。
 
+## 拍照回传（SAVE_IMAGE / SEND_IMAGE）
+1. `onResume` 发广播 `android.bld.scan.action.SAVE_IMAGE`（extra `enable=true`）打开随扫拍照；`onPause` 关闭。
+2. 设备回 `android.bld.scan.action.SEND_IMAGE`（extra `BitmapBytes`）→ 壳解码、压到长边 ≤1280 / JPEG q72、存 `getExternalFilesDir("photos")`。
+3. 生成 `data:image/jpeg;base64,...` 注入 H5：`window.PdaPhotoFeed(dataUrl,{name,size})`。
+4. H5（`pda-scan.js` 的 `PdaPhoto`）收图 → `screens/scan.html` 显示缩略图 → 提交时
+   `POST /api/v1/app/photos` 落盘换 URL → `POST /api/v1/web/docs/{doc_no}/attachments`（kind=照片）挂到单据。
+5. 弱网时照片留在页面本地，不阻断提交，下次提交补传。
+6. 不想拍照：`window.AndroidShell.photoEnabled(false)` 或去掉 `setSaveImage(true)`。
+
 ## 常见问题
 - **扫码无反应**：确认 `setOPMode(0)`、已 `openScanner()+startDecode()`；确认设备系统设置的扫描服务动作是 `scan.rcv.message`。
 - **中文/乱码**：确认走的是 `barocode` 字节数组时按 UTF-8 解码（已内置）。

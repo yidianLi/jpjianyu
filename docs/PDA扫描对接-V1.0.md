@@ -1,21 +1,21 @@
 # PDA 扫描对接方案 · V1.0
 
 > 面向：移动端/客户端开发、交付、现场联调
-> 结论先给：**采用 B 方案——Android WebView 壳 + 厂商 `ScanManager` 广播模式，回填给现有 H5（`pda-scan.js`）**。
-> 起步件：`pda-app/`（可直接用 Android Studio 打开构建）
+> 结论：**PDA 端打包为 APK（`pda-app` WebView 壳 + 厂商 `ScanManager` 广播），H5 现场作业页零改动复用；扫描 + 拍照回传全链路已打通。**
+> 起步件：`pda-app/`（Android Studio 直接 Open 构建）
 
 ---
 
 ## 一、现状与两套 SDK
 
-我们的 PDA 现场作业端是 **H5**（`prototype/mobile-app`），后端走 `/app` 接口（设备白名单 PDA-03/04）。
+PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalone`），**PWA 拿不到原生广播、不能调扫描 SDK**，所以必须打包成 APK 才能吃到全能力。
 
-厂商开发包实际给了**两套 API**，务必分清：
+厂商开发包给了**两套 API**，务必分清：
 
 | 套件 | 入口 | 条码广播字段 | 说明 |
 |---|---|---|---|
 | 新版（`lc\5,扫描2.0\…\ScanManager_V202508251650.jar`） | `android.bld.ScanManager` | `scan.rcv.message` → `barcodeData`(String) | 能力最全：5 种输出模式、连续扫描、码制开关、拍照回传 |
-| 旧版/系统类（`参考\…\扫描开发包(12.04)`、`uniapp-扫描/scan.vue`） | `android.device.ScanDevice`（`plus.android`） | `scan.rcv.message` → `barocode`(byte[], UTF-8) | uni-app 用反射直调，无需 jar |
+| 旧版/系统类（`参考\…扫描开发包(12.04)`、`uniapp-扫描/scan.vue`） | `android.device.ScanDevice`（`plus.android`） | `scan.rcv.message` → `barocode`(byte[], UTF-8) | uni-app 用反射直调，无需 jar |
 
 > 两者广播 action 相同、**字段名不同**；壳已同时兼容。
 
@@ -26,32 +26,32 @@
 | 方案 | 做法 | 改动量 | 能力 | 结论 |
 |---|---|---|---|---|
 | A 输入框/键盘模式 | 设备设"输入框/键盘模式"，扫码=按键+回车进聚焦框；H5 用 `input[data-scan-input]` 回收 | 零原生代码 | 依赖焦点、编码，不能控扫描开关/拍照 | 快速试点 / 兜底 |
-| **B WebView 壳 + ScanManager 广播** | 原生壳内嵌 WebView 载 H5；`setOPMode(0)` 广播→`evaluateJavascript("PdaScanFeed(..)")` | 一个 Activity（一次性构建），**H5 零改动** | 全能力：开关/连续/码制/拍照 | ✅ **推荐** |
-| C uni-app + 原生插件 | `scan.vue` 那套 `ScanDevice`/jar 做 uni 插件 | **需把移动页面重写为 uni-app** | 原生、跨端 | 仅当整体迁 uni-app 才选 |
-
-**选 B 的理由**：保留全部已写好的 H5 页面与 `pda-scan.js` 桥；原生只做"接收广播并回填"这一件事，最稳、最少维护、能力最全。
+| **B WebView 壳 + ScanManager 广播** | 原生壳内嵌 WebView 载 H5；`setOPMode(0)` 广播→`evaluateJavascript("PdaScanFeed(..)")` | 一个 Activity（一次性构建），**H5 零改动** | 全能力：开关/连续/码制/**拍照** | ✅ **采用** |
+| C uni-app + 原生插件 | `scan.vue` 那套 `ScanDevice`/jar 做 uni 插件 | 需把移动页面重写为 uni-app | 原生、跨端 | 仅当整体迁 uni-app 才选 |
 
 ---
 
-## 三、B 方案对接链路
+## 三、对接链路
 
 ```
-扫描头(硬件按键/触发)
-   └─(厂商扫描服务)─▶ 广播 scan.rcv.message {barcodeData | barocode}
-                          │
-                 MainActivity.BroadcastReceiver
-                          │  webView.evaluateJavascript(...)
-                          ▼
-   H5: window.PdaScanFeed(code)  ──▶  pda-scan.js emit(code,'broadcast')
-                          │
-              ┌───────────┴───────────┐
-        PdaScan.on(fn) 订阅者      页面 input[data-scan-input]
-        (scan/transfer/stocktake…)  聚焦回车亦可用(键盘模式/兜底)
-```
+扫描头(硬件按键) ─▶ 厂商扫描服务 ─▶ 广播 scan.rcv.message {barcodeData|barocode}
+                                        │
+                            MainActivity.BroadcastReceiver
+                                        │ evaluateJavascript
+                                        ▼
+       H5: window.PdaScanFeed(code) ─▶ pda-scan.js emit(code,'broadcast')
+                                        │  ├─ PdaScan.on(fn) 订阅者
+                                        │  └─ input[data-scan-input] 聚焦回车(键盘模式)
 
-- H5 桥已在：`prototype/mobile-app/pda-scan.js` 暴露 `PdaScan.on / bind / emit` 与 `window.PdaScanFeed`。
-- 壳注入逻辑见 `pda-app/app/src/main/java/com/jianyu/pda/MainActivity.java`：
-  `injectScan()` 依次尝试 `PdaScanFeed → pdaScan 事件 → 聚焦输入框`，保证任何页面都能收到。
+扫描头拍照 ─▶ 广播 android.bld.scan.action.SAVE_IMAGE(enable) 打开
+           ─▶ 广播 android.bld.scan.action.SEND_IMAGE {BitmapBytes}
+                                        │ 压缩 JPEG(≤1280px/q72) + 存设备
+                                        ▼
+       H5: window.PdaPhotoFeed(dataUrl,meta) ─▶ PdaPhoto.on(fn) / 'pdaPhoto' 事件
+                                        │ 提交时:POST /app/photos → 得到 /uploads/xxx.jpg
+                                        ▼
+                     POST /web/docs/{doc_no}/attachments {kind:'照片', ref:url}
+```
 
 ---
 
@@ -59,37 +59,56 @@
 
 | 位置 | 作用 |
 |---|---|
-| `pda-app/app/src/main/java/com/jianyu/pda/MainActivity.java` | WebView 壳 + `ScanManager` 初始化 + 广播接收 + JS 注入 + 可选原生桥 `AndroidShell` |
+| `pda-app/app/src/main/java/com/jianyu/pda/MainActivity.java` | WebView 壳：`ScanManager` 初始化(OP=0/连续扫)、扫码广播、拍照广播、JS 注入、原生桥 `AndroidShell` |
 | `pda-app/app/libs/ScanManager_V202508251650.jar` | 扫描头 SDK（已放入；换版本替换此文件即可） |
-| `pda-app/app/src/main/res/values/strings.xml` → `h5_url` | 后端 H5 地址（也可 `adb -e url` 覆盖） |
-| `pda-app/README.md` | 构建与联调速查 |
-| `prototype/mobile-app/pda-scan.js` | 已就绪的 H5 桥（无需改） |
+| `pda-app/app/src/main/res/values/strings.xml` → `h5_url` | 后端 H5 地址（也可用 `adb -e url` 覆盖） |
+| `prototype/mobile-app/pda-scan.js` | H5 统一桥：`PdaScan`（扫码）+ **`PdaPhoto`（照片）**，键盘楔/广播双通道 |
+| `prototype/mobile-app/api-client.js` | 新增 `uploadPhoto(dataUrl)` / `addAttachment(docNo,ref,kind)` |
+| `prototype/mobile-app/screens/scan.html` | 照片条（缩略图/数量）、提交后自动上传并挂附件 |
+| `backend/app/routers/photos.py` | **新增** `POST /api/v1/app/photos`：JSON base64 → 落盘 `uploads/` → 返回 `/uploads/xxx.jpg` |
+| `backend/app/main.py` | 挂载 `/uploads` 静态目录；注册 photos 路由（`/api/v1/app`） |
+| `backend/docker-compose.yml` | api 容器新增可写卷 `./uploads:/srv/uploads` + `WMS_UPLOAD_DIR` |
 
 ---
 
-## 五、联调步骤
+## 五、拍照回传（SAVE_IMAGE / SEND_IMAGE）
+
+1. 壳 `onResume` 发 `android.bld.scan.action.SAVE_IMAGE`（extra `enable=true`）打开拍照回传；`onPause` 关闭。
+2. 设备回传 `android.bld.scan.action.SEND_IMAGE`，extra `BitmapBytes`(byte[])。
+3. 壳：解码 → 压到长边 ≤1280、JPEG q72 → 存 `getExternalFilesDir("photos")` → 生成 `data:image/jpeg;base64,...`。
+4. 注入 H5 `window.PdaPhotoFeed(dataUrl,{name,size})`；H5 存进 `photos[]`，页面显示缩略图与计数。
+5. 提交后：H5 `POST /app/photos`（data_url）→ 后端落盘返回 URL → `POST /web/docs/{doc_no}/attachments`（kind=照片, ref=URL）挂到单据。
+6. 弱网：照片先留在本地 `photos[]`，`uploadPhoto` 失败不阻断提交，下次提交再传（`AppApi.submit` 已有离线队列机制）。
+
+> 后端不引 multipart 依赖（沿用附件"只记引用"口径）：`/app/photos` 只把照片存到 `uploads/` 并给出 URL，业务库仍只存引用。
+
+---
+
+## 六、联调步骤
 
 1. 手机与 PC 同网段；后端已起（`http://<PC-IP>:8080`）。
-2. Android Studio 打开 `pda-app`，把 `strings.xml` 的 `h5_url` 改成你的 H5 地址后 Run；或 adb：
+2. Android Studio 打开 `pda-app`，改 `strings.xml` 的 `h5_url` 后 Run；或 adb：
    `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://<PC-IP>:8080/proto/mobile-app/screens/home.html"`
-3. 打开 `screens/scan.html`，按扫描键扫一张条码 → 页面应出现该码（Toast 也会回显）。
-4. 观察日志（TAG `PdaShell` / `PdaShell/console`）确认广播到达与注入执行。
+3. `screens/scan.html` 按扫描键 → 出现条码（Toast 回显）；带拍照的机型 → 照片条出现缩略图。
+4. 提交 → 单据生成，后端 `doc_attachment` 出现 kind=照片 的记录，`/uploads/xxx.jpg` 可访问。
+5. 日志过滤：`adb logcat -s PdaShell`。
 
 ---
 
-## 六、可扩展（按需极少改）
-- **连续扫描**：已 `setContinueScan(true)`；关闭改 false。
-- **拍照回传**：发 `android.bld.scan.action.SAVE_IMAGE` 打开、接收 `SEND_IMAGE` 的 `BitmapBytes`（参考 `Demo MainActivity`）。
-- **码制开关**：`DecoderConfigValues.ParamID.*` + `setSYMValueInts(ids,vals)` / `enableAllSYM(bool)`。
+## 七、可扩展（按需极少改）
+- **连续扫描**：`setContinueScan(true/false)`；**码制开关**：`DecoderConfigValues.ParamID.*` + `setSYMValueInts`；**灯光**：`LIGHTS_MODE`。
 - **输出模式**：`setOPMode(0广播/1输入框/2键盘/3单次输入/4剪贴板)`。
+- **H5 主动开扫**：`window.AndroidShell.startScan()/stopScan()/photoEnabled(false)`。
 
-## 七、FAQ
-- **无反应**：核对 `setOPMode(0)`、`openScanner()+startDecode()`、`SCAN_ACTION` 与设备扫描服务动作一致。
-- **乱码**：旧版走 `barocode` byte[] 时按 UTF-8 解码（已内置）；若厂商自定义编码，调 `handleScanIntent` 解码处。
+## 八、FAQ
+- **无反应**：核对 `setOPMode(0)`、`openScanner()+startDecode()`、设备扫描服务动作与 `SCAN_ACTION` 一致。
+- **照片不出**：确认 `SAVE_IMAGE` 已发（`onResume`）、设备机型是否支持随扫拍照、`BitmapBytes` 非空；`adb logcat -s PdaShell` 看 `photo handle fail`。
+- **照片 403**：上传需 PDA 设备令牌（`/app/login` 签发 device=PDA-03）。
+- **照片挂不上单据**：先有 `doc_no`（`/app/submit` 返回），再 `POST /web/docs/{doc_no}/attachments`。
 - **页面白屏**：同网段 / CORS（`WMS_CORS_ORIGINS`）/ `usesCleartextTraffic`（已内置）。
-- **想走 A 试点**：`setOPMode(1/2)` + H5 `input[data-scan-input]` 聚焦即用，零广播。
 
-## 八、变更清单
-- 新增 `pda-app/`（WebView 壳工程 + 扫描 jar）。
-- 复用 `prototype/mobile-app/pda-scan.js`（未改动）。
+## 九、变更清单
+- 新增 `pda-app/`（WebView 壳工程 + 扫描 jar + 拍照链路）。
+- 新增 `backend/app/routers/photos.py`；`main.py` 挂 `/uploads`；compose 增可写卷与 `WMS_UPLOAD_DIR`。
+- 改 `prototype/mobile-app/pda-scan.js`（新增 `PdaPhoto` 通道）、`api-client.js`（照片上传/挂附件）、`screens/scan.html`（照片条 + 提交后上传）。
 - 本文档。

@@ -1,8 +1,9 @@
 /* PDA扫码统一桥 pda-scan.js · 键盘楔+广播二合一，screens/scan|data共用
  * 厂家文档无论给哪种：1)扫码键模拟键盘回车 2)安卓广播Intent，只需各配一行
- * 用法：PdaScan.on(function(code,source){...})；广播时厂家调 window.PdaScanFeed(code) */
+ * 用法：PdaScan.on(function(code,source){...})；广播时厂家调 window.PdaScanFeed(code)
+ * 照片：PdaPhoto.on(function(dataUrl,meta){...})；壳调 window.PdaPhotoFeed(dataUrl,meta) */
 (function(){
-  var subs=[];
+  var subs=[], photoSubs=[];
   function emit(raw,source){
     var code=String(raw||'').trim();
     if(!code)return;
@@ -18,6 +19,16 @@
   });
   // 2) 厂家广播：Intent→WebView时调此函数，路径由厂家文档配一次即可
   window.PdaScanFeed=function(code){emit(code,'broadcast');};
+  // 3) 拍照回传：壳端 BitmapBytes→data_url→PdaPhotoFeed(dataUrl,meta)
+  function emitPhoto(dataUrl,meta){
+    var u=String(dataUrl||'');
+    if(!u)return;
+    if(navigator.vibrate){try{navigator.vibrate(12);}catch(e){}}
+    var m=meta||{};
+    photoSubs.forEach(function(fn){try{fn(u,m);}catch(e){}});
+    try{document.dispatchEvent(new CustomEvent('pdaPhoto',{detail:{dataUrl:u,meta:m}}));}catch(e){}
+  }
+  window.PdaPhotoFeed=function(dataUrl,meta){emitPhoto(dataUrl,meta);};
   window.PdaScan={
     on:function(fn){if(typeof fn==='function')subs.push(fn);},
     emit:emit,
@@ -28,5 +39,9 @@
       input.setAttribute('data-scan-input','');
       if(fn)PdaScan.on(function(code){fn(code);});
     }
+  };
+  window.PdaPhoto={
+    on:function(fn){if(typeof fn==='function')photoSubs.push(fn);},
+    emit:emitPhoto
   };
 })();

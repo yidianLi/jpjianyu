@@ -6,18 +6,20 @@
 <div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">第0步 · 关联单据（可选，不填只存证）</p><div class="flex gap-2"><input id="docNo" value="" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono font-bold text-center" placeholder="如 LY2026091608"><button class="border-[1.5px] border-slate-200 rounded-xl px-4 font-bold text-[13px]" id="toReg">转入登记 →</button></div><p class="text-[10px] text-slate-400 mt-1" id="docTip">扫码将绑定该单据；转入登记把已扫条码带进登记页</p></div>
 <div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">第1步 · 库位码（先扫库位）</p><div class="flex gap-2"><input id="locCode" value="WH-A-01" class="flex-1 h-[46px] border-[1.5px] border-emerald-300 rounded-xl px-3 font-mono font-bold text-center" placeholder="如 WH-A-01"><button class="bg-emerald-600 text-white font-bold rounded-xl px-5" id="locGo">定位</button></div><p class="text-[10px] text-slate-400 mt-1" id="locTip">当前库位：WH-A-01（外仓）</p></div>
 <div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">第2步 · 物料条码</p><div class="flex gap-2"><input id="scanCode" data-scan-input value="SB20260910003-01" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono font-bold text-center"><button class="bg-[#2f6fe4] text-white font-bold rounded-xl px-5" id="scanGo">识别</button></div><div class="grid grid-cols-3 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="SB20260910003-01">SB-01 正常</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="SB20260910003-01DUP">重复码</button><button class="border-[1.5px] border-slate-200 rounded-xl py-2 text-[12px] font-bold" data-demo-scan="BADCODE">无效码</button></div></div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500 mb-1.5">现场照片（PDA 拍照自动回传 · 存证）</p><div id="photoStrip" class="flex gap-2 overflow-x-auto"></div><p class="text-[10px] text-slate-400 mt-1" id="photoTip">扫码头拍照后自动回传；提交时随单据上传并挂为附件</p></div>
 <div class="flex justify-between items-baseline px-1"><h2 class="font-bold text-[15px]">本次扫码记录</h2><span class="text-[11px] text-slate-500" id="scanCount">2 条</span></div>
 <div id="scanList">
 <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center"><i class="fa-solid fa-check"></i></span><b class="font-mono">SB20260910003-01</b><span class="text-slate-500">牛津布 200米</span><a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code=SB20260910003-01">查看溯源 →</a></div>
 <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg bg-red-100 text-red-500 grid place-items-center"><i class="fa-solid fa-xmark"></i></span><b class="font-mono">BADCODE</b><span class="text-slate-500">无效码</span><span class="ml-auto text-[10px] text-slate-400">09:40</span></div>
 </div>
-<div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between font-bold text-[13px]"><b>提交确认摘要</b><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">待办</span></div><p class="text-[11px] text-slate-500 mt-1" id="scanSummary">照片3 · 扫码1 · 登录账号+照片存证 · PDA-03</p><div class="grid grid-cols-2 gap-2 mt-2"><button class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">弱网存草稿</button><button class="bg-[#2f6fe4] text-white rounded-xl py-2.5 font-bold text-[13px]">提交</button></div></div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between font-bold text-[13px]"><b>提交确认摘要</b><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">待办</span></div><p class="text-[11px] text-slate-500 mt-1" id="scanSummary">照片3 · 扫码1 · 登录账号+照片存证 · PDA-03</p><div class="grid grid-cols-2 gap-2 mt-2"><button id="draftBtn" class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">弱网存草稿</button><button id="submitBtn" class="bg-[#2f6fe4] text-white rounded-xl py-2.5 font-bold text-[13px]">提交</button></div></div>
 <script src="../pda-scan.js"></script>
 <script src="../app-data.js"></script>
 <script src="../api-client.js"></script>
 <script>
 (function(){
   var list=[{code:'SB20260910003-01',ok:true,msg:'牛津布 200米',t:'09:41'},{code:'BADCODE',ok:false,msg:'无效码',t:'09:40'}];
+  var photos=[];
   var box=FieldDB.get().barcodes||{};
   var loc='WH-A-01';
   try{var qd=new URLSearchParams(location.search).get('doc');if(qd){document.getElementById('docNo').value=qd;}}catch(e){}
@@ -28,7 +30,34 @@
     document.getElementById('scanList').innerHTML=list.map(function(s){
       return '<div class="bg-white border border-slate-200 rounded-xl p-2.5 flex gap-2 items-center text-[12px]"><span class="w-6 h-6 rounded-lg '+(s.ok?'bg-emerald-100 text-emerald-600':'bg-red-100 text-red-500')+' grid place-items-center"><i class="fa-solid '+(s.ok?'fa-check':'fa-xmark')+'"></i></span><b class="font-mono">'+esc(s.code)+'</b><span class="text-slate-500">'+esc(s.msg)+'</span>'+(s.ok?'<a class="ml-auto text-[11px] text-blue-600 font-bold" href="data.html?code='+encodeURIComponent(s.code)+'">查看溯源 →</a>':'<span class="ml-auto text-[10px] text-slate-400">'+esc(s.t)+'</span>')+'</div>';
     }).join('');
-    document.getElementById('scanSummary').textContent='库位'+loc+' · 扫码'+list.filter(function(s){return s.ok;}).length+' · 登录账号+照片存证 · PDA-03';
+    document.getElementById('scanSummary').textContent='库位'+loc+' · 扫码'+list.filter(function(s){return s.ok;}).length+' · 照片'+photos.length+' · 登录账号+照片存证 · PDA-03';
+    paintPhotos();
+  }
+  // 照片:PDA 壳拍照广播回传(PdaPhotoFeed → PdaPhoto.on),提交时上传并挂为单据附件
+  function paintPhotos(){
+    var strip=document.getElementById('photoStrip');
+    if(!strip)return;
+    if(!photos.length){strip.innerHTML='<span class="text-[11px] text-slate-400">暂无照片</span>';return;}
+    strip.innerHTML=photos.map(function(p){
+      return '<div class="relative shrink-0"><img src="'+p.dataUrl+'" class="w-16 h-16 object-cover rounded-lg border border-slate-200"><span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-white text-[9px] text-slate-500 grid place-items-center">'+esc(p.st)+'</span></div>';
+    }).join('');
+  }
+  function onPhoto(dataUrl,meta){
+    if(!dataUrl)return;
+    photos.unshift({dataUrl:dataUrl,meta:meta||{},st:photos.length+1});
+    paint();
+  }
+  if(window.PdaPhoto&&PdaPhoto.on){PdaPhoto.on(onPhoto);}
+  else{document.addEventListener('pdaPhoto',function(e){onPhoto(e.detail&&e.detail.dataUrl,e.detail&&e.detail.meta);});}
+  function uploadPhotos(docNo){
+    if(!docNo||!photos.length)return;
+    photos.filter(function(p){return p.st!=='已传';}).forEach(function(p){
+      AppApi.uploadPhoto(p.dataUrl).then(function(u){
+        if(u&&u.ok&&u.data&&u.data.url){
+          return AppApi.addAttachment(docNo,u.data.url,'照片').then(function(a){if(a&&a.ok)p.st='已传';});
+        }
+      }).catch(function(){}).then(function(){paint();});
+    });
   }
   document.getElementById('locGo').onclick=function(){
     loc=String(document.getElementById('locCode').value||'').trim()||loc;
@@ -56,8 +85,30 @@
     location.href='register.html?biz=DJ';
   };
   paint();
+  // 提交/草稿:把已扫有效码作为存证提交(支持离线队列)
+  function toast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2400);}
+  function payload(){ return {biz:'SCAN', doc:docNo(), loc:loc, codes:list.filter(function(s){return s.ok;}).map(function(s){return s.code;}), at:new Date().toISOString()}; }
+  document.getElementById('submitBtn').onclick=function(){
+    var oks=list.filter(function(s){return s.ok;});
+    if(!oks.length){toast('还没有有效扫码');return;}
+    var btn=this; btn.disabled=true;
+    AppApi.submit(payload()).then(function(r){
+      btn.disabled=false;
+      if(r&&r.ok){
+        uploadPhotos((r.data&&r.data.doc_no)||'');
+        toast(r.queued||(r.data&&r.data.queued)?'已存草稿，待同步':'提交成功 ✓');
+      }
+      else toast('提交失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){ btn.disabled=false; toast('网络异常'); });
+  };
+  document.getElementById('draftBtn').onclick=function(){
+    AppApi.submit(Object.assign(payload(),{draft:true})).then(function(r){
+      toast(r&&r.ok?(r.queued?'已存草稿，待同步':'已存草稿 ✓'):'存草稿失败');
+    }).catch(function(){ toast('网络异常'); });
+  };
 })();
 </script>
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html" class="text-blue-600"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-[#10233f] text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-lg"></div>
 </body></html>

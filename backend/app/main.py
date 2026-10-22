@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from app.core.resp import fail
 from app.core import auth as _auth
-from app.routers import web, app_, ai, masters, sysadm, reports, transfer, produce, docparts, export, stockops, rptbuilder
+from app.routers import web, app_, ai, masters, sysadm, reports, transfer, produce, docparts, export, stockops, rptbuilder, photos
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -114,6 +114,7 @@ app.include_router(docparts.router, prefix="/api/v1/web")
 app.include_router(export.router, prefix="/api/v1/web")
 app.include_router(stockops.router, prefix="/api/v1/web")
 app.include_router(app_.router, prefix="/api/v1/app")
+app.include_router(photos.router, prefix="/api/v1/app")
 app.include_router(ai.router, prefix="/api/v1/ai")
 
 
@@ -225,6 +226,16 @@ if os.path.isdir(PROTO):
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> RedirectResponse:
         return RedirectResponse("/proto/assets/icon-192.png")
+
+
+# 现场照片目录(PDA 拍照回传落盘处):容器内由 compose 挂 /srv/uploads 可写卷.
+try:
+    os.makedirs(photos.UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=photos.UPLOAD_DIR),
+              name="uploads")
+except OSError:  # 目录不可写时不阻断启动,仅照片上传不可用
+    logging.warning("uploads 目录不可写,PDA 照片回传不可用: %s",
+                    photos.UPLOAD_DIR)
 
 
 def _cookie_valid(request: Request) -> bool:
