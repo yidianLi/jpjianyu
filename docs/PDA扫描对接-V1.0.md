@@ -67,7 +67,10 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 | `prototype/mobile-app/screens/scan.html` | 业务类型选择、行数量步进、**真提交建单**（显示真实单号）、照片条+放大预览 |
 | `prototype/mobile-app/screens/checklist.html` | 接 `PdaScan`：扫物料码自动定位到"待确认的第一行"，无需点按钮 |
 | `prototype/mobile-app/screens/register.html` | 扫码交接码 → 逐个查码 → 行容器(可调数量) → 真提交建单 |
+| `prototype/mobile-app/screens/stocktake.html` | **实物盘点 PD**：建任务 → 取账面行 → 扫物料码定位行 → 填实盘数 → 逐行确认 → 差异调账 |
+| `prototype/mobile-app/screens/transfer.html` | **库存调仓 DB**：选源/目标仓与库位 → 扫物料码累加行 → 提交建单 → 列表接收实收 |
 | `backend/app/routers/app_scan.py` | **扫码解析**：`POST /app/scan`（写扫码日志）+ `GET /app/lookup`（只查码），支持 **DOC 单据码 / SB 物料码 / LOC 库位码** 三类 |
+| `backend/app/routers/app_ops.py` | **PDA 现场作业**：`/app/pd_tasks`（盘点）与 `/app/transfer_ships`（调仓），PDA 设备令牌 + 功能权限双校验 |
 | `backend/app/routers/app_.py` | 登录/待办/清单/提交/补传（≤300 行，扫码解析已拆出） |
 | `backend/app/routers/photos.py` | **新增** `POST /api/v1/app/photos`：JSON base64 → 落盘 `uploads/` → 返回 `/uploads/xxx.jpg` |
 | `backend/app/main.py` | 挂载 `/uploads` 静态目录；注册 photos / app_scan 路由（`/api/v1/app`） |
@@ -142,11 +145,35 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 - **页面白屏**：同网段 / CORS（`WMS_CORS_ORIGINS`）/ `usesCleartextTraffic`（已内置）。
 
 ## 十、已知未完成
-- `screens/stocktake.html`、`screens/transfer.html` 仍是**演示态**（未接 `/web/pd_tasks`、`/web/transfer_ships`），且建盘点需「确认」权限；列为 P1。
+- 硬件扫描枪本身未在真机验证（本机无 adb 设备），代码链路按厂商文档实现。
 
-## 十一、变更清单
+## 十一、现场作业权限（PDA 角色）
+
+新增角色 **`R-PDA`「PDA现场作业员」**（`查看,录入,确认`，数据范围 `*`），已挂给 `ws`/`mat`/`demo`：
+- `/app/*` 是 PDA 专用入口，用 `/app/login` 签发的**设备令牌**（device=PDA-03）；但令牌仍带用户名，
+  所以 PDA 作业接口除设备校验外，**还按角色校验功能权限**（盘点需「确认」，调仓建单需「录入」）。
+- 仓库维度也校验：源仓不在用户 `data_scope` 内 → 403。
+- 种子同步：`backend/sql/seeds/seed_demo.sql` 已加 `R-PDA` 角色与账号关联（重灌安全）。
+
+### 盘点 PD 流程
+```
+建任务(选仓库) → 抓账面行 → 扫物料码定位行 → 填实盘数 → 确认本行(逐行)
+   → 全部确认后「差异调账」→ 生成 TZ 调整单并过账（盘盈增账 / 盘亏减账）
+```
+盘点本身**不动账**，只有差异调账才动（与 PC 端口径一致）。
+
+### 调仓 DB 流程
+```
+选源仓/目标仓 + 库位 → 扫物料码累加行与数量 → 提交建单(多物料拆多张 DB 单)
+   → 列表里填实收数「接收」→ 差异转「待复核」
+```
+调仓是**在途申请单**（源仓减/在途增为业务口径），实收差异由复核环节处理。
+
+## 十二、变更清单
 - 新增 `pda-app/`（WebView 壳工程 + 扫描 jar + 拍照链路）。
-- 新增 `backend/app/routers/photos.py`（照片上传）、`backend/app/routers/app_scan.py`（扫码解析，支持 DOC/SB/LOC）。
+- 新增 `backend/app/routers/photos.py`（照片上传）、`backend/app/routers/app_scan.py`（扫码解析，支持 DOC/SB/LOC）、`backend/app/routers/app_ops.py`（PDA 盘点/调仓）。
+- 新增角色 `R-PDA`「PDA现场作业员」；`seed_demo.sql` 同步。
 - `main.py` 挂 `/uploads` + 注册新路由；compose 增可写卷与 `WMS_UPLOAD_DIR`。
-- `prototype/mobile-app/pda-scan.js`（`PdaPhoto` 通道）、`api-client.js`（补 `ok` 字段 + 照片/主档/盘点/调仓方法）、`screens/scan.html`（重写：业务类型/数量/真提交/照片放大）、`screens/checklist.html`（接 PdaScan）、`screens/register.html`（真提交）。
+- `prototype/mobile-app/pda-scan.js`（`PdaPhoto` 通道）、`api-client.js`（补 `ok` 字段 + 照片/主档/盘点/调仓方法改走 `/app/*`）、`screens/scan.html`（重写：业务类型/数量/真提交/照片放大）、`screens/checklist.html`（接 PdaScan）、`screens/register.html`（真提交）、`screens/stocktake.html`（真盘点）、`screens/transfer.html`（真调仓）。
+- `backend/tests/test_idem.py`：幂等键改用随机键（原固定键在真库重跑会命中 `idem_log` 历史记录导致断言失败）。
 - 本文档。

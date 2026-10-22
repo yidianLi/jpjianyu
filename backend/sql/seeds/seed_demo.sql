@@ -9,6 +9,7 @@ INSERT INTO sys_role(role_id,autocode,lowest,name,cat_allow,func_allow,data_scop
 ('R-WH-IN','1',1,'内仓管理员','*','查看,录入,修改,确认,过账,导出','WH-B,WH-C'),
 ('R-MAT','1',1,'物料领发员','*','查看,录入,确认','WH-A,WH-B,WH-C'),
 ('R-WS','1',1,'车间领料员','*','查看,录入','WH-A,WH-B,WH-C'),
+('R-PDA','1',1,'PDA现场作业员','*','查看,录入,确认','*'),
 ('R-FG','1',1,'成品交接员','*','查看,录入,确认','WH-A,WH-B,WH-C'),
 ('R-SUP','1',1,'监区/楼层负责人','*','查看,审批,导出,关闭异常','*'),
 ('R-HEAD','1',1,'仓库负责人','*','查看,确认,审批,过账,导出,关闭异常','*'),
@@ -33,6 +34,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name),password_hash=VALUES(password_hash),da
 INSERT INTO sys_user_role(username,role_id) VALUES
 ('admin','R-ADMIN'),('demo','R-WH'),('demo','R-HEAD'),
 ('whin','R-WH-IN'),('mat','R-MAT'),('ws','R-WS'),('fg','R-FG'),
+('ws','R-PDA'),('mat','R-PDA'),('demo','R-PDA'),
 ('sup','R-SUP'),('head','R-HEAD'),('cust','R-CUST'),('fin','R-FIN')
 ON DUPLICATE KEY UPDATE username=VALUES(username);
 -- 正式版幂等落库:Idempotency-Key与响应快照,重启不丢

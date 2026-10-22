@@ -1,11 +1,153 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>库存调仓 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style><script src="../api-client.js"></script><script src="../app-bridge.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
-<div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
-<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">库存调仓 DB</b><span class="ml-auto text-[11px] text-slate-400">源仓减 · 在途增</span></div>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>库存调仓 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style><script src="../api-client.js"></script><script src="../pda-scan.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
+<div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-fourths"></i></span></div>
+<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">库存调仓 DB</b><span class="ml-auto text-[11px] text-slate-400" id="txStat">源仓减 · 在途增</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
-<div class="bg-white border border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">关联调仓申请（可选）</b><button class="border-[1.5px] border-slate-200 rounded-lg px-3 py-1.5 text-[12px] font-bold">快捷关联</button></div><p class="text-[11px] text-slate-500 mt-1">DB2026091602 · 成品仓A → 成品仓B · 1行</p></div>
-<div class="bg-white border border-slate-200 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500">源仓库 / 源库区 <span class="text-red-500">*</span></p><div class="flex gap-2 mt-1"><select class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"><option>成品仓A</option><option>成品仓B</option></select><select class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"><option>第1栏第1格</option></select></div><div class="text-center text-slate-300 my-1"><i class="fa-solid fa-arrow-down"></i></div><p class="text-[11px] font-bold text-slate-500">目标仓库 / 目标库区 <span class="text-red-500">*</span></p><div class="flex gap-2 mt-1"><select class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"><option>成品仓B</option><option>成品仓A</option></select><select class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"><option>A区-01</option></select></div></div>
-<div class="bg-white border-[1.5px] border-slate-200 rounded-2xl p-3"><div class="flex justify-between items-center"><b class="text-[13px]">拉链 黑色</b><span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">可用 9000件</span></div><p class="text-[11px] text-slate-500 mt-0.5">批次 BT2026091503 · 成品仓A</p><img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&q=60&auto=format&fit=crop" class="w-full h-20 object-cover rounded-xl mt-2"><div class="flex gap-1.5 mt-2 items-center"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">−</button><input value="2000" class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold"><button class="w-10 h-10 rounded-[10px] border-[1.5px] border-slate-200 font-bold text-lg">＋</button></div></div>
-<div class="grid grid-cols-2 gap-2"><button class="border-[1.5px] border-slate-200 bg-white rounded-xl py-3 font-bold text-[14px]">存草稿</button><button class="bg-teal-600 text-white rounded-xl py-3 font-bold text-[14px]">提交并过账</button></div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3">
+<p class="text-[11px] font-bold text-slate-500 mb-1.5">第1步 · 源仓 / 目标仓</p>
+<div class="flex gap-2"><select id="fromWh" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"></select><i class="fa-solid fa-arrow-right-arrow-left self-center text-slate-400"></i><select id="toWh" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"></select></div>
+<div class="flex gap-2 mt-2"><select id="fromLoc" class="flex-1 h-[42px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[12px]"></select><select id="toLoc" class="flex-1 h-[42px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[12px]"></select></div>
+</div>
+<div class="bg-white border border-slate-200 rounded-2xl p-3">
+<p class="text-[11px] font-bold text-slate-500 mb-1.5">第2步 · 扫物料码（可多件，累加数量）</p>
+<div class="flex gap-2"><input id="scanCode" data-scan-input class="flex-1 h-[44px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono font-bold text-center" placeholder="扫物料条码"><button id="scanGo" class="bg-[#2f6fe4] text-white font-bold rounded-xl px-5 text-[13px]">加入</button></div>
+<div id="txLines" class="mt-2 space-y-1.5"></div>
+<div class="flex gap-2 mt-2"><input id="carrier" class="flex-1 h-[42px] border-[1.5px] border-slate-200 rounded-xl px-3 text-[13px]" placeholder="承运人（可选）"><input id="plate" class="flex-1 h-[42px] border-[1.5px] border-slate-200 rounded-xl px-3 font-mono text-[13px]" placeholder="车牌（可选）"></div>
+<div class="grid grid-cols-2 gap-2 mt-2"><button id="txDraftBtn" class="border-[1.5px] border-slate-200 rounded-xl py-3 font-bold text-[14px]">存草稿</button><button id="txSubmitBtn" class="bg-teal-600 text-white rounded-xl py-3 font-bold text-[14px]">提交调仓</button></div>
+<p class="text-[11px] text-slate-400 px-1 mt-1">提交后源仓出库、目的仓在途；到货后由接收人登记实收</p>
+</div>
+<div class="flex justify-between items-baseline px-1"><h2 class="font-bold text-[15px]">调仓单</h2><span class="text-[11px] text-slate-500" id="txCount">0 单</span></div>
+<div id="txList" class="space-y-2"></div>
 </div>
 <nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="register.html?biz=DJ"><i class="fa-solid fa-barcode text-[19px] block mb-0.5"></i>登记</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-[#10233f] text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-lg"></div>
+<script>
+(function(){
+  /* 库存调仓 DB:选源/目标仓与库位 → 扫物料码累加行 → 提交建单 → 列表接收实收
+   * 后端 /app/transfer_ships(PDA 设备令牌 + 「录入」权限)。*/
+  var LINES=[];   // {code,material_code,name,unit,batch,qty}
+  var WHS=[];
+
+  function el(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(m){var t=el('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2400);}
+
+  function loadWh(){
+    if(!window.AppApi)return;
+    AppApi.warehouses().then(function(r){
+      if(!r||!r.ok||!r.data||!r.data.length)return;
+      WHS=r.data;
+      var opt=WHS.map(function(w){return '<option value="'+esc(w.wh_code)+'">'+esc(w.wh_code+' '+(w.name||''))+'</option>';}).join('');
+      el('fromWh').innerHTML=opt;el('toWh').innerHTML=opt;
+      if(WHS.length>1)el('toWh').selectedIndex=1;
+      loadLocs();
+    }).catch(function(){});
+  }
+  function loadLocs(){
+    var wh=el('fromWh').value;
+    AppApi.locations(wh).then(function(r){
+      if(!r||!r.ok||!r.data)return;
+      var opt=r.data.map(function(l){return '<option value="'+esc(l.loc_code)+'">'+esc(l.loc_code+(l.zone_label?(' '+l.zone_label):''))+'</option>';}).join('');
+      if(opt){el('fromLoc').innerHTML=opt;el('toLoc').innerHTML=opt;}
+    }).catch(function(){});
+  }
+  function paintLines(){
+    var box=el('txLines');
+    if(!LINES.length){box.innerHTML='<p class="text-[11px] text-slate-400">尚未加入物料</p>';return;}
+    box.innerHTML=LINES.map(function(x,i){
+      return '<div class="flex items-center gap-2 bg-slate-50 rounded-xl px-2.5 py-2 text-[12px]">'
+        +'<b class="font-mono">'+esc(x.code)+'</b><span class="text-slate-500 truncate">'+esc(x.name||x.material_code)+'</span>'
+        +'<span class="ml-auto flex items-center gap-1"><button class="w-6 h-6 rounded-lg border border-slate-200 font-bold" data-tmin="'+i+'">−</button>'
+        +'<span class="w-10 text-center font-extrabold">'+esc(String(x.qty))+'</span>'
+        +'<button class="w-6 h-6 rounded-lg border border-slate-200 font-bold" data-tplus="'+i+'">＋</button>'
+        +'<button class="w-6 h-6 rounded-lg border border-red-200 text-red-500 font-bold" data-tdel="'+i+'">✕</button></span></div>';
+    }).join('');
+    box.querySelectorAll('[data-tmin]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-tmin');LINES[i].qty=Math.max(1,LINES[i].qty-1);paintLines();};});
+    box.querySelectorAll('[data-tplus]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-tplus');LINES[i].qty=LINES[i].qty+1;paintLines();};});
+    box.querySelectorAll('[data-tdel]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-tdel');LINES.splice(i,1);paintLines();};});
+  }
+  function addCode(code){
+    code=String(code||'').trim();
+    if(!code)return;
+    if(!window.AppApi){toast('未登录/离线');return;}
+    AppApi.lookup(code).then(function(r){
+      if(!r||!r.ok||!r.data){toast((r&&r.msg)||'无效码');return;}
+      var d=r.data;
+      if(d.kind==='DOC'){toast('单据 '+d.doc_no);return;}
+      if(d.kind==='LOC'){
+        if(el('fromLoc'))el('fromLoc').value=d.loc;
+        toast('库位：'+d.loc+'（已设为源库位）');return;
+      }
+      var hit=LINES.filter(function(x){return x.code===code;})[0];
+      if(hit){hit.qty+=1;paintLines();toast(hit.name+' 数量+1');return;}
+      LINES.push({code:code,material_code:d.material,name:d.name||d.material,unit:d.unit||'',batch:d.batch||'',qty:1});
+      paintLines();toast('已加入 '+(d.name||d.material));
+    }).catch(function(){toast('查码失败（网络）');});
+  }
+  function submit(){
+    if(!LINES.length){toast('请先扫物料码');return;}
+    var from=el('fromWh').value,to=el('toWh').value;
+    if(!from||!to){toast('请选源仓与目标仓');return;}
+    if(from===to){toast('源仓与目标仓不能相同');return;}
+    var first=LINES[0];
+    var payload={from_wh:from,to_wh:to,from_loc:el('fromLoc').value,to_loc:el('toLoc').value,
+                 carrier:el('carrier').value,plate:el('plate').value,
+                 lines:[{code:first.code,material_code:first.material_code,qty:first.qty,unit:first.unit,batch_no:first.batch}]};
+    var extra=LINES.slice(1).map(function(x){return {code:x.code,material_code:x.material_code,qty:x.qty,unit:x.unit,batch_no:x.batch};});
+    if(extra.length)payload.lines=payload.lines.concat(extra);
+    var btn=el('txSubmitBtn');btn.disabled=true;btn.textContent='提交中…';
+    AppApi.createShip(payload).then(function(r){
+      btn.disabled=false;btn.textContent='提交调仓';
+      if(r&&r.ok&&r.data){toast('调仓单已建 '+r.data.doc_no);LINES=[];paintLines();loadShips();}
+      else toast('提交失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){btn.disabled=false;btn.textContent='提交调仓';toast('网络异常');});
+  }
+  function loadShips(){
+    if(!window.AppApi)return;
+    AppApi.listShips().then(function(r){
+      if(!r||!r.ok||!r.data)return;
+      var rows=r.data;
+      el('txCount').textContent=rows.length+' 单';
+      el('txList').innerHTML=rows.map(function(s){
+        var recv=s.n_qty!=null;
+        return '<div class="bg-white border border-slate-200 rounded-2xl p-3">'
+          +'<div class="flex justify-between items-center"><b class="text-[13px] font-mono">'+esc(s.doc_no)+'</b>'
+          +'<span class="text-[10px] '+(recv?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700')+' px-2 py-0.5 rounded-full font-bold">'+esc(s.diff_status||'待接收')+'</span></div>'
+          +'<p class="text-[11px] text-slate-500 mt-1">'+esc(s.from_wh+' '+(s.from_loc||''))+' → '+esc(s.to_wh+' '+(s.to_loc||''))+' · '+esc(String(s.o_qty||0))+' '+esc(s.unit||'')+'</p>'
+          +(recv?('<p class="text-[11px] text-emerald-600 font-bold mt-1">实收 '+esc(String(s.n_qty))+'</p>'):'')
+          +'<div class="flex gap-2 mt-2"><input class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold" data-rcv="'+esc(s.doc_no)+'" placeholder="实收数">'
+          +'<button class="bg-teal-600 text-white rounded-[10px] h-10 px-4 text-[12px] font-bold" data-rdo="'+esc(s.doc_no)+'">接收</button></div></div>';
+      }).join('');
+      el('txList').querySelectorAll('[data-rdo]').forEach(function(b){
+        b.onclick=function(){
+          var doc=b.getAttribute('data-rdo');
+          var inp=el('txList').querySelector('[data-rcv="'+doc+'"]');
+          var v=parseFloat(inp?inp.value:'');
+          if(isNaN(v)){toast('请填实收数');return;}
+          AppApi.receiveShip(doc,v).then(function(r){
+            if(r&&r.ok){toast('已接收 '+doc);loadShips();}
+            else toast('接收失败：'+((r&&r.msg)||'未知'));
+          }).catch(function(){toast('网络异常');});
+        };
+      });
+    }).catch(function(){});
+  }
+  el('scanGo').onclick=function(){addCode(el('scanCode').value);el('scanCode').value='';};
+  el('txSubmitBtn').onclick=submit;
+  el('txDraftBtn').onclick=function(){
+    if(!LINES.length){toast('请先扫物料码');return;}
+    try{localStorage.setItem('wms_tx_draft_v1',JSON.stringify({lines:LINES,from:el('fromWh').value,to:el('toWh').value,ts:Date.now()}));toast('已存草稿（本地）');}
+    catch(e){toast('存草稿失败');}
+  };
+  el('fromWh').onchange=loadLocs;
+  if(window.PdaScan){
+    PdaScan.bind('#scanCode',function(code){addCode(code);});
+    PdaScan.on(function(code){ if(document.activeElement&&document.activeElement.id!=='scanCode') addCode(code); });
+  }
+  try{
+    var d=JSON.parse(localStorage.getItem('wms_tx_draft_v1')||'null');
+    if(d&&d.lines&&d.lines.length){LINES=d.lines;paintLines();toast('已恢复草稿（'+d.lines.length+' 行）');}
+  }catch(e){}
+  loadWh();loadShips();paintLines();
+})();
+</script>
 </body></html>

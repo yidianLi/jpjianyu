@@ -176,15 +176,15 @@
     warehouses:function(){ return req('/web/masters/warehouses'); },
     locations:function(wh){ return req('/web/masters/locations'+(wh?('?wh_code='+encodeURIComponent(wh)):'')); },
     // 10.调仓单(DB):建单/列表/接收实收
-    createShip:function(payload){ return req('/web/transfer_ships',{method:'POST',body:payload}); },
-    listShips:function(){ return req('/web/transfer_ships'); },
-    receiveShip:function(docNo,nQty){ return req('/web/transfer_ships/'+encodeURIComponent(docNo)+'/receive',{method:'PATCH',body:{n_qty:nQty}}); },
+    createShip:function(payload){ return req('/app/transfer_ships',{method:'POST',body:payload}); },
+    listShips:function(){ return req('/app/transfer_ships'); },
+    receiveShip:function(docNo,nQty){ return req('/app/transfer_ships/'+encodeURIComponent(docNo)+'/receive',{method:'PATCH',body:{n_qty:nQty}}); },
     // 11.盘点任务(PD):建任务/取行/逐行确认/差异调账
-    createPd:function(payload){ return req('/web/pd_tasks',{method:'POST',body:payload}); },
-    listPd:function(){ return req('/web/pd_tasks'); },
-    pdLines:function(pdNo){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/lines'); },
-    pdConfirm:function(pdNo,lineNo,nQty){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/confirm',{method:'POST',body:{line_no:lineNo,n_qty:nQty}}); },
-    pdAdjust:function(pdNo){ return req('/web/pd_tasks/'+encodeURIComponent(pdNo)+'/adjust',{method:'POST',body:{}}); },
+    createPd:function(payload){ return req('/app/pd_tasks',{method:'POST',body:payload}); },
+    listPd:function(){ return req('/app/pd_tasks'); },
+    pdLines:function(pdNo){ return req('/app/pd_tasks/'+encodeURIComponent(pdNo)+'/lines'); },
+    pdConfirm:function(pdNo,lineNo,nQty){ return req('/app/pd_tasks/'+encodeURIComponent(pdNo)+'/confirm',{method:'POST',body:{line_no:lineNo,n_qty:nQty}}); },
+    pdAdjust:function(pdNo){ return req('/app/pd_tasks/'+encodeURIComponent(pdNo)+'/adjust',{method:'POST',body:{}}); },
     mine:function(){ return req('/web/auth/me',{mock:{ok:true,data:{name:'离线用户',username:'',data_scope:'—',roles:[]}}}); }
   };
   document.addEventListener('DOMContentLoaded', function(){ renderQ(); boot(); });

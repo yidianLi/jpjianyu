@@ -1,12 +1,156 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>实物盘点 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style><script src="../api-client.js"></script><script src="../app-bridge.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
-<div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
-<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">实物盘点 PD</b><span class="ml-auto text-[11px] text-slate-400">2/3 已盘</span></div>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>实物盘点 · 现场作业APP</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><style>body{font-family:"PingFang SC","Microsoft YaHei",system-ui;background:#eef2f7;margin:0}</style><script src="../api-client.js"></script><script src="../pda-scan.js"></script></head><body class="w-full max-w-[393px] h-[100dvh] mx-auto flex flex-col overflow-hidden bg-[#eef2f7]">
+<div class="h-[54px] bg-[#10233f] text-white flex justify-between items-end px-7 pb-2 text-[13px] font-semibold shrink-0"><span>09:41</span><span class="flex gap-1.5 items-center text-[11px]"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-fourths"></i></span></div>
+<div class="flex items-center px-4 py-3 bg-white border-b border-slate-200 shrink-0"><a href="home.html" class="text-slate-500 mr-2"><i class="fa-solid fa-chevron-left"></i></a><b class="text-[15px]">实物盘点 PD</b><span class="ml-auto text-[11px] text-slate-400" id="pdStat">未建任务</span></div>
 <div class="flex-1 overflow-y-auto p-3 space-y-3">
-<div class="h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full w-2/3 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full"></div></div>
-<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex gap-2.5 items-center"><span class="w-6 h-6 rounded-lg bg-emerald-600 text-white grid place-items-center text-[12px]"><i class="fa-solid fa-check"></i></span><div class="flex-1"><b class="text-[13px]">牛津布 藏青 · BT2026091501</b><p class="text-[11px] text-slate-500">账面 4200米 · 实盘 4200米 · 一致</p></div><input value="4200" class="w-[70px] h-10 text-center border-[1.5px] border-emerald-300 bg-emerald-50/50 rounded-[10px] font-extrabold"></div>
-<div class="bg-red-50 border border-red-200 rounded-2xl p-3 flex gap-2.5 items-center"><span class="w-6 h-6 rounded-lg border-2 border-slate-300 grid place-items-center text-[12px]"></span><div class="flex-1"><b class="text-[13px]">里布 白色 · BT2026091502</b><p class="text-[11px] text-slate-500">账面 1600米 · 差异常</p><p class="text-[11px] text-red-600 font-bold">差异 -35米（盘点不动账，走调整单）</p></div><input value="1565" class="w-[70px] h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold bg-white"></div>
-<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden"><img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=600&q=60&auto=format&fit=crop" class="w-full h-28 object-cover"><div class="p-3 flex gap-2.5 items-center"><span class="w-6 h-6 rounded-lg border-2 border-slate-300"></span><div class="flex-1"><b class="text-[13px]">拉链 黑色 · BT2026091503</b><p class="text-[11px] text-slate-500">账面 9000件 · 待盘点</p></div><input value="9000" class="w-[70px] h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold"></div></div>
-<div class="grid grid-cols-2 gap-2"><button class="border-[1.5px] border-slate-200 bg-white rounded-xl py-3 font-bold text-[14px]">存草稿</button><button class="bg-teal-600 text-white rounded-xl py-3 font-bold text-[14px]">实盘提交</button></div>
+<div id="pdSetup" class="bg-white border border-slate-200 rounded-2xl p-3">
+<p class="text-[11px] font-bold text-slate-500 mb-1.5">第1步 · 建盘点任务</p>
+<div class="flex gap-2"><select id="whSel" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"></select><select id="scopeSel" class="flex-1 h-[46px] border-[1.5px] border-slate-200 rounded-xl px-2 font-bold text-[13px]"><option>全部</option><option>成品区</option><option>原料区</option></select></div>
+<button id="createPdBtn" class="mt-2 w-full bg-teal-600 text-white rounded-xl h-11 font-bold text-[14px]">建任务并抓取账面</button>
+<p class="text-[10px] text-slate-400 mt-1">盘点不动账；差异在复核后生成 TZ 调整单</p>
 </div>
-<nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="register.html?biz=DJ"><i class="fa-solid fa-barcode text-[19px] block mb-0.5"></i>登记</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<div id="pdTaskBar" class="hidden bg-white border border-slate-200 rounded-2xl p-3">
+<div class="flex justify-between items-center"><b class="text-[13px]" id="pdNo">—</b><span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full" id="pdStatus">草稿</span></div>
+<div class="h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div id="pdBar" class="h-full w-0 bg-gradient-to-r from-teal-600 to-teal-400 rounded-full transition-all"></div></div>
+<p class="text-[10px] text-slate-400 mt-1" id="pdTip">扫物料码自动定位到该行，填实盘数后点「确认本行」</p>
+<div class="grid grid-cols-2 gap-2 mt-2"><button id="pdAdjustBtn" class="border-[1.5px] border-amber-300 bg-amber-50 text-amber-700 rounded-xl py-2.5 font-bold text-[13px]">差异调账</button><button id="pdNewBtn" class="border-[1.5px] border-slate-200 rounded-xl py-2.5 font-bold text-[13px]">换任务</button></div>
+</div>
+<div id="pdList" class="space-y-2"></div>
+<div id="pdEmpty" class="bg-white border border-slate-200 rounded-2xl p-6 text-center"><i class="fa-solid fa-box-open text-slate-300 text-3xl"></i><p class="text-[12px] text-slate-400 mt-2">先建盘点任务，再逐行扫物料码盘点</p></div>
+</div>
+<nav class="bg-white border-t border-slate-200 grid grid-cols-4 text-center text-[10px] font-bold text-slate-400 py-2 pb-6 shrink-0"><a href="home.html"><i class="fa-solid fa-house text-[19px] block mb-0.5"></i>工作台</a><a href="scan.html"><i class="fa-solid fa-expand text-[19px] block mb-0.5"></i>扫码</a><a href="data.html"><i class="fa-solid fa-table-cells text-[19px] block mb-0.5"></i>数据</a><a href="mine.html"><i class="fa-solid fa-circle-user text-[19px] block mb-0.5"></i>我的</a></nav>
+<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-[#10233f] text-white text-[12px] font-bold px-4 py-2 rounded-full shadow-lg"></div>
+<script>
+(function(){
+  /* 实物盘点 PD:建任务 → 取账面行 → 扫物料码定位行 → 填实盘数 → 逐行确认 → 差异调账
+   * 后端 /app/pd_tasks(PDA 设备令牌 + 「确认」权限),盘点本身不动账,差异走 TZ 调整单。*/
+  var PD_NO='';          // 当前盘点任务号
+  var LINES=[];          // 账面行
+  var WHS=[];            // 仓库列表
+  var focusIdx=-1;       // 正在盘的行
+
+  function el(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(m){var t=el('toast');if(!t)return;t.textContent=m;t.classList.remove('hidden');if(toast._t)clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.add('hidden');},2400);}
+
+  function loadWh(){
+    if(!window.AppApi)return;
+    AppApi.warehouses().then(function(r){
+      if(!r||!r.ok||!r.data||!r.data.length)return;
+      WHS=r.data;
+      var cur=el('whSel').value;
+      el('whSel').innerHTML=WHS.map(function(w){return '<option value="'+esc(w.wh_code)+'">'+esc(w.wh_code+' '+(w.name||''))+'</option>';}).join('');
+      if(cur)el('whSel').value=cur;
+    }).catch(function(){});
+  }
+  function loadTasks(){
+    if(!window.AppApi)return;
+    AppApi.listPd().then(function(r){
+      if(!r||!r.ok||!r.data||!r.data.length)return;
+      var last=r.data[0];
+      if(!PD_NO){ PD_NO=last.pd_no; loadLines(); }
+    }).catch(function(){});
+  }
+  function loadLines(){
+    if(!PD_NO)return;
+    AppApi.pdLines(PD_NO).then(function(r){
+      if(!r||!r.ok||!r.data){toast((r&&r.msg)||'取行失败');return;}
+      LINES=r.data.map(function(x){return {line_no:x.line_no,material_code:x.material_code,batch_no:x.batch_no,unit:x.unit,book_qty:x.book_qty,real_qty:x.real_qty,n_qty:x.n_qty,diff_qty:x.diff_qty};});
+      el('pdNo').textContent=PD_NO;
+      el('pdTaskBar').classList.remove('hidden');
+      el('pdSetup').classList.add('hidden');
+      paint();
+    }).catch(function(){toast('取行失败（网络）');});
+  }
+  function paint(){
+    var box=el('pdList');
+    if(!LINES.length){el('pdEmpty').classList.remove('hidden');el('pdStat').textContent='无账面行';return;}
+    el('pdEmpty').classList.add('hidden');
+    var done=LINES.filter(function(x){return x.n_qty!=null;}).length;
+    el('pdStat').textContent=done+'/'+LINES.length+' 已盘';
+    el('pdBar').style.width=(LINES.length?Math.round(done*100/LINES.length):0)+'%';
+    box.innerHTML=LINES.map(function(x,i){
+      var doneRow=x.n_qty!=null;
+      var diff=doneRow?Number(x.n_qty||0)-Number(x.book_qty||0):null;
+      var cls=doneRow?(diff===0?'bg-emerald-50 border-emerald-200':'bg-red-50 border-red-200'):'bg-white border-slate-200';
+      return '<div class="'+(focusIdx===i?'ring-2 ring-teal-500 ':'')+cls+' border rounded-2xl p-3" data-row="'+i+'">'
+        +'<div class="flex items-center gap-2"><span class="w-6 h-6 rounded-lg '+(doneRow?'bg-emerald-600 text-white':'border-2 border-slate-300')+' grid place-items-center text-[12px]">'
+        +(doneRow?'<i class="fa-solid fa-check"></i>':'')+'</span>'
+        +'<div class="flex-1 min-w-0"><b class="text-[13px]">'+esc(x.material_code)+'</b>'
+        +'<p class="text-[10px] text-slate-500 mt-0.5">批次 '+esc(x.batch_no||'-')+' · 账面 '+esc(String(x.book_qty||0))+' '+esc(x.unit||'')+'</p></div>'
+        +(doneRow?('<span class="text-[12px] font-bold '+(diff===0?'text-emerald-600':'text-red-600')+'">实盘 '+esc(String(x.n_qty))+'</span>'):'')+'</div>'
+        +'<div class="flex gap-1.5 mt-2 items-center"><input class="flex-1 h-10 text-center border-[1.5px] border-slate-200 rounded-[10px] font-extrabold" data-rq="'+i+'" value="'+esc(String(x.n_qty!=null?x.n_qty:x.book_qty))+'">'
+        +'<button class="bg-teal-600 text-white rounded-[10px] h-10 px-3 text-[12px] font-bold" data-ok="'+i+'">确认本行</button></div>'
+        +(doneRow&&diff!==0?('<p class="text-[11px] text-red-600 font-bold mt-1">差异 '+esc(String(diff))+' '+esc(x.unit||'')+'，复核后调账</p>'):'')+'</div>';
+    }).join('');
+    box.querySelectorAll('[data-rq]').forEach(function(inp){
+      inp.onchange=function(){var i=+inp.getAttribute('data-rq');var v=parseFloat(inp.value);LINES[i].n_qty=isNaN(v)?null:v;paint();};
+      inp.onfocus=function(){focusIdx=+inp.getAttribute('data-rq');paint();};
+    });
+    box.querySelectorAll('[data-ok]').forEach(function(b){
+      b.onclick=function(){confirmRow(+b.getAttribute('data-ok'));};
+    });
+    box.querySelectorAll('[data-row]').forEach(function(r){
+      r.onclick=function(e){
+        if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;
+        focusIdx=+r.getAttribute('data-row');paint();
+        var inp=box.querySelector('[data-rq="'+focusIdx+'"]');if(inp)inp.focus();
+      };
+    });
+  }
+  function confirmRow(i){
+    var x=LINES[i];if(!x)return;
+    var v=x.n_qty;
+    if(v==null||isNaN(v)){toast('请先填实盘数');return;}
+    AppApi.pdConfirm(PD_NO,x.line_no,v).then(function(r){
+      if(r&&r.ok){toast('第 '+x.line_no+' 行已确认');loadLines();}
+      else toast('确认失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){toast('网络异常');});
+  }
+  /* 扫物料码:定位到对应行并高亮 */
+  function onScan(code){
+    code=String(code||'').trim();
+    if(!code)return;
+    if(!PD_NO){toast('请先建盘点任务');return;}
+    AppApi.lookup(code).then(function(r){
+      if(!r||!r.ok||!r.data){toast((r&&r.msg)||'无效码');return;}
+      var d=r.data;
+      if(d.kind==='DOC'){toast('单据 '+d.doc_no);return;}
+      if(d.kind==='LOC'){toast('库位码：'+d.loc);return;}
+      var hit=-1;
+      for(var i=0;i<LINES.length;i++){
+        if(LINES[i].material_code===d.material||LINES[i].batch_no===d.batch){hit=i;break;}
+      }
+      if(hit<0){toast('该物料不在本次盘点范围');return;}
+      focusIdx=hit;paint();
+      var inp=el('pdList').querySelector('[data-rq="'+hit+'"]');
+      if(inp){inp.focus();inp.select();}
+      toast('定位到第 '+LINES[hit].line_no+' 行：'+d.name);
+    }).catch(function(){toast('查码失败（网络）');});
+  }
+  el('createPdBtn').onclick=function(){
+    var wh=el('whSel').value;
+    if(!wh){toast('请先选仓库');return;}
+    var btn=this;btn.disabled=true;btn.textContent='建任务中…';
+    AppApi.createPd({wh_code:wh,mode:'PDA现场',scope:el('scopeSel').value,handler:'ws'}).then(function(r){
+      btn.disabled=false;btn.textContent='建任务并抓取账面';
+      if(r&&r.ok&&r.data){PD_NO=r.data.pd_no;loadLines();toast('已建任务 '+PD_NO);}
+      else toast('建任务失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){btn.disabled=false;btn.textContent='建任务并抓取账面';toast('网络异常');});
+  };
+  el('pdNewBtn').onclick=function(){PD_NO='';LINES=[];el('pdTaskBar').classList.add('hidden');el('pdSetup').classList.remove('hidden');paint();loadTasks();};
+  el('pdAdjustBtn').onclick=function(){
+    if(!PD_NO)return;
+    if(!LINES.some(function(x){return x.n_qty!=null;})){toast('请先逐行确认实盘数');return;}
+    AppApi.pdAdjust(PD_NO).then(function(r){
+      if(r&&r.ok){
+        var d=r.data||{};
+        toast(d.lines?('已生成 '+d.lines+' 条 TZ 调整单'):'无差异，盘点已关闭');
+        loadLines();
+      }else toast('调账失败：'+((r&&r.msg)||'未知'));
+    }).catch(function(){toast('网络异常');});
+  };
+  if(window.PdaScan&&PdaScan.on){PdaScan.on(onScan);}
+  loadWh();loadTasks();paint();
+})();
+</script>
 </body></html>
