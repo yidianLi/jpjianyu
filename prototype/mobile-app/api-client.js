@@ -118,7 +118,7 @@
     CFG.token=''; location.reload();
   }
 
-  // 移动端仅做扫码+清单确认+现场照片存证,不做OCR;故不提供图片OCR能力(PC端 /ai/ocr 负责识别)
+  // 移动端只做扫码(硬件一维码/二维码)+ 清单确认与登记,不做OCR(PC端 /ai/ocr 负责识别)
 
   window.AppApi = {
     cfg: CFG, renderQ: renderQ, login: login, logout: logout, boot: boot,
@@ -139,7 +139,7 @@
       if(!navigator.onLine){var q=qLoad();q.push({ts:Date.now(),type:'checklist_confirm',payload:payload});qSave(q);return Promise.resolve({ok:true,queued:true,msg:'弱网已保存验收草稿,待同步'});}
       return req('/app/checklists/confirm',{method:'POST',body:payload});
     },
-    // 5.提交(登录账号+照片存证, 离线进队列)
+    // 5.提交(登录账号存证, 离线进队列)
     submit:function(payload){
       if(!navigator.onLine){ var q=qLoad(); q.push({ts:Date.now(),type:'submit',payload:payload}); qSave(q); return Promise.resolve({ok:true,queued:true,msg:'弱网已存草稿, 待同步'}); }
       return req('/app/submit',{method:'POST',body:payload});
@@ -161,25 +161,14 @@
         return {ok:true, msg:'已同步 '+okCount+'/'+q.length+' 条'+(failed.length?('，失败'+failed.length):'')};
       });
     },
-    // 7.现场照片回传(壳拍照→data_url上传→返回可引用URL /uploads/xxx.jpg)
-    uploadPhoto:function(dataUrl){
-      if(!dataUrl)return Promise.resolve({ok:false,msg:'照片为空'});
-      if(!navigator.onLine)return Promise.resolve({ok:false,code:'OFFLINE',msg:'离线,照片待补传'});
-      return req('/app/photos',{method:'POST',body:{data_url:dataUrl}});
-    },
-    // 8.把照片挂到单据附件(doc_attachment,与PC端同一张表;ref=照片URL)
-    addAttachment:function(docNo,ref,kind){
-      if(!docNo||!ref)return Promise.resolve({ok:false,msg:'单据号或照片引用缺失'});
-      return req('/web/docs/'+encodeURIComponent(docNo)+'/attachments',{method:'POST',body:{kind:kind||'照片',ref:ref}});
-    },
-    // 9.扫码头(库位):回传查库位(便于调仓/盘点选源仓库位)
+    // 8.主档(仓库/库位):调仓与盘点选仓用
     warehouses:function(){ return req('/web/masters/warehouses'); },
     locations:function(wh){ return req('/web/masters/locations'+(wh?('?wh_code='+encodeURIComponent(wh)):'')); },
-    // 10.调仓单(DB):建单/列表/接收实收
+    // 9.调仓单(DB):建单/列表/接收实收
     createShip:function(payload){ return req('/app/transfer_ships',{method:'POST',body:payload}); },
     listShips:function(){ return req('/app/transfer_ships'); },
     receiveShip:function(docNo,nQty){ return req('/app/transfer_ships/'+encodeURIComponent(docNo)+'/receive',{method:'PATCH',body:{n_qty:nQty}}); },
-    // 11.盘点任务(PD):建任务/取行/逐行确认/差异调账
+    // 10.盘点任务(PD):建任务/取行/逐行确认/差异调账
     createPd:function(payload){ return req('/app/pd_tasks',{method:'POST',body:payload}); },
     listPd:function(){ return req('/app/pd_tasks'); },
     pdLines:function(pdNo){ return req('/app/pd_tasks/'+encodeURIComponent(pdNo)+'/lines'); },

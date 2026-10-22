@@ -1,47 +1,47 @@
-/* PDA扫码统一桥 pda-scan.js · 键盘楔+广播二合一，screens/scan|data共用
- * 厂家文档无论给哪种：1)扫码键模拟键盘回车 2)安卓广播Intent，只需各配一行
- * 用法：PdaScan.on(function(code,source){...})；广播时厂家调 window.PdaScanFeed(code)
- * 照片：PdaPhoto.on(function(dataUrl,meta){...})；壳调 window.PdaPhotoFeed(dataUrl,meta) */
+/* PDA 扫码统一桥 pda-scan.js · 键盘楔 + 原生广播 二合一
+ * 现场只要扫码(一维码/二维码),两条来源都收:
+ *   1) 键盘楔:扫码键 = 键盘输入 + 回车,聚焦 input[data-scan-input] 即回收
+ *   2) 原生广播:壳收到厂商扫描广播后调 window.PdaScanFeed(code, typeId)
+ * 用法: PdaScan.on(function(code, source, typeId){...})
+ *   source: 'broadcast'(硬件扫描) | 'wedge'(键盘回车) | 'manual'(手工输入)
+ *   typeId: 码制 ID(取自 SDK SymbologyID:3=Code128 4=Code39 10=EAN13 17=QR 19=UPC-A …),-1 未知
+ */
 (function(){
-  var subs=[], photoSubs=[];
-  function emit(raw,source){
+  var subs=[];
+  function symName(id){
+    var m={3:'Code128',4:'Code39',10:'EAN13',19:'UPC-A',20:'UPC-E',8:'DataMatrix',
+           15:'PDF417',17:'QR',48:'汉信码',59:'ITF-14',63:'ITF-25',100:'ALL'};
+    return (id>=0&&m[id])?m[id]:(id>=0?('ID'+id):'未知');
+  }
+  function emit(raw,source,typeId){
     var code=String(raw||'').trim();
     if(!code)return;
     if(navigator.vibrate){try{navigator.vibrate(18);}catch(e){}}
-    subs.forEach(function(fn){try{fn(code,source||'wedge');}catch(e){}});
-    try{document.dispatchEvent(new CustomEvent('pdaScan',{detail:{code:code,source:source||'wedge'}}));}catch(e){}
+    var t=(typeId===undefined||typeId===null)?-1:Number(typeId);
+    subs.forEach(function(fn){try{fn(code,source||'wedge',t);}catch(e){}});
+    try{document.dispatchEvent(new CustomEvent('pdaScan',
+      {detail:{code:code,source:source||'wedge',type:t,sym:symName(t)}}));}catch(e){}
   }
-  // 1) 键盘楔：PDA扫码键=键盘输入+回车，聚焦input[data-scan-input]直接收
+  // 1) 键盘楔:扫码键=键盘输入+回车
   document.addEventListener('keydown',function(e){
     if(e.key!=='Enter')return;
     var el=document.activeElement;
-    if(el&&el.hasAttribute&&el.hasAttribute('data-scan-input')&&el.value.trim()){emit(el.value,'wedge');}
+    if(el&&el.hasAttribute&&el.hasAttribute('data-scan-input')&&el.value.trim()){
+      emit(el.value,'wedge',-1);
+    }
   });
-  // 2) 厂家广播：Intent→WebView时调此函数，路径由厂家文档配一次即可
-  window.PdaScanFeed=function(code){emit(code,'broadcast');};
-  // 3) 拍照回传：壳端 BitmapBytes→data_url→PdaPhotoFeed(dataUrl,meta)
-  function emitPhoto(dataUrl,meta){
-    var u=String(dataUrl||'');
-    if(!u)return;
-    if(navigator.vibrate){try{navigator.vibrate(12);}catch(e){}}
-    var m=meta||{};
-    photoSubs.forEach(function(fn){try{fn(u,m);}catch(e){}});
-    try{document.dispatchEvent(new CustomEvent('pdaPhoto',{detail:{dataUrl:u,meta:m}}));}catch(e){}
-  }
-  window.PdaPhotoFeed=function(dataUrl,meta){emitPhoto(dataUrl,meta);};
+  // 2) 原生广播:壳收到厂商扫描广播后调此函数(code, typeId)
+  window.PdaScanFeed=function(code,typeId){emit(code,'broadcast',typeId);};
   window.PdaScan={
     on:function(fn){if(typeof fn==='function')subs.push(fn);},
     emit:emit,
-    // 扫码框一键绑定：回车或厂家广播都走同一回调
+    symName:symName,
+    // 扫码框一键绑定:硬件广播与键盘回车都走同一回调
     bind:function(input,fn){
       if(typeof input==='string')input=document.querySelector(input);
       if(!input)return;
       input.setAttribute('data-scan-input','');
       if(fn)PdaScan.on(function(code){fn(code);});
     }
-  };
-  window.PdaPhoto={
-    on:function(fn){if(typeof fn==='function')photoSubs.push(fn);},
-    emit:emitPhoto
   };
 })();

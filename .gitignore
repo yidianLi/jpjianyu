@@ -39,6 +39,3 @@ Thumbs.db
 backend/config/.env
 *.pem
 *.key
-backend/uploads/*
-!backend/uploads/.gitkeep
-backend/app/uploads/
