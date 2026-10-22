@@ -33,32 +33,61 @@
     document.getElementById('scanSummary').textContent='库位'+loc+' · 扫码'+list.filter(function(s){return s.ok;}).length+' · 照片'+photos.length+' · 登录账号+照片存证 · PDA-03';
     paintPhotos();
   }
-  // 照片:PDA 壳拍照广播回传(PdaPhotoFeed → PdaPhoto.on),提交时上传并挂为单据附件
+  // 照片:PDA 壳拍照广播回传(PdaPhotoFeed → PdaPhoto.on),提交后上传并挂附件;带进度+失败重试+断网补传
+  var PQ_KEY='wms_photo_q_v1';
+  function pqLoad(){try{var a=JSON.parse(localStorage.getItem(PQ_KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}}
+  function pqSave(){try{localStorage.setItem(PQ_KEY,JSON.stringify(photos.filter(function(p){return p.st!=='done';}).slice(0,6).map(function(p){return {dataUrl:p.dataUrl,meta:p.meta||{},docNo:p.docNo||'',tries:p.tries||0};})));}catch(e){}}
   function paintPhotos(){
     var strip=document.getElementById('photoStrip');
     if(!strip)return;
-    if(!photos.length){strip.innerHTML='<span class="text-[11px] text-slate-400">暂无照片</span>';return;}
-    strip.innerHTML=photos.map(function(p){
-      return '<div class="relative shrink-0"><img src="'+p.dataUrl+'" class="w-16 h-16 object-cover rounded-lg border border-slate-200"><span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-white text-[9px] text-slate-500 grid place-items-center">'+esc(p.st)+'</span></div>';
+    if(!photos.length){strip.innerHTML='<span class="text-[11px] text-slate-400">暂无照片</span>';}
+    else strip.innerHTML=photos.map(function(p,i){
+      var badge='';
+      if(p.st==='done')badge='<span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-emerald-500 text-white text-[9px] grid place-items-center">✓</span>';
+      else if(p.st==='up')badge='<span class="absolute inset-0 bg-black/40 text-white text-[9px] grid place-items-center">上传中</span>';
+      else if(p.st==='fail')badge='<button data-rephoto="'+i+'" class="absolute inset-0 bg-red-500/75 text-white text-[10px] font-bold grid place-items-center">重试</button>';
+      else badge='<span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-slate-400 text-white text-[9px] grid place-items-center">'+(p.tries?('重'+(3-p.tries)):'待')+'</span>';
+      return '<div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200"><img src="'+p.dataUrl+'" class="w-full h-full object-cover">'+badge+'</div>';
     }).join('');
+    strip.querySelectorAll('[data-rephoto]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-rephoto');photos[i].tries=0;uploadOne(photos[i]);};});
+    var done=photos.filter(function(p){return p.st==='done';}).length;
+    var tip=document.getElementById('photoTip');
+    if(tip)tip.textContent=photos.length?('照片 '+done+'/'+photos.length+' 已传'+(photos.length-done?('，待传/重试 '+(photos.length-done)):'')+'；提交时随单据上传'):'扫码头拍照后自动回传；提交时随单据上传并挂为附件';
   }
   function onPhoto(dataUrl,meta){
     if(!dataUrl)return;
-    photos.unshift({dataUrl:dataUrl,meta:meta||{},st:photos.length+1});
-    paint();
+    photos.unshift({dataUrl:dataUrl,meta:meta||{},st:'wait',tries:0,docNo:''});
+    pqSave();paint();
   }
   if(window.PdaPhoto&&PdaPhoto.on){PdaPhoto.on(onPhoto);}
   else{document.addEventListener('pdaPhoto',function(e){onPhoto(e.detail&&e.detail.dataUrl,e.detail&&e.detail.meta);});}
-  function uploadPhotos(docNo){
-    if(!docNo||!photos.length)return;
-    photos.filter(function(p){return p.st!=='已传';}).forEach(function(p){
-      AppApi.uploadPhoto(p.dataUrl).then(function(u){
-        if(u&&u.ok&&u.data&&u.data.url){
-          return AppApi.addAttachment(docNo,u.data.url,'照片').then(function(a){if(a&&a.ok)p.st='已传';});
-        }
-      }).catch(function(){}).then(function(){paint();});
+  function uploadOne(p){
+    if(!p||p.st==='up'||p.st==='done')return;
+    if(!p.docNo){p.st='wait';paint();return;}
+    if(!navigator.onLine){p.st='wait';paint();return;}
+    p.st='up';paint();
+    AppApi.uploadPhoto(p.dataUrl).then(function(u){
+      if(u&&u.ok&&u.data&&u.data.url){
+        return AppApi.addAttachment(p.docNo,u.data.url,'照片').then(function(a){
+          if(a&&a.ok){p.st='done';p.url=u.data.url;}else{p.st='fail';p.msg=(a&&a.msg)||'挂附件失败';}
+        });
+      }
+      p.st='fail';p.msg=(u&&u.msg)||'照片上传失败';
+    }).catch(function(){p.st='fail';p.msg='网络异常';}).then(function(){
+      if(p.st!=='done')p.tries=(p.tries||0)+1;
+      pqSave();paint();
+      if(p.st==='fail'&&p.tries<3){setTimeout(function(){uploadOne(p);},Math.pow(2,p.tries)*1000);}
+      else if(p.st==='fail'&&p.msg){toast('照片:'+p.msg);}
     });
   }
+  function queuePhotos(docNo){
+    if(!photos.length)return;
+    photos.forEach(function(p){if(p.st!=='done')p.docNo=docNo||p.docNo;});
+    pqSave();paint();
+    photos.filter(function(p){return p.st!=='done';}).forEach(uploadOne);
+  }
+  window.addEventListener('online',function(){photos.filter(function(p){return p.st==='wait'&&p.docNo;}).forEach(uploadOne);});
+  (function(){var q=pqLoad();if(q.length){photos=q.map(function(x){return {dataUrl:x.dataUrl,meta:x.meta||{},docNo:x.docNo||'',tries:x.tries||0,st:'wait'};}).concat(photos);paint();if(navigator.onLine)photos.filter(function(p){return p.st==='wait'&&p.docNo;}).forEach(uploadOne);}})();
   document.getElementById('locGo').onclick=function(){
     loc=String(document.getElementById('locCode').value||'').trim()||loc;
     document.getElementById('locTip').textContent='当前库位：'+loc;
@@ -95,7 +124,7 @@
     AppApi.submit(payload()).then(function(r){
       btn.disabled=false;
       if(r&&r.ok){
-        uploadPhotos((r.data&&r.data.doc_no)||'');
+        queuePhotos((r.data&&r.data.doc_no)||'');
         toast(r.queued||(r.data&&r.data.queued)?'已存草稿，待同步':'提交成功 ✓');
       }
       else toast('提交失败：'+((r&&r.msg)||'未知'));

@@ -25,7 +25,7 @@ pda-app/
    H5 无 `PdaScanFeed` 时退化为派发 `pdaScan` 事件 / 写入聚焦输入框。
 
 ## 配置后端地址（二选一）
-- 改 `app/src/main/res/values/strings.xml` 的 `h5_url`（默认占位 `http://192.168.1.10:8080/proto/mobile-app/screens/home.html`）。
+- 改 `app/src/main/res/values/strings.xml` 的 `h5_url`（默认已配 `http://10.8.0.12:8080/proto/mobile-app/screens/home.html`，按现场后端地址改）。
 - 或运行时用 adb 启动参数覆盖（联调最方便，需在 Application 读 KEY；本壳已支持 `-e url`）：
   `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://<PC-IP>:8080/proto/mobile-app/screens/home.html"`
 

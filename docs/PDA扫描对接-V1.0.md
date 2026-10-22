@@ -77,8 +77,9 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 2. 设备回传 `android.bld.scan.action.SEND_IMAGE`，extra `BitmapBytes`(byte[])。
 3. 壳：解码 → 压到长边 ≤1280、JPEG q72 → 存 `getExternalFilesDir("photos")` → 生成 `data:image/jpeg;base64,...`。
 4. 注入 H5 `window.PdaPhotoFeed(dataUrl,{name,size})`；H5 存进 `photos[]`，页面显示缩略图与计数。
-5. 提交后：H5 `POST /app/photos`（data_url）→ 后端落盘返回 URL → `POST /web/docs/{doc_no}/attachments`（kind=照片, ref=URL）挂到单据。
-6. 弱网：照片先留在本地 `photos[]`，`uploadPhoto` 失败不阻断提交，下次提交再传（`AppApi.submit` 已有离线队列机制）。
+5. 提交后：H5 `queuePhotos(doc_no)` 逐张 `POST /app/photos`（data_url）→ 后端落盘返回 URL → `POST /web/docs/{doc_no}/attachments`（kind=照片, ref=URL）挂到单据。
+6. **进度与重试**：每张照片状态 `待传/上传中/已传/失败(重N)`；失败按 2^n 秒退避自动重试至 3 次，仍失败可点缩略图「重试」；照片条显示"已传 x/总 y"。
+7. **断网补传**：未传成功的照片存 `localStorage`（`wms_photo_q_v1`，最多 6 张），联网或下次提交自动补传；不阻断扫码/提交主流程（`AppApi.submit` 亦有离线队列）。
 
 > 后端不引 multipart 依赖（沿用附件"只记引用"口径）：`/app/photos` 只把照片存到 `uploads/` 并给出 URL，业务库仍只存引用。
 
@@ -87,8 +88,8 @@ PDA 端现状是 PWA（`prototype/mobile-app/manifest.json`，`display: standalo
 ## 六、联调步骤
 
 1. 手机与 PC 同网段；后端已起（`http://<PC-IP>:8080`）。
-2. Android Studio 打开 `pda-app`，改 `strings.xml` 的 `h5_url` 后 Run；或 adb：
-   `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://<PC-IP>:8080/proto/mobile-app/screens/home.html"`
+2. Android Studio 打开 `pda-app`，改 `strings.xml` 的 `h5_url`（默认已配 `http://10.8.0.12:8080/proto/mobile-app/screens/home.html`）后 Run；或 adb：
+   `adb shell am start -n com.jianyu.pda/.MainActivity -e url "http://10.8.0.12:8080/proto/mobile-app/screens/home.html"`
 3. `screens/scan.html` 按扫描键 → 出现条码（Toast 回显）；带拍照的机型 → 照片条出现缩略图。
 4. 提交 → 单据生成，后端 `doc_attachment` 出现 kind=照片 的记录，`/uploads/xxx.jpg` 可访问。
 5. 日志过滤：`adb logcat -s PdaShell`。
